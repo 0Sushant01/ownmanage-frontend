@@ -1,52 +1,149 @@
-import { BrowserRouter as Router, Routes, Route } from 'react-router-dom'
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import { AuthProvider } from './context/AuthContext'
+import { ProtectedRoute } from './components/ProtectedRoute'
+import { Layout } from './components/Layout'
 
-function FoundationStatus() {
-  return (
-    <main className="min-h-screen bg-slate-950 text-slate-100 flex flex-col items-center justify-center p-6">
-      <div className="max-w-md w-full bg-slate-900 border border-slate-800 rounded-2xl p-8 shadow-2xl">
-        <div className="flex items-center space-x-3 mb-4">
-          <span className="h-2.5 w-2.5 rounded-full bg-emerald-500 animate-pulse" />
-          <span className="text-xs font-semibold tracking-wider text-emerald-400 uppercase">
-            Foundation Initialized
-          </span>
-        </div>
-
-        <h1 className="text-2xl font-bold text-white tracking-tight mb-2">
-          OwnManage Web Frontend
-        </h1>
-        <p className="text-sm text-slate-400 mb-6">
-          Core technical stack initialized: React, Vite, TypeScript, Tailwind CSS, React Router, and Axios.
-        </p>
-
-        <div className="space-y-2.5 text-xs text-slate-400 border-t border-slate-800 pt-4">
-          <div className="flex justify-between py-1 border-b border-slate-800/50">
-            <span className="text-slate-500">Router</span>
-            <span className="font-mono text-emerald-400">React Router v7</span>
-          </div>
-          <div className="flex justify-between py-1 border-b border-slate-800/50">
-            <span className="text-slate-500">Styling</span>
-            <span className="font-mono text-emerald-400">Tailwind CSS</span>
-          </div>
-          <div className="flex justify-between py-1 border-b border-slate-800/50">
-            <span className="text-slate-500">HTTP Client</span>
-            <span className="font-mono text-emerald-400">Axios Service Configured</span>
-          </div>
-          <div className="flex justify-between py-1">
-            <span className="text-slate-500">Environment</span>
-            <span className="font-mono text-slate-300">VITE_API_BASE_URL</span>
-          </div>
-        </div>
-      </div>
-    </main>
-  )
-}
+// Pages
+import { Login } from './pages/Login'
+import { Activate } from './pages/Activate'
+import { ForgotPassword } from './pages/ForgotPassword'
+import { Dashboard } from './pages/Dashboard'
+import { Businesses } from './pages/Businesses'
+import { BusinessDetail } from './pages/BusinessDetail'
+import { Managers } from './pages/Managers'
+import { Employees } from './pages/Employees'
+import { Attendance } from './pages/Attendance'
+import { Leaves } from './pages/Leaves'
+import { Salary } from './pages/Salary'
+import { Settings } from './pages/Settings'
+import { Profile } from './pages/Profile'
+import { Plans } from './pages/superadmin/Plans'
+import { Brokers } from './pages/superadmin/Brokers'
+import { BrokerDashboard } from './pages/broker/BrokerDashboard'
+import { Referrals } from './pages/broker/Referrals'
+import { Commissions } from './pages/broker/Commissions'
 
 export default function App() {
   return (
     <Router>
-      <Routes>
-        <Route path="/" element={<FoundationStatus />} />
-      </Routes>
+      <AuthProvider>
+        <Routes>
+          {/* Public Auth Routes */}
+          <Route path="/login" element={<Login />} />
+          <Route path="/activate" element={<Activate />} />
+          <Route path="/forgot-password" element={<ForgotPassword />} />
+
+          {/* Protected Application Routes */}
+          <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
+            <Route path="/dashboard" element={<Dashboard />} />
+            
+            {/* SuperAdmin Routes */}
+            <Route
+              path="/businesses"
+              element={
+                <ProtectedRoute allowedRoles={['SUPERADMIN']}>
+                  <Businesses />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/businesses/:id"
+              element={
+                <ProtectedRoute allowedRoles={['SUPERADMIN']}>
+                  <BusinessDetail />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/plans"
+              element={
+                <ProtectedRoute allowedRoles={['SUPERADMIN']}>
+                  <Plans />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/brokers"
+              element={
+                <ProtectedRoute allowedRoles={['SUPERADMIN']}>
+                  <Brokers />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Broker Routes */}
+            <Route
+              path="/broker/dashboard"
+              element={
+                <ProtectedRoute allowedRoles={['BROKER']}>
+                  <BrokerDashboard />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/broker/referrals"
+              element={
+                <ProtectedRoute allowedRoles={['BROKER']}>
+                  <Referrals />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/broker/commissions"
+              element={
+                <ProtectedRoute allowedRoles={['BROKER']}>
+                  <Commissions />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Business Admin Routes */}
+            <Route
+              path="/managers"
+              element={
+                <ProtectedRoute allowedRoles={['BUSINESS_ADMIN', 'SUPERADMIN']}>
+                  <Managers />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/employees"
+              element={
+                <ProtectedRoute allowedRoles={['BUSINESS_ADMIN', 'SUPERADMIN']}>
+                  <Employees />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute allowedRoles={['BUSINESS_ADMIN', 'SUPERADMIN']}>
+                  <Settings />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Manager Routes */}
+            <Route
+              path="/my-staff"
+              element={
+                <ProtectedRoute allowedRoles={['MANAGER']}>
+                  <Employees isStaffOnlyView={true} />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Common Operational Routes */}
+            <Route path="/attendance" element={<Attendance />} />
+            <Route path="/leaves" element={<Leaves />} />
+            <Route path="/salary" element={<Salary />} />
+            <Route path="/profile" element={<Profile />} />
+          </Route>
+
+          {/* Catch-all redirect to Dashboard */}
+          <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        </Routes>
+      </AuthProvider>
     </Router>
   )
 }

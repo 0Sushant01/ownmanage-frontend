@@ -1,37 +1,44 @@
-import axios, { type AxiosInstance } from 'axios'
+import axios, { type AxiosInstance, type InternalAxiosRequestConfig } from 'axios'
 
 /**
  * Centralized Axios API client instance for OwnManage Frontend.
- * Base URL is dynamically read from Vite environment variables.
+ * Attaches JWT Bearer token and active business header.
  */
-const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || ''
+const apiBaseUrl = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api/v1'
 
 export const apiClient: AxiosInstance = axios.create({
   baseURL: apiBaseUrl,
-  timeout: 10000,
+  timeout: 15000,
   headers: {
     'Content-Type': 'application/json',
     Accept: 'application/json',
   },
 })
 
-// Request interceptor placeholder for future authentication token attachment
 apiClient.interceptors.request.use(
-  (config) => {
-    // Auth token will be attached here in future authentication milestone
+  (config: InternalAxiosRequestConfig) => {
+    const token = localStorage.getItem('ownmanage_access_token')
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`
+    }
+    const bizId = localStorage.getItem('ownmanage_selected_business_id')
+    if (bizId) {
+      config.headers['X-Business-ID'] = bizId
+    }
     return config
   },
-  (error) => {
-    return Promise.reject(error)
-  }
+  (error) => Promise.reject(error)
 )
 
-// Response interceptor placeholder for future centralized error handling
 apiClient.interceptors.response.use(
-  (response) => {
-    return response
-  },
+  (response) => response,
   (error) => {
+    if (error.response?.status === 401 && !window.location.pathname.includes('/login')) {
+      localStorage.removeItem('ownmanage_access_token')
+      localStorage.removeItem('ownmanage_refresh_token')
+      localStorage.removeItem('ownmanage_user')
+      window.location.href = '/login'
+    }
     return Promise.reject(error)
   }
 )
