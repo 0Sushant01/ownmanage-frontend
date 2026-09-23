@@ -218,3 +218,108 @@ export interface Branch {
 }
 
 export type Centre = Branch
+
+export interface PeriodRange {
+  key: string
+  start_date: string
+  end_date: string
+}
+
+export interface KPIMetrics {
+  total_businesses: number
+  new_businesses: number
+  business_growth_pct: number
+  active_businesses: number
+  active_pct: number
+  total_employees: number
+  employee_growth_pct: number
+  subscription_revenue: number
+  revenue_growth_pct: number
+  paid_subscriptions: number
+  paid_pct: number
+  payment_due_count: number
+  payment_due_amount: number
+}
+
+export interface GrowthChartPoint {
+  month: string
+  total: number
+  new: number
+  active: number
+  churned: number
+}
+
+export interface RevenueChartPoint {
+  month: string
+  total_revenue: number
+  paid_amount: number
+  pending_amount: number
+}
+
+export interface SubscriptionStatusItem {
+  key: string
+  label: string
+  count: number
+  percentage: number
+}
+
+export interface StatusBreakdown {
+  statuses: SubscriptionStatusItem[]
+  paid_revenue: number
+  pending_revenue: number
+}
+
+export interface PlanDistributionItem {
+  id: string
+  name: string
+  monthly_charge: number
+  max_centres: number
+  total_capacity: number
+  businesses_count: number
+  active_count: number
+  paid_count: number
+  revenue: number
+}
+
+export interface BrokerPerformanceItem {
+  id: string
+  name: string
+  referral_code: string
+  commission_rate: number
+  referred_businesses: number
+  active_businesses: number
+  total_revenue: number
+  commissions_paid: number
+  commissions_pending: number
+}
+
+export interface ActionRequiredAlerts {
+  payments_overdue_count: number
+  payments_overdue_amount: number
+  subscriptions_expiring_soon: number
+  businesses_suspended: number
+  commissions_pending_count: number
+  commissions_pending_amount: number
+  trials_count: number
+}
+
+export interface RecentActivityItem {
+  id: string
+  type: string
+  title: string
+  description: string
+  timestamp: string
+  status_color: string
+}
+
+export interface SuperAdminAnalyticsData {
+  period: PeriodRange
+  kpis: KPIMetrics
+  growth_chart: GrowthChartPoint[]
+  revenue_chart: RevenueChartPoint[]
+  status_breakdown: StatusBreakdown
+  plan_distribution: PlanDistributionItem[]
+  broker_performance: BrokerPerformanceItem[]
+  action_required: ActionRequiredAlerts
+  recent_activity: RecentActivityItem[]
+}

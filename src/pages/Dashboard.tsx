@@ -3,6 +3,7 @@ import { Link, Navigate } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
 import apiClient from '../services/api'
 import { SubscriptionUsageWidget } from '../components/SubscriptionUsageWidget'
+import { SuperAdminDashboard } from './superadmin/SuperAdminDashboard'
 
 interface Stats {
   total_businesses?: number
@@ -21,6 +22,8 @@ export const Dashboard: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
+    if (role === 'SUPERADMIN' || role === 'BROKER') return
+
     const fetchStats = async () => {
       try {
         setLoading(true)
@@ -34,10 +37,14 @@ export const Dashboard: React.FC = () => {
     }
 
     fetchStats()
-  }, [])
+  }, [role])
 
   if (role === 'BROKER') {
     return <Navigate to="/broker/dashboard" replace />
+  }
+
+  if (role === 'SUPERADMIN') {
+    return <SuperAdminDashboard />
   }
 
   return (
@@ -55,35 +62,11 @@ export const Dashboard: React.FC = () => {
             Welcome back, {user?.first_name || 'Admin'}
           </h1>
           <p className="text-sm text-slate-400">
-            {role === 'SUPERADMIN'
-              ? 'Platform Administrator Dashboard — Multi-business control center'
-              : `${business?.name || 'Company'} — Real-time attendance & staff overview`}
+            {business?.name || 'Company'} — Real-time attendance & staff overview
           </p>
         </div>
 
         <div className="flex items-center space-x-3">
-          {role === 'SUPERADMIN' && (
-            <>
-              <Link
-                to="/plans"
-                className="bg-purple-600 hover:bg-purple-500 text-white font-semibold text-xs px-4 py-2.5 rounded-xl transition shadow-lg shadow-purple-600/10"
-              >
-                Commercial Plans
-              </Link>
-              <Link
-                to="/brokers"
-                className="bg-amber-500 hover:bg-amber-400 text-slate-950 font-semibold text-xs px-4 py-2.5 rounded-xl transition shadow-lg shadow-amber-500/10"
-              >
-                Partners & Brokers
-              </Link>
-              <Link
-                to="/businesses"
-                className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-xs px-4 py-2.5 rounded-xl transition shadow-lg shadow-emerald-500/10"
-              >
-                Manage Businesses
-              </Link>
-            </>
-          )}
           {role === 'BUSINESS_ADMIN' && (
             <Link
               to="/employees"
@@ -113,32 +96,6 @@ export const Dashboard: React.FC = () => {
       ) : error ? (
         <div className="bg-rose-950/40 border border-rose-900 text-rose-300 text-sm p-4 rounded-xl">
           {error}
-        </div>
-      ) : role === 'SUPERADMIN' ? (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
-            <span className="text-xs font-semibold uppercase text-slate-400 tracking-wider">Total Businesses</span>
-            <div className="text-3xl font-extrabold text-white mt-2">{stats?.total_businesses ?? 0}</div>
-            <span className="text-[11px] text-slate-500 mt-1 block">Registered tenants</span>
-          </div>
-
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
-            <span className="text-xs font-semibold uppercase text-slate-400 tracking-wider">Active Businesses</span>
-            <div className="text-3xl font-extrabold text-emerald-400 mt-2">{stats?.active_businesses ?? 0}</div>
-            <span className="text-[11px] text-slate-500 mt-1 block">Operational tenants</span>
-          </div>
-
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
-            <span className="text-xs font-semibold uppercase text-slate-400 tracking-wider">Total Managers</span>
-            <div className="text-3xl font-extrabold text-blue-400 mt-2">{stats?.total_managers ?? 0}</div>
-            <span className="text-[11px] text-slate-500 mt-1 block">Across all companies</span>
-          </div>
-
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg">
-            <span className="text-xs font-semibold uppercase text-slate-400 tracking-wider">Active Staff</span>
-            <div className="text-3xl font-extrabold text-purple-400 mt-2">{stats?.total_employees ?? 0}</div>
-            <span className="text-[11px] text-slate-500 mt-1 block">Platform-wide employees</span>
-          </div>
         </div>
       ) : (
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -178,22 +135,7 @@ export const Dashboard: React.FC = () => {
         <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
           <h3 className="text-base font-bold text-white mb-4">Quick Navigation</h3>
           <div className="grid grid-cols-2 gap-3 text-sm">
-            {role === 'SUPERADMIN' ? (
-              <>
-                <Link to="/businesses" className="p-3 bg-slate-950 border border-slate-800 hover:border-emerald-500/50 rounded-xl transition text-slate-300">
-                  🏢 Businesses Directory
-                </Link>
-                <Link to="/plans" className="p-3 bg-slate-950 border border-slate-800 hover:border-purple-500/50 rounded-xl transition text-slate-300">
-                  🏷️ Commercial Plans
-                </Link>
-                <Link to="/brokers" className="p-3 bg-slate-950 border border-slate-800 hover:border-amber-500/50 rounded-xl transition text-slate-300">
-                  🤝 Broker Partners
-                </Link>
-                <Link to="/profile" className="p-3 bg-slate-950 border border-slate-800 hover:border-emerald-500/50 rounded-xl transition text-slate-300">
-                  👤 Administrator Profile
-                </Link>
-              </>
-            ) : role === 'BUSINESS_ADMIN' ? (
+            {role === 'BUSINESS_ADMIN' ? (
               <>
                 <Link to="/employees" className="p-3 bg-slate-950 border border-slate-800 hover:border-emerald-500/50 rounded-xl transition text-slate-300">
                   👥 Employee Directory

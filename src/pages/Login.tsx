@@ -35,7 +35,7 @@ export const Login: React.FC = () => {
 
   const fillCredentials = (userEmail: string) => {
     setEmail(userEmail)
-    setPassword('Dev@123456')
+    setPassword('123456')
     setError(null)
   }
 
