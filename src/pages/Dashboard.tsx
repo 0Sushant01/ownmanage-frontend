@@ -129,75 +129,7 @@ export const Dashboard: React.FC = () => {
 
       {/* Subscription Usage & Capacity Widget */}
       {role === 'BUSINESS_ADMIN' && <SubscriptionUsageWidget />}
-
-      {/* Quick Access Panels */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-          <h3 className="text-base font-bold text-white mb-4">Quick Navigation</h3>
-          <div className="grid grid-cols-2 gap-3 text-sm">
-            {role === 'BUSINESS_ADMIN' ? (
-              <>
-                <Link to="/employees" className="p-3 bg-slate-950 border border-slate-800 hover:border-emerald-500/50 rounded-xl transition text-slate-300">
-                  👥 Employee Directory
-                </Link>
-                <Link to="/managers" className="p-3 bg-slate-950 border border-slate-800 hover:border-emerald-500/50 rounded-xl transition text-slate-300">
-                  👔 Manager Roster
-                </Link>
-                <Link to="/attendance" className="p-3 bg-slate-950 border border-slate-800 hover:border-emerald-500/50 rounded-xl transition text-slate-300">
-                  ⏱️ Attendance History
-                </Link>
-                <Link to="/leaves" className="p-3 bg-slate-950 border border-slate-800 hover:border-emerald-500/50 rounded-xl transition text-slate-300">
-                  🏖️ Leave Requests
-                </Link>
-                <Link to="/salary" className="p-3 bg-slate-950 border border-slate-800 hover:border-emerald-500/50 rounded-xl transition text-slate-300">
-                  💳 Salary & Payroll
-                </Link>
-                <Link to="/settings" className="p-3 bg-slate-950 border border-slate-800 hover:border-emerald-500/50 rounded-xl transition text-slate-300">
-                  ⚙️ Business Settings
-                </Link>
-              </>
-            ) : (
-              <>
-                <Link to="/my-staff" className="p-3 bg-slate-950 border border-slate-800 hover:border-emerald-500/50 rounded-xl transition text-slate-300">
-                  👥 My Assigned Staff
-                </Link>
-                <Link to="/attendance" className="p-3 bg-slate-950 border border-slate-800 hover:border-emerald-500/50 rounded-xl transition text-slate-300">
-                  ⏱️ Staff Attendance
-                </Link>
-                <Link to="/leaves" className="p-3 bg-slate-950 border border-slate-800 hover:border-emerald-500/50 rounded-xl transition text-slate-300">
-                  🏖️ Leave Requests
-                </Link>
-                <Link to="/salary" className="p-3 bg-slate-950 border border-slate-800 hover:border-emerald-500/50 rounded-xl transition text-slate-300">
-                  💳 Staff Salaries
-                </Link>
-              </>
-            )}
-          </div>
-        </div>
-
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col justify-between">
-          <div>
-            <h3 className="text-base font-bold text-white mb-2">System Status</h3>
-            <p className="text-sm text-slate-400 mb-4">
-              All multi-tenant database partitions, JWT authentication, and permission guards are operational.
-            </p>
-            <div className="space-y-2 text-xs">
-              <div className="flex justify-between py-1.5 border-b border-slate-800">
-                <span className="text-slate-400">Database Engine</span>
-                <span className="font-mono text-emerald-400">Supabase PostgreSQL 17</span>
-              </div>
-              <div className="flex justify-between py-1.5 border-b border-slate-800">
-                <span className="text-slate-400">Tenant Protection</span>
-                <span className="font-mono text-emerald-400">Queryset Scoped</span>
-              </div>
-              <div className="flex justify-between py-1.5">
-                <span className="text-slate-400">Active Timezone</span>
-                <span className="font-mono text-slate-300">{business?.name ? 'Asia/Kolkata' : 'UTC'}</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   )
 }
+

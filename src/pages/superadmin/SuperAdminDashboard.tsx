@@ -28,6 +28,28 @@ export const SuperAdminDashboard: React.FC = () => {
   const [hoveredGrowthIdx, setHoveredGrowthIdx] = useState<number | null>(null)
   const [hoveredRevIdx, setHoveredRevIdx] = useState<number | null>(null)
 
+  // Subscribers Modal Drilldown
+  const [selectedPlanForSubs, setSelectedPlanForSubs] = useState<{ id: string; name: string } | null>(null)
+  const [subscribersData, setSubscribersData] = useState<any | null>(null)
+  const [loadingSubs, setLoadingSubs] = useState(false)
+  const [subsError, setSubsError] = useState<string | null>(null)
+
+  const openSubscribersModal = async (plan: { id: string; name: string }) => {
+    setSelectedPlanForSubs(plan)
+    setSubscribersData(null)
+    setSubsError(null)
+    setLoadingSubs(true)
+
+    try {
+      const res = await apiClient.get(`/plans/${plan.id}/subscribers/`)
+      setSubscribersData(res.data)
+    } catch (err: any) {
+      setSubsError(err.response?.data?.detail || 'Failed to load subscriber businesses.')
+    } finally {
+      setLoadingSubs(false)
+    }
+  }
+
   const fetchAnalytics = async () => {
     try {
       setLoading(true)
@@ -561,79 +583,83 @@ export const SuperAdminDashboard: React.FC = () => {
               <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Businesses</span>
               <div className="text-3xl font-extrabold text-white mt-1.5">{kpis?.total_businesses ?? 0}</div>
             </div>
-            <div className="mt-3 flex items-center justify-between text-xs">
-              <span className={`font-semibold ${((kpis?.business_growth_pct ?? 0) >= 0) ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {((kpis?.business_growth_pct ?? 0) >= 0) ? '↑' : '↓'} {Math.abs(kpis?.business_growth_pct ?? 0)}%
-              </span>
-              <span className="text-[11px] text-slate-500 font-mono">+{kpis?.new_businesses ?? 0} new</span>
+            <div className="mt-3 text-xs text-slate-400">
+              <span className="text-emerald-400 font-semibold">{kpis?.active_businesses ?? 0}</span> active ·{' '}
+              <span className="text-slate-500">{kpis?.inactive_businesses ?? 0} inactive</span>
+              <div className="text-[11px] text-slate-500 mt-0.5">({kpis?.active_pct ?? 0}% operational)</div>
             </div>
           </div>
 
-          {/* Card 2: Active Businesses */}
+          {/* Card 2: Active Subscriptions */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col justify-between hover:border-slate-700 transition">
             <div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Active Businesses</span>
-              <div className="text-3xl font-extrabold text-emerald-400 mt-1.5">{kpis?.active_businesses ?? 0}</div>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Active Subscriptions</span>
+              <div className="text-3xl font-extrabold text-emerald-400 mt-1.5">
+                {kpis?.active_subscriptions ?? kpis?.paid_subscriptions ?? 0}
+              </div>
             </div>
-            <div className="mt-3 flex items-center justify-between text-xs">
-              <span className="text-emerald-400 font-semibold">{kpis?.active_pct ?? 0}%</span>
-              <span className="text-[11px] text-slate-500">operational</span>
+            <div className="mt-3 text-xs text-slate-400">
+              <span className="text-amber-400 font-semibold">{kpis?.expiring_soon_subscriptions ?? 0}</span> expiring soon
+              <div className="text-[11px] text-slate-500 mt-0.5">{kpis?.expired_subscriptions ?? 0} expired accounts</div>
             </div>
           </div>
 
           {/* Card 3: Platform Employees */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col justify-between hover:border-slate-700 transition">
             <div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Platform Employees</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Total Employees</span>
               <div className="text-3xl font-extrabold text-blue-400 mt-1.5">
                 {(kpis?.total_employees ?? 0).toLocaleString()}
               </div>
             </div>
-            <div className="mt-3 flex items-center justify-between text-xs">
-              <span className={`font-semibold ${((kpis?.employee_growth_pct ?? 0) >= 0) ? 'text-emerald-400' : 'text-rose-400'}`}>
-                {((kpis?.employee_growth_pct ?? 0) >= 0) ? '↑' : '↓'} {Math.abs(kpis?.employee_growth_pct ?? 0)}%
-              </span>
-              <span className="text-[11px] text-slate-500">across centres</span>
+            <div className="mt-3 text-xs text-slate-400">
+              <span className="text-emerald-400 font-semibold">{kpis?.active_employees ?? 0}</span> active staff
+              <div className="text-[11px] text-slate-500 mt-0.5">{kpis?.inactive_employees ?? 0} archived across centres</div>
             </div>
           </div>
 
-          {/* Card 4: Subscription Revenue */}
+          {/* Card 4: Monthly Revenue */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col justify-between hover:border-slate-700 transition">
             <div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Subscription Rev</span>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Monthly Revenue</span>
               <div className="text-2xl font-extrabold text-purple-400 mt-1.5 truncate">
-                {formatINR(kpis?.subscription_revenue)}
+                {formatINR(kpis?.monthly_revenue ?? kpis?.subscription_revenue)}
               </div>
             </div>
-            <div className="mt-3 flex items-center justify-between text-xs">
+            <div className="mt-3 text-xs text-slate-400">
               <span className={`font-semibold ${((kpis?.revenue_growth_pct ?? 0) >= 0) ? 'text-emerald-400' : 'text-rose-400'}`}>
                 {((kpis?.revenue_growth_pct ?? 0) >= 0) ? '↑' : '↓'} {Math.abs(kpis?.revenue_growth_pct ?? 0)}%
-              </span>
-              <span className="text-[11px] text-slate-500">collected</span>
+              </span>{' '}
+              vs last month
+              <div className="text-[11px] text-slate-500 mt-0.5">collected this period</div>
             </div>
           </div>
 
-          {/* Card 5: Paid Subscriptions */}
+          {/* Card 5: Pending Payments */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col justify-between hover:border-slate-700 transition">
             <div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Paid Accounts</span>
-              <div className="text-3xl font-extrabold text-emerald-400 mt-1.5">{kpis?.paid_subscriptions ?? 0}</div>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Pending Payments</span>
+              <div className="text-2xl font-extrabold text-amber-400 mt-1.5 truncate">
+                {formatINR(kpis?.payment_due_amount)}
+              </div>
             </div>
-            <div className="mt-3 flex items-center justify-between text-xs">
-              <span className="text-emerald-400 font-semibold">{kpis?.paid_pct ?? 0}%</span>
-              <span className="text-[11px] text-slate-500">of businesses</span>
+            <div className="mt-3 text-xs text-slate-400">
+              <span className="text-amber-400 font-bold">{kpis?.payment_due_businesses_count ?? kpis?.payment_due_count ?? 0}</span> businesses
+              <div className="text-[11px] text-slate-500 mt-0.5">overdue / pending billing</div>
             </div>
           </div>
 
-          {/* Card 6: Payment Due */}
+          {/* Card 6: Broker Commission Payable */}
           <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-lg flex flex-col justify-between hover:border-slate-700 transition">
             <div>
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Payment Due</span>
-              <div className="text-3xl font-extrabold text-amber-400 mt-1.5">{kpis?.payment_due_count ?? 0}</div>
+              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Broker Commissions</span>
+              <div className="text-2xl font-extrabold text-rose-400 mt-1.5 truncate">
+                {formatINR(kpis?.broker_commission_payable)}
+              </div>
             </div>
-            <div className="mt-3 flex items-center justify-between text-xs">
-              <span className="text-amber-400 font-medium truncate">{formatINR(kpis?.payment_due_amount)}</span>
-              <span className="text-[11px] text-slate-500">pending</span>
+            <div className="mt-3 text-xs text-slate-400">
+              <span className="text-rose-300 font-bold">{kpis?.broker_commission_payable_count ?? 0}</span> partners
+              <div className="text-[11px] text-slate-500 mt-0.5">awaiting commission payout</div>
             </div>
           </div>
         </div>
@@ -780,12 +806,91 @@ export const SuperAdminDashboard: React.FC = () => {
         </div>
       </div>
 
-      {/* Row: Commercial Plan Distribution Table */}
+      {/* Row: Subscriptions Expiring Soon (Section 10 Urgency Table) */}
+      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
+        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+          <div>
+            <div className="flex items-center space-x-2">
+              <span className="text-base">⏳</span>
+              <h2 className="text-base font-bold text-white">Subscriptions Expiring Soon (Next 30 Days)</h2>
+            </div>
+            <p className="text-xs text-slate-400 mt-0.5">
+              Tenants nearing subscription expiration sorted by renewal urgency (Critical: 0-3d, Warning: 4-7d, Upcoming: 8-30d).
+            </p>
+          </div>
+          <Link to="/businesses" className="text-xs text-emerald-400 hover:text-emerald-300 font-semibold">
+            View All Businesses →
+          </Link>
+        </div>
+
+        {(!data?.expiring_subscriptions || data.expiring_subscriptions.length === 0) ? (
+          <div className="p-8 text-center text-xs text-slate-500">
+            No subscriptions are expiring within the next 30 days. All active enterprise tenants are in good standing.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-slate-950 text-slate-400 font-mono uppercase text-[10px]">
+                <tr>
+                  <th className="p-3">Enterprise Tenant</th>
+                  <th className="p-3">Commercial Plan</th>
+                  <th className="p-3">Expiration Date</th>
+                  <th className="p-3">Days Remaining</th>
+                  <th className="p-3">Urgency Tier</th>
+                  <th className="p-3 text-right">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                {data.expiring_subscriptions.map((sub) => {
+                  const urgencyBadge = {
+                    critical: 'bg-rose-950/80 text-rose-300 border border-rose-800 animate-pulse',
+                    warning: 'bg-amber-950/80 text-amber-300 border border-amber-800',
+                    upcoming: 'bg-blue-950/80 text-blue-300 border border-blue-800',
+                  }[sub.urgency] || 'bg-slate-800 text-slate-300'
+
+                  return (
+                    <tr key={sub.id} className="hover:bg-slate-800/30 transition">
+                      <td className="p-3">
+                        <div className="font-semibold text-white">{sub.business_name}</div>
+                        <div className="text-[11px] text-slate-500 font-mono">{sub.business_email}</div>
+                      </td>
+                      <td className="p-3">
+                        <span className="px-2 py-0.5 rounded-md bg-purple-950/80 border border-purple-800 text-purple-300 font-medium">
+                          {sub.plan_name}
+                        </span>
+                      </td>
+                      <td className="p-3 font-mono text-slate-300">{sub.expiry_date}</td>
+                      <td className="p-3 font-mono font-bold text-white">
+                        {sub.days_remaining} {sub.days_remaining === 1 ? 'day' : 'days'}
+                      </td>
+                      <td className="p-3">
+                        <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase ${urgencyBadge}`}>
+                          {sub.urgency}
+                        </span>
+                      </td>
+                      <td className="p-3 text-right">
+                        <Link
+                          to={`/businesses/${sub.business_id}`}
+                          className="px-3 py-1.5 rounded-lg bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-400 font-semibold transition"
+                        >
+                          Manage →
+                        </Link>
+                      </td>
+                    </tr>
+                  )
+                })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* Row: Commercial Plan Distribution Table with Subscriber Drilldown */}
       <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
         <div className="flex items-center justify-between">
           <div>
             <h2 className="text-base font-bold text-white">Commercial Plan Distribution</h2>
-            <span className="text-xs text-slate-400">Enterprise adoption, center entitlements, and revenue per tier</span>
+            <span className="text-xs text-slate-400">Enterprise adoption, center entitlements, and subscriber drilldowns</span>
           </div>
           <Link to="/plans" className="text-xs text-purple-400 hover:text-purple-300 font-semibold">
             Edit Pricing Plans →
@@ -810,14 +915,24 @@ export const SuperAdminDashboard: React.FC = () => {
               {data?.plan_distribution.map((plan) => (
                 <tr key={plan.id} className="hover:bg-slate-800/30 transition">
                   <td className="py-3 px-3 font-semibold text-white">
-                    <span className="px-2 py-0.5 bg-purple-950/80 border border-purple-800/60 rounded-md text-purple-300">
-                      {plan.name}
-                    </span>
+                    <button
+                      onClick={() => openSubscribersModal(plan)}
+                      className="px-2 py-0.5 bg-purple-950/80 hover:bg-purple-900 border border-purple-800/60 rounded-md text-purple-300 transition text-left"
+                    >
+                      {plan.name} ↗
+                    </button>
                   </td>
                   <td className="py-3 px-3 font-mono text-slate-300">{formatINR(plan.monthly_charge)}</td>
                   <td className="py-3 px-3 text-slate-400">{plan.max_centres} branches</td>
                   <td className="py-3 px-3 text-slate-400">{plan.total_capacity} seats</td>
-                  <td className="py-3 px-3 font-bold text-white">{plan.businesses_count}</td>
+                  <td className="py-3 px-3 font-bold text-white">
+                    <button
+                      onClick={() => openSubscribersModal(plan)}
+                      className="text-purple-400 hover:text-purple-300 font-bold underline"
+                    >
+                      {plan.businesses_count}
+                    </button>
+                  </td>
                   <td className="py-3 px-3 text-emerald-400">{plan.active_count}</td>
                   <td className="py-3 px-3 text-blue-400 font-semibold">{plan.paid_count}</td>
                   <td className="py-3 px-3 text-right font-mono font-bold text-emerald-400">
@@ -1016,6 +1131,103 @@ export const SuperAdminDashboard: React.FC = () => {
           })}
         </div>
       </div>
+
+      {/* Plan Subscribers Modal Drilldown */}
+      {selectedPlanForSubs && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-2xl rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl space-y-4">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <div>
+                <h2 className="text-lg font-bold text-white">
+                  Subscribers of {selectedPlanForSubs.name}
+                </h2>
+                <p className="text-xs text-slate-400">
+                  Businesses enrolled in this commercial tier.
+                </p>
+              </div>
+              <button
+                onClick={() => setSelectedPlanForSubs(null)}
+                className="text-slate-400 hover:text-white text-lg font-bold"
+              >
+                ✕
+              </button>
+            </div>
+
+            {subsError && (
+              <div className="rounded-xl border border-rose-800 bg-rose-950/40 p-3 text-xs text-rose-300">
+                {subsError}
+              </div>
+            )}
+
+            {loadingSubs ? (
+              <div className="flex h-40 items-center justify-center">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-purple-500 border-t-transparent" />
+              </div>
+            ) : (!subscribersData?.subscribers || subscribersData.subscribers.length === 0) ? (
+              <div className="p-8 text-center text-xs text-slate-500">
+                No businesses are currently subscribed to this tier.
+              </div>
+            ) : (
+              <div className="max-h-96 overflow-y-auto space-y-2">
+                <table className="w-full text-left text-xs">
+                  <thead className="bg-slate-950 text-slate-400 font-mono uppercase text-[10px]">
+                    <tr>
+                      <th className="p-3">Business</th>
+                      <th className="p-3">Status</th>
+                      <th className="p-3">Active Seats</th>
+                      <th className="p-3">Days Left</th>
+                      <th className="p-3 text-right">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                    {subscribersData.subscribers.map((sub: any) => (
+                      <tr key={sub.business_id} className="hover:bg-slate-800/40">
+                        <td className="p-3">
+                          <div className="font-semibold text-white">{sub.business_name}</div>
+                          <div className="text-[11px] text-slate-500 font-mono">{sub.business_email}</div>
+                        </td>
+                        <td className="p-3">
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-semibold ${
+                            sub.status === 'ACTIVE_PAID' || sub.status === 'TRIAL'
+                              ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800'
+                              : 'bg-amber-950/60 text-amber-400 border border-amber-800'
+                          }`}>
+                            {sub.status}
+                          </span>
+                        </td>
+                        <td className="p-3 font-mono text-emerald-400 font-bold">
+                          {sub.active_employees} seats
+                        </td>
+                        <td className="p-3 font-mono">
+                          {sub.days_remaining !== null ? `${sub.days_remaining}d` : '—'}
+                        </td>
+                        <td className="p-3 text-right">
+                          <Link
+                            to={`/businesses/${sub.business_id}`}
+                            className="text-purple-400 hover:text-purple-300 font-semibold"
+                          >
+                            View →
+                          </Link>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+
+            <div className="flex justify-end pt-3 border-t border-slate-800">
+              <button
+                type="button"
+                onClick={() => setSelectedPlanForSubs(null)}
+                className="rounded-xl border border-slate-800 bg-slate-950 px-4 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

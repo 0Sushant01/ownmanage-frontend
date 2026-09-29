@@ -17,13 +17,22 @@ export const apiClient: AxiosInstance = axios.create({
 
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
-    const token = localStorage.getItem('ownmanage_access_token')
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`
-    }
-    const bizId = localStorage.getItem('ownmanage_selected_business_id')
-    if (bizId) {
-      config.headers['X-Business-ID'] = bizId
+    const url = config.url || ''
+    const isPublicAuth =
+      url.includes('/auth/login') ||
+      url.includes('/auth/forgot-password') ||
+      url.includes('/auth/verify-otp') ||
+      url.includes('/auth/activate')
+
+    if (!isPublicAuth) {
+      const token = localStorage.getItem('ownmanage_access_token')
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+      }
+      const bizId = localStorage.getItem('ownmanage_selected_business_id')
+      if (bizId) {
+        config.headers['X-Business-ID'] = bizId
+      }
     }
     return config
   },
