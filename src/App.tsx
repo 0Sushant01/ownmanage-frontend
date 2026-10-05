@@ -22,6 +22,10 @@ import { Brokers } from './pages/superadmin/Brokers'
 import { BrokerDashboard } from './pages/broker/BrokerDashboard'
 import { Referrals } from './pages/broker/Referrals'
 import { Commissions } from './pages/broker/Commissions'
+import { AttendancePolicies } from './pages/AttendancePolicies'
+import { ManagerAccessControl } from './pages/ManagerAccessControl'
+import { Holidays } from './pages/Holidays'
+import { PayrollRuns } from './pages/PayrollRuns'
 
 export default function App() {
   return (
@@ -129,6 +133,40 @@ export default function App() {
               element={
                 <ProtectedRoute allowedRoles={['MANAGER']}>
                   <Employees isStaffOnlyView={true} />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Attendance Policies */}
+            <Route path="/attendance/policies" element={<AttendancePolicies />} />
+
+            {/* Manager Access Control */}
+            <Route
+              path="/managers/access-control"
+              element={
+                <ProtectedRoute allowedRoles={['BUSINESS_ADMIN', 'SUPERADMIN']}>
+                  <ManagerAccessControl />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/managers/:id/access-control"
+              element={
+                <ProtectedRoute allowedRoles={['BUSINESS_ADMIN', 'SUPERADMIN']}>
+                  <ManagerAccessControl />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Holidays Calendar */}
+            <Route path="/holidays" element={<Holidays />} />
+
+            {/* Payroll Runs */}
+            <Route
+              path="/payroll/runs"
+              element={
+                <ProtectedRoute allowedRoles={['BUSINESS_ADMIN', 'SUPERADMIN']}>
+                  <PayrollRuns />
                 </ProtectedRoute>
               }
             />

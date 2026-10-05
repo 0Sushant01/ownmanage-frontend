@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import apiClient from '../services/api'
 import { useAuth } from '../context/AuthContext'
+import { CentreSelector } from '../components/CentreSelector'
 import type { Payroll } from '../types'
 
 export const Salary: React.FC = () => {
@@ -10,6 +11,7 @@ export const Salary: React.FC = () => {
   const [error, setError] = useState<string | null>(null)
 
   // Filters
+  const [selectedCentre, setSelectedCentre] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState('')
   const [periodStart, setPeriodStart] = useState('')
 
@@ -20,6 +22,7 @@ export const Salary: React.FC = () => {
     try {
       setLoading(true)
       const params: Record<string, string> = {}
+      if (selectedCentre && selectedCentre !== 'all') params.centre_id = selectedCentre
       if (statusFilter) params.status = statusFilter
       if (periodStart) params.period_start = periodStart
 
@@ -35,7 +38,7 @@ export const Salary: React.FC = () => {
 
   useEffect(() => {
     loadPayrolls()
-  }, [statusFilter, periodStart])
+  }, [selectedCentre, statusFilter, periodStart])
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -68,6 +71,14 @@ export const Salary: React.FC = () => {
 
       {/* Filter Bar */}
       <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center gap-4">
+        <div>
+          <CentreSelector
+            value={selectedCentre}
+            onChange={(val: string) => setSelectedCentre(val)}
+            showAllOption={true}
+          />
+        </div>
+
         <div className="flex items-center space-x-2">
           <label className="text-xs text-slate-400 font-medium">Status:</label>
           <select

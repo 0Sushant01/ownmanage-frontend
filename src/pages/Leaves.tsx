@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import apiClient from '../services/api'
 import { useAuth } from '../context/AuthContext'
+import { CentreSelector } from '../components/CentreSelector'
 import type { LeaveRequest, LeaveType } from '../types'
 
 export const Leaves: React.FC = () => {
@@ -10,6 +11,7 @@ export const Leaves: React.FC = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState('')
+  const [selectedCentre, setSelectedCentre] = useState<string>('all')
 
   // Apply Leave Modal
   const [showApplyModal, setShowApplyModal] = useState(false)
@@ -47,6 +49,7 @@ export const Leaves: React.FC = () => {
       setLoading(true)
       const params: Record<string, string> = {}
       if (statusFilter) params.status = statusFilter
+      if (selectedCentre && selectedCentre !== 'all') params.centre_id = selectedCentre
       const res = await apiClient.get('/leaves/requests/', { params })
       setLeaves(res.data)
       setError(null)
@@ -63,7 +66,7 @@ export const Leaves: React.FC = () => {
 
   useEffect(() => {
     loadLeaves()
-  }, [statusFilter])
+  }, [statusFilter, selectedCentre])
 
   const handleApplySubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -162,20 +165,30 @@ export const Leaves: React.FC = () => {
       )}
 
       {/* Filters */}
-      <div className="flex items-center space-x-2 border-b border-slate-800 pb-4">
-        {['', 'PENDING', 'APPROVED', 'REJECTED'].map((st) => (
-          <button
-            key={st}
-            onClick={() => setStatusFilter(st)}
-            className={`px-4 py-2 rounded-xl text-xs font-semibold transition ${
-              statusFilter === st
-                ? 'bg-slate-800 text-white border border-slate-700'
-                : 'text-slate-400 hover:text-slate-200'
-            }`}
-          >
-            {st || 'All Requests'}
-          </button>
-        ))}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-800 pb-4">
+        <div className="flex items-center space-x-2">
+          {['', 'PENDING', 'APPROVED', 'REJECTED'].map((st) => (
+            <button
+              key={st}
+              onClick={() => setStatusFilter(st)}
+              className={`px-4 py-2 rounded-xl text-xs font-semibold transition ${
+                statusFilter === st
+                  ? 'bg-slate-800 text-white border border-slate-700'
+                  : 'text-slate-400 hover:text-slate-200'
+              }`}
+            >
+              {st || 'All Requests'}
+            </button>
+          ))}
+        </div>
+
+        <div>
+          <CentreSelector
+            value={selectedCentre}
+            onChange={(val: string) => setSelectedCentre(val)}
+            showAllOption={true}
+          />
+        </div>
       </div>
 
       {/* Table */}

@@ -1,13 +1,15 @@
 import React, { useState } from 'react'
 import { Link, useLocation, Outlet } from 'react-router-dom'
-import { useAuth } from '../context/AuthContext'
+import { useAuth, usePermission } from '../context/AuthContext'
 
 export const Layout: React.FC = () => {
   const { user, role, business, logout } = useAuth()
   const location = useLocation()
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
-  // Configure navigation items based on role
+  const { can } = usePermission()
+
+  // Configure navigation items based on role & permissions
   let navItems: { label: string; path: string; icon: string }[] = []
 
   if (role === 'SUPERADMIN') {
@@ -28,12 +30,16 @@ export const Layout: React.FC = () => {
   } else if (role === 'BUSINESS_ADMIN') {
     navItems = [
       { label: 'Dashboard', path: '/dashboard', icon: '📊' },
-      { label: 'Managers', path: '/managers', icon: '👔' },
       { label: 'Employees', path: '/employees', icon: '👥' },
+      { label: 'Managers', path: '/managers', icon: '👔' },
       { label: 'Attendance', path: '/attendance', icon: '⏱️' },
+      { label: 'Attendance Policies', path: '/attendance/policies', icon: '⚙️' },
       { label: 'Leaves', path: '/leaves', icon: '🏖️' },
-      { label: 'Salary', path: '/salary', icon: '💳' },
-      { label: 'Settings', path: '/settings', icon: '⚙️' },
+      { label: 'Holidays', path: '/holidays', icon: '📅' },
+      { label: 'Compensation', path: '/salary', icon: '💰' },
+      { label: 'Payroll Runs', path: '/payroll/runs', icon: '💳' },
+      { label: 'Access Control', path: '/managers/access-control', icon: '🛡️' },
+      { label: 'Settings', path: '/settings', icon: '🏢' },
       { label: 'Profile', path: '/profile', icon: '👤' },
     ]
   } else if (role === 'MANAGER') {
@@ -41,10 +47,18 @@ export const Layout: React.FC = () => {
       { label: 'Dashboard', path: '/dashboard', icon: '📊' },
       { label: 'My Staff', path: '/my-staff', icon: '👥' },
       { label: 'Attendance', path: '/attendance', icon: '⏱️' },
-      { label: 'Leaves', path: '/leaves', icon: '🏖️' },
-      { label: 'Salary', path: '/salary', icon: '💳' },
-      { label: 'Profile', path: '/profile', icon: '👤' },
     ]
+    if (can('attendance.manage_policy')) {
+      navItems.push({ label: 'Attendance Policy', path: '/attendance/policies', icon: '⚙️' })
+    }
+    navItems.push(
+      { label: 'Leaves', path: '/leaves', icon: '🏖️' },
+      { label: 'Holidays', path: '/holidays', icon: '📅' }
+    )
+    if (can('salary.view')) {
+      navItems.push({ label: 'Salary', path: '/salary', icon: '💳' })
+    }
+    navItems.push({ label: 'Profile', path: '/profile', icon: '👤' })
   } else {
     // Staff
     navItems = [

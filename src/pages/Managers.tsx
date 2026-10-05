@@ -1,11 +1,14 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useCallback } from 'react'
+import { Link } from 'react-router-dom'
 import apiClient from '../services/api'
 import type { EmployeeSummary, Department, Branch } from '../types'
+import { CentreSelector } from '../components/CentreSelector'
 
 export const Managers: React.FC = () => {
   const [managers, setManagers] = useState<EmployeeSummary[]>([])
   const [departments, setDepartments] = useState<Department[]>([])
   const [branches, setBranches] = useState<Branch[]>([])
+  const [selectedCentreId, setSelectedCentreId] = useState<string>('')
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
@@ -24,11 +27,15 @@ export const Managers: React.FC = () => {
     branch: '',
   })
 
-  const loadData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true)
+      const params: any = {}
+      if (selectedCentreId) {
+        params.centre_id = selectedCentreId
+      }
       const [mgrRes, metaRes] = await Promise.all([
-        apiClient.get('/managers/'),
+        apiClient.get('/managers/', { params }),
         apiClient.get('/employees/metadata/'),
       ])
       setManagers(mgrRes.data)
@@ -39,11 +46,11 @@ export const Managers: React.FC = () => {
     } finally {
       setLoading(false)
     }
-  }
+  }, [selectedCentreId])
 
   useEffect(() => {
     loadData()
-  }, [])
+  }, [loadData])
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -99,6 +106,17 @@ export const Managers: React.FC = () => {
         </button>
       </div>
 
+      {/* Filter Bar with CentreSelector */}
+      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-wrap items-center gap-4">
+        <div className="w-64">
+          <CentreSelector
+            value={selectedCentreId}
+            onChange={(cid) => setSelectedCentreId(cid)}
+            allowAll={true}
+          />
+        </div>
+      </div>
+
       {loading ? (
         <div className="h-64 bg-slate-900 border border-slate-800 rounded-2xl animate-pulse flex items-center justify-center text-slate-500">
           Loading managers...
@@ -150,14 +168,22 @@ export const Managers: React.FC = () => {
                     </span>
                   </td>
                   <td className="px-6 py-4 text-right">
-                    {m.employment_status === 'ACTIVE' && (
-                      <button
-                        onClick={() => handleDeactivate(m.id, m.full_name)}
-                        className="text-xs text-rose-400 hover:text-rose-300 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800 transition"
+                    <div className="flex items-center justify-end gap-2">
+                      <Link
+                        to={`/managers/${m.id}/access-control`}
+                        className="text-xs text-blue-400 hover:text-blue-300 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800 transition"
                       >
-                        Deactivate
-                      </button>
-                    )}
+                        Access Control
+                      </Link>
+                      {m.employment_status === 'ACTIVE' && (
+                        <button
+                          onClick={() => handleDeactivate(m.id, m.full_name)}
+                          className="text-xs text-rose-400 hover:text-rose-300 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800 transition"
+                        >
+                          Deactivate
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}

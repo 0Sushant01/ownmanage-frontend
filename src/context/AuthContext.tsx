@@ -7,6 +7,8 @@ interface AuthContextType {
   role: UserRole | null
   business: BusinessSummary | null
   employee: EmployeeSummary | null
+  permissions: string[]
+  hasPermission: (permissionKey: string) => boolean
   loading: boolean
   login: (email: string, password: string) => Promise<UserRole>
   logout: () => Promise<void>
@@ -20,6 +22,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [role, setRole] = useState<UserRole | null>(null)
   const [business, setBusiness] = useState<BusinessSummary | null>(null)
   const [employee, setEmployee] = useState<EmployeeSummary | null>(null)
+  const [permissions, setPermissions] = useState<string[]>([])
   const [loading, setLoading] = useState<boolean>(true)
 
   const loadCurrentUser = async () => {
@@ -34,6 +37,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setRole(res.data.role)
       setBusiness(res.data.business)
       setEmployee(res.data.employee)
+      setPermissions(res.data.permissions || [])
       if (res.data.business?.id) {
         localStorage.setItem('ownmanage_selected_business_id', res.data.business.id)
       }
@@ -44,6 +48,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setRole(null)
       setBusiness(null)
       setEmployee(null)
+      setPermissions([])
     } finally {
       setLoading(false)
     }
@@ -55,7 +60,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string): Promise<UserRole> => {
     const res = await apiClient.post('/auth/login/', { email, password })
-    const { tokens, user, role, business, employee } = res.data
+    const { tokens, user, role, business, employee, permissions } = res.data
 
     localStorage.setItem('ownmanage_access_token', tokens.access)
     localStorage.setItem('ownmanage_refresh_token', tokens.refresh)
@@ -67,6 +72,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setRole(role)
     setBusiness(business)
     setEmployee(employee)
+    setPermissions(permissions || [])
 
     return role
   }
@@ -87,12 +93,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setRole(null)
       setBusiness(null)
       setEmployee(null)
+      setPermissions([])
       window.location.href = '/login'
     }
   }
 
   const refreshUser = async () => {
     await loadCurrentUser()
+  }
+
+  const hasPermission = (permissionKey: string): boolean => {
+    if (!role) return false
+    if (role === 'SUPERADMIN' || role === 'BUSINESS_ADMIN') return true
+    return permissions.includes(permissionKey)
   }
 
   return (
@@ -102,6 +115,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         role,
         business,
         employee,
+        permissions,
+        hasPermission,
         loading,
         login,
         logout,
@@ -119,4 +134,14 @@ export const useAuth = () => {
     throw new Error('useAuth must be used within an AuthProvider')
   }
   return context
+}
+
+export const usePermission = () => {
+  const { hasPermission, role, permissions } = useAuth()
+  return {
+    can: hasPermission,
+    isAdmin: role === 'SUPERADMIN' || role === 'BUSINESS_ADMIN',
+    role,
+    permissions,
+  }
 }

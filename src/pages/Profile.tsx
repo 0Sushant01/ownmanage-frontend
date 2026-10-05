@@ -20,6 +20,7 @@ interface ProfileData {
     phone: string
     designation: string
     joining_date: string
+    status?: string
     department?: string
     branch?: string
     manager?: string
@@ -43,6 +44,7 @@ export const Profile: React.FC = () => {
     first_name: '',
     last_name: '',
     phone: '',
+    email: '',
   })
 
   // Change Password state
@@ -73,6 +75,7 @@ export const Profile: React.FC = () => {
         first_name: res.data.user.first_name || '',
         last_name: res.data.user.last_name || '',
         phone: res.data.user.phone || '',
+        email: res.data.user.email || '',
       })
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to load profile.')
@@ -91,12 +94,21 @@ export const Profile: React.FC = () => {
       setSaving(true)
       setError(null)
       setSuccess(null)
-      await apiClient.patch('/profile/', formData)
+
+      if (profile && formData.email && formData.email.trim().toLowerCase() !== profile.user.email.toLowerCase()) {
+        await apiClient.post('/auth/update-email/', { email: formData.email.trim().toLowerCase() })
+      }
+
+      await apiClient.patch('/profile/', {
+        first_name: formData.first_name,
+        last_name: formData.last_name,
+        phone: formData.phone,
+      })
       await refreshUser()
       setSuccess('Profile updated successfully.')
       loadProfile()
     } catch (err: any) {
-      setError(err.response?.data?.detail || 'Failed to update profile.')
+      setError(err.response?.data?.detail || err.response?.data?.email?.[0] || 'Failed to update profile.')
     } finally {
       setSaving(false)
     }
@@ -249,6 +261,20 @@ export const Profile: React.FC = () => {
                   {profile.employee?.manager || 'None (Direct Report / Admin)'}
                 </span>
               </div>
+
+              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80">
+                <span className="text-slate-500 block mb-1">Joining Date</span>
+                <span className="text-white font-medium text-sm">
+                  {profile.employee?.joining_date || '—'}
+                </span>
+              </div>
+
+              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80">
+                <span className="text-slate-500 block mb-1">Employment Status</span>
+                <span className="text-emerald-400 font-semibold text-sm">
+                  {profile.employee?.status || 'ACTIVE'}
+                </span>
+              </div>
             </div>
           </div>
 
@@ -257,7 +283,7 @@ export const Profile: React.FC = () => {
             <div className="border-b border-slate-800 pb-3">
               <h3 className="text-base font-bold text-white">Editable Personal Profile</h3>
               <p className="text-xs text-slate-400">
-                Update your display name and contact phone number.
+                Update your display name, contact phone number, and authenticated login email.
               </p>
             </div>
 
@@ -288,12 +314,13 @@ export const Profile: React.FC = () => {
                 <label className="block text-xs font-medium text-slate-400 mb-1">Email Address</label>
                 <input
                   type="email"
-                  disabled
-                  value={profile.user.email}
-                  className="w-full bg-slate-950/50 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-500 cursor-not-allowed"
+                  required
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
                 />
                 <span className="text-[10px] text-slate-500 mt-1 block">
-                  Email serves as login identifier and cannot be modified directly.
+                  Editable login credential. Internal platform identity is anchored to your immutable UUID.
                 </span>
               </div>
 

@@ -38,6 +38,7 @@ export interface EmployeeSummary {
   department_name?: string
   branch_name?: string
   manager_name?: string
+  branch_id?: string
 }
 
 export interface Business {
@@ -389,5 +390,147 @@ export interface SuperAdminAnalyticsData {
   action_required: ActionRequiredAlerts
   recent_activity: RecentActivityItem[]
   expiring_subscriptions?: ExpiringSubscriptionItem[]
+}
+
+// Enterprise Workforce & Policy Architecture Types
+export interface PermissionItem {
+  id: string
+  key: string
+  name: string
+  description: string
+  module: string
+  scope: 'GLOBAL' | 'ENTERPRISE' | 'CENTER' | 'SELF'
+  is_granted?: boolean
+}
+
+export interface PermissionModuleGroup {
+  module: string
+  module_display: string
+  permissions: PermissionItem[]
+}
+
+export interface ManagerAccessControlData {
+  manager: {
+    id: string
+    name: string
+    email: string
+    branch_name: string
+  }
+  granted_count: number
+  total_permissions: number
+  modules: Record<string, {
+    module_display: string
+    permissions: PermissionItem[]
+  }>
+}
+
+export interface AttendancePolicyEffective {
+  office_start: string
+  office_end: string
+  grace_period_minutes: number
+  minimum_present_minutes: number
+  minimum_half_day_minutes: number
+  weekly_off: number
+  auto_attendance: boolean
+  ot_enabled: boolean
+  ot_grace_minutes: number
+  ot_approval_required: boolean
+  max_daily_ot_minutes: number
+  allow_normal_punch: boolean
+  allow_gps: boolean
+  allow_geofencing: boolean
+  allow_qr: boolean
+  allow_face_recognition: boolean
+  allow_biometric: boolean
+  [key: string]: any
+}
+
+export interface AttendancePolicyResponse {
+  effective: AttendancePolicyEffective
+  source: Record<string, 'enterprise' | 'center' | 'system'>
+  enterprise_default: Record<string, any>
+  center_override: Record<string, any>
+  has_override: boolean
+  allow_center_override: boolean
+  can_edit: boolean
+  centre_id?: string
+  centre_name?: string
+  business_id?: string
+}
+
+export interface EmployeeDocument {
+  id: string
+  title: string
+  category: string
+  category_display: string
+  document_type: string
+  document_url: string
+  file_name: string
+  file_size?: number
+  mime_type?: string
+  issue_date?: string
+  expiry_date?: string
+  verification_status: 'PENDING' | 'VERIFIED' | 'REJECTED'
+  verification_notes?: string
+  verified_at?: string
+  verified_by_name?: string
+  uploaded_by_name?: string
+  remarks?: string
+  version: number
+  created_at: string
+}
+
+export interface Holiday {
+  id: string
+  name: string
+  holiday_date: string
+  holiday_type: 'NATIONAL' | 'STATE' | 'FESTIVAL' | 'OPTIONAL' | 'OTHER'
+  holiday_type_display?: string
+  description?: string
+  applies_to_all_centres: boolean
+  centres: string[]
+  is_optional: boolean
+  created_at: string
+}
+
+export interface Designation {
+  id: string
+  name: string
+  code?: string
+  description?: string
+  is_active: boolean
+  created_at: string
+}
+
+export interface SalaryRevision {
+  id: string
+  basic_salary: string | number
+  hra: string | number
+  transport_allowance: string | number
+  special_allowance: string | number
+  other_allowances: string | number
+  currency: string
+  effective_from: string
+  effective_to?: string
+  reason?: string
+  revised_by_name?: string
+  created_at: string
+}
+
+export interface PayrollRun {
+  id: string
+  period_start: string
+  period_end: string
+  centre_id?: string
+  centre_name?: string
+  status: 'DRAFT' | 'CALCULATED' | 'REVIEWED' | 'APPROVED' | 'FINALIZED'
+  status_display?: string
+  total_employees: number
+  total_gross: string | number
+  total_deductions: string | number
+  total_net: string | number
+  approved_by_name?: string
+  finalized_at?: string
+  created_at: string
 }
 

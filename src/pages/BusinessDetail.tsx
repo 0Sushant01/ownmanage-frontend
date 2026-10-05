@@ -316,7 +316,11 @@ export const BusinessDetail: React.FC = () => {
               {subscription?.current_period_end || '—'}
             </span>
             <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${daysBadge}`}>
-              {daysLeft < 0 ? `Expired ${Math.abs(daysLeft)}d ago` : `${daysLeft} Days Remaining`}
+              {daysLeft < 0
+                ? `EXPIRED • Expired ${Math.abs(daysLeft)} days ago`
+                : daysLeft <= 7
+                ? `EXPIRING SOON • Expires in ${daysLeft} days`
+                : `ACTIVE • Expires in ${daysLeft} days`}
             </span>
           </div>
 
