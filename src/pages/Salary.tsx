@@ -2,7 +2,17 @@ import React, { useEffect, useState } from 'react'
 import apiClient from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { CentreSelector } from '../components/CentreSelector'
+import { Download } from '../components/Icons'
 import type { Payroll } from '../types'
+import { OwnPageHeader } from '../design-system/components/OwnPageHeader'
+import { OwnButton } from '../design-system/components/OwnButton'
+import { OwnFilterBar } from '../design-system/components/OwnFilterBar'
+import { OwnInput } from '../design-system/components/OwnInput'
+import { OwnSelect } from '../design-system/components/OwnSelect'
+import { OwnCard } from '../design-system/components/OwnCard'
+import { OwnStatusBadge } from '../design-system/components/OwnBadge'
+import { OwnDialog } from '../design-system/components/OwnDialog'
+import { OwnEmptyState } from '../design-system/components/OwnEmptyState'
 
 export const Salary: React.FC = () => {
   const { role } = useAuth()
@@ -17,6 +27,33 @@ export const Salary: React.FC = () => {
 
   // Payslip Modal
   const [selectedPayroll, setSelectedPayroll] = useState<Payroll | null>(null)
+
+  const handleExportPayrollRegister = async () => {
+    try {
+      const params = new URLSearchParams({ format: 'csv' })
+      if (selectedCentre && selectedCentre !== 'all') {
+        params.append('centre_id', selectedCentre)
+      }
+      if (statusFilter) {
+        params.append('status', statusFilter)
+      }
+      if (periodStart) {
+        params.append('period_start', periodStart)
+      }
+      const res = await apiClient.get(`/salary/reports/payroll-register/?${params.toString()}`, {
+        responseType: 'blob'
+      })
+      const url = window.URL.createObjectURL(new Blob([res.data]))
+      const link = document.createElement('a')
+      link.href = url
+      link.setAttribute('download', `payroll_register_${new Date().toISOString().split('T')[0]}.csv`)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to export payroll register.')
+    }
+  }
 
   const loadPayrolls = async () => {
     try {
@@ -40,104 +77,103 @@ export const Salary: React.FC = () => {
     loadPayrolls()
   }, [selectedCentre, statusFilter, periodStart])
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'PAID':
-        return 'bg-emerald-950/80 text-emerald-400 border-emerald-800/80'
-      case 'PROCESSED':
-        return 'bg-blue-950/80 text-blue-400 border-blue-800/80'
-      case 'DRAFT':
-        return 'bg-amber-950/80 text-amber-400 border-amber-800/80'
-      case 'CANCELLED':
-        return 'bg-rose-950/80 text-rose-400 border-rose-800/80'
-      default:
-        return 'bg-slate-800 text-slate-400 border-slate-700'
-    }
-  }
-
   return (
-    <div className="p-6 md:p-10 max-w-7xl mx-auto w-full space-y-8">
+    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Payroll & Salary Records</h1>
-          <p className="text-sm text-slate-400 mt-1">
-            {role === 'STAFF'
-              ? 'View your generated payslips and compensation breakdowns.'
-              : 'Review organization payroll distributions and employee payslips.'}
-          </p>
-        </div>
-      </div>
+      <OwnPageHeader
+        title="Payroll & Salary Records"
+        description={
+          role === 'STAFF'
+            ? 'View your generated payslips and compensation breakdowns.'
+            : 'Review organization payroll distributions and employee payslips.'
+        }
+        breadcrumbs={[
+          { label: 'Workspace', href: '/' },
+          { label: 'Salary & Payroll' }
+        ]}
+        actions={
+          role !== 'STAFF' ? (
+            <OwnButton
+              onClick={handleExportPayrollRegister}
+              variant="secondary"
+              size="md"
+              leftIcon={<Download className="w-3.5 h-3.5" />}
+              title="Download accounting & disbursal payroll register CSV"
+            >
+              Export Register (CSV)
+            </OwnButton>
+          ) : undefined
+        }
+      />
 
       {/* Filter Bar */}
-      <div className="bg-slate-900/80 border border-slate-800 rounded-2xl p-4 flex flex-wrap items-center gap-4">
-        <div>
-          <CentreSelector
-            value={selectedCentre}
-            onChange={(val: string) => setSelectedCentre(val)}
-            showAllOption={true}
-          />
-        </div>
+      <OwnFilterBar
+        filters={
+          <div className="flex flex-wrap items-center gap-3 w-full">
+            <CentreSelector
+              value={selectedCentre}
+              onChange={(val: string) => setSelectedCentre(val)}
+              showAllOption={true}
+              className="w-48"
+            />
 
-        <div className="flex items-center space-x-2">
-          <label className="text-xs text-slate-400 font-medium">Status:</label>
-          <select
-            value={statusFilter}
-            onChange={(e) => setStatusFilter(e.target.value)}
-            className="bg-slate-800 border border-slate-700 text-white text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-emerald-500"
-          >
-            <option value="">All Statuses</option>
-            <option value="PAID">Paid</option>
-            <option value="PROCESSED">Processed</option>
-            <option value="DRAFT">Draft</option>
-            <option value="CANCELLED">Cancelled</option>
-          </select>
-        </div>
+            <OwnSelect
+              value={statusFilter}
+              onChange={(e) => setStatusFilter(e.target.value)}
+              options={[
+                { value: '', label: 'All Statuses' },
+                { value: 'PAID', label: 'Paid' },
+                { value: 'PROCESSED', label: 'Processed' },
+                { value: 'DRAFT', label: 'Draft' },
+                { value: 'CANCELLED', label: 'Cancelled' }
+              ]}
+              size="sm"
+              className="w-40"
+            />
 
-        <div className="flex items-center space-x-2">
-          <label className="text-xs text-slate-400 font-medium">Period Start:</label>
-          <input
-            type="date"
-            value={periodStart}
-            onChange={(e) => setPeriodStart(e.target.value)}
-            className="bg-slate-800 border border-slate-700 text-white text-xs rounded-lg px-3 py-2 focus:outline-none focus:border-emerald-500"
-          />
-        </div>
+            <OwnInput
+              type="date"
+              value={periodStart}
+              onChange={(e) => setPeriodStart(e.target.value)}
+              size="sm"
+              className="w-44"
+              placeholder="Period Start"
+            />
 
-        {(statusFilter || periodStart) && (
-          <button
-            onClick={() => {
-              setStatusFilter('')
-              setPeriodStart('')
-            }}
-            className="text-xs text-slate-400 hover:text-white underline ml-auto"
-          >
-            Reset Filters
-          </button>
-        )}
-      </div>
+            {(statusFilter || periodStart) && (
+              <OwnButton
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setStatusFilter('')
+                  setPeriodStart('')
+                }}
+              >
+                Reset Filters
+              </OwnButton>
+            )}
+          </div>
+        }
+      />
 
       {/* Payroll Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+      <OwnCard className="overflow-hidden border-border bg-card shadow-sm">
         {loading ? (
-          <div className="p-12 text-center text-slate-400">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500 mb-3" />
+          <div className="p-12 text-center text-muted-foreground">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3" />
             <p className="text-sm">Fetching payroll records...</p>
           </div>
         ) : error ? (
-          <div className="p-8 text-center text-rose-400 text-sm">{error}</div>
+          <div className="p-8 text-center text-destructive text-sm font-medium">{error}</div>
         ) : payrolls.length === 0 ? (
-          <div className="p-12 text-center text-slate-400">
-            <span className="text-4xl block mb-3">💳</span>
-            <p className="text-base font-semibold text-slate-300">No payroll records found</p>
-            <p className="text-xs text-slate-500 mt-1">
-              Generated payroll records and payslips will appear here.
-            </p>
-          </div>
+          <OwnEmptyState
+            title="No payroll records found"
+            description="Generated payroll records and payslips will appear here."
+          />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-300">
-              <thead className="bg-slate-950/60 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800">
+            <table className="w-full text-left text-sm text-foreground">
+              <thead className="bg-muted/60 text-xs uppercase font-semibold text-muted-foreground border-b border-border">
                 <tr>
                   <th className="px-6 py-4">Employee</th>
                   <th className="px-6 py-4">Period</th>
@@ -148,39 +184,38 @@ export const Salary: React.FC = () => {
                   <th className="px-6 py-4 text-right">Payslip</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-border">
                 {payrolls.map((pay) => (
-                  <tr key={pay.id} className="hover:bg-slate-800/40 transition">
+                  <tr key={pay.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="font-medium text-white">{pay.employee_name}</div>
-                      <div className="text-xs text-slate-500 font-mono">
+                      <div className="font-semibold text-foreground">{pay.employee_name}</div>
+                      <div className="text-xs text-muted-foreground font-mono">
                         {pay.employee_id_code || 'ID: --'} {pay.department_name ? `• ${pay.department_name}` : ''}
                       </div>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-slate-300">
+                    <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-muted-foreground">
                       {pay.period_start} → {pay.period_end}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-slate-300">
+                    <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-foreground">
                       {pay.currency} {Number(pay.gross_amount).toLocaleString()}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-rose-400">
+                    <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-destructive">
                       -{pay.currency} {Number(pay.total_deductions).toLocaleString()}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap font-mono text-sm font-bold text-emerald-400">
+                    <td className="px-6 py-4 whitespace-nowrap font-mono text-sm font-bold text-primary">
                       {pay.currency} {Number(pay.net_amount).toLocaleString()}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusBadge(pay.status)}`}>
-                        {pay.status}
-                      </span>
+                      <OwnStatusBadge status={pay.status} size="sm" />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <button
+                      <OwnButton
                         onClick={() => setSelectedPayroll(pay)}
-                        className="text-xs font-semibold text-emerald-400 hover:text-emerald-300 hover:underline"
+                        variant="ghost"
+                        size="sm"
                       >
                         View Payslip →
-                      </button>
+                      </OwnButton>
                     </td>
                   </tr>
                 ))}
@@ -188,71 +223,97 @@ export const Salary: React.FC = () => {
             </table>
           </div>
         )}
-      </div>
+      </OwnCard>
 
       {/* Payslip View Modal */}
       {selectedPayroll && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl p-8 shadow-2xl space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <div>
-                <span className="text-xs font-bold uppercase tracking-wider text-emerald-400">Official Payslip</span>
-                <h3 className="text-xl font-bold text-white mt-0.5">{selectedPayroll.employee_name}</h3>
-                <p className="text-xs text-slate-400">
-                  {selectedPayroll.employee_id_code} {selectedPayroll.department_name ? `• ${selectedPayroll.department_name}` : ''}
-                </p>
-              </div>
-              <button
-                onClick={() => setSelectedPayroll(null)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg"
-              >
-                ✕
-              </button>
-            </div>
-
+        <OwnDialog
+          open={!!selectedPayroll}
+          onOpenChange={(open) => {
+            if (!open) setSelectedPayroll(null)
+          }}
+          title={`Official Payslip — ${selectedPayroll.employee_name}`}
+          description={`${selectedPayroll.employee_id_code || ''} ${selectedPayroll.department_name ? `• ${selectedPayroll.department_name}` : ''}`}
+          size="lg"
+        >
+          <div className="space-y-6">
             {/* Payslip Details Box */}
-            <div className="bg-slate-950 border border-slate-800/80 rounded-xl p-6 space-y-4">
-              <div className="flex justify-between items-center text-xs text-slate-400 border-b border-slate-800 pb-3">
+            <div className="bg-muted/40 border border-border rounded-xl p-6 space-y-4">
+              <div className="flex justify-between items-center text-xs text-muted-foreground border-b border-border pb-3">
                 <span>Pay Period:</span>
-                <span className="font-mono text-white font-medium">
+                <span className="font-mono text-foreground font-medium">
                   {selectedPayroll.period_start} to {selectedPayroll.period_end}
                 </span>
               </div>
 
               <div className="space-y-2 text-sm">
-                <div className="flex justify-between text-slate-300">
+                <div className="flex justify-between text-foreground">
                   <span>Gross Earnings</span>
-                  <span className="font-mono text-white font-semibold">
+                  <span className="font-mono text-foreground font-semibold">
                     {selectedPayroll.currency} {Number(selectedPayroll.gross_amount).toLocaleString()}
                   </span>
                 </div>
-                <div className="flex justify-between text-slate-400">
+                <div className="flex justify-between text-muted-foreground">
                   <span>Standard Deductions</span>
-                  <span className="font-mono text-rose-400">
+                  <span className="font-mono text-destructive">
                     -{selectedPayroll.currency} {Number(selectedPayroll.total_deductions).toLocaleString()}
                   </span>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-slate-800 flex justify-between items-center">
-                <span className="text-sm font-bold text-white uppercase tracking-wider">Net Amount Payable</span>
-                <span className="text-xl font-extrabold text-emerald-400 font-mono">
+              {/* Itemized Snapshot Line Items */}
+              {selectedPayroll.line_items && selectedPayroll.line_items.length > 0 && (
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-3 border-t border-border">
+                  <div className="space-y-1.5">
+                    <h5 className="text-[11px] font-bold uppercase tracking-wider text-primary">Earnings Components</h5>
+                    <div className="space-y-1 text-xs">
+                      {selectedPayroll.line_items.filter((item) => !item.is_deduction).map((e, idx) => (
+                        <div key={e.id || idx} className="flex justify-between text-foreground">
+                          <span className="truncate mr-2">{e.name}</span>
+                          <span className="font-mono text-primary font-medium whitespace-nowrap">
+                            +{selectedPayroll.currency} {Number(e.amount).toLocaleString()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="space-y-1.5">
+                    <h5 className="text-[11px] font-bold uppercase tracking-wider text-destructive">Deduction Components</h5>
+                    <div className="space-y-1 text-xs">
+                      {selectedPayroll.line_items.filter((item) => item.is_deduction).map((d, idx) => (
+                        <div key={d.id || idx} className="flex justify-between text-foreground">
+                          <span className="truncate mr-2">{d.name}</span>
+                          <span className="font-mono text-destructive font-medium whitespace-nowrap">
+                            -{selectedPayroll.currency} {Number(d.amount).toLocaleString()}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="pt-3 border-t border-border flex justify-between items-center">
+                <span className="text-sm font-bold text-foreground uppercase tracking-wider">Net Amount Payable</span>
+                <span className="text-xl font-extrabold text-primary font-mono">
                   {selectedPayroll.currency} {Number(selectedPayroll.net_amount).toLocaleString()}
                 </span>
               </div>
             </div>
 
-            <div className="flex items-center justify-between text-xs text-slate-500 pt-2">
-              <span>Status: <strong className="text-slate-300">{selectedPayroll.status}</strong></span>
-              <button
+            <div className="flex items-center justify-between text-xs text-muted-foreground pt-2">
+              <span>Status: <strong className="text-foreground">{selectedPayroll.status}</strong></span>
+              <OwnButton
                 onClick={() => window.print()}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium transition"
+                variant="secondary"
+                size="sm"
               >
                 Print / Save PDF
-              </button>
+              </OwnButton>
             </div>
           </div>
-        </div>
+        </OwnDialog>
       )}
     </div>
   )

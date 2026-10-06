@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react'
 import apiClient from '../services/api'
 import type { Subscription } from '../types'
+import { OwnCard, OwnCardContent, OwnCardHeader, OwnCardTitle } from '../design-system/components/OwnCard'
+import { OwnBadge } from '../design-system/components/OwnBadge'
+import { OwnButton } from '../design-system/components/OwnButton'
+import { OwnInput } from '../design-system/components/OwnInput'
+import { OwnDialog } from '../design-system/components/OwnDialog'
 
 export const SubscriptionUsageWidget: React.FC = () => {
   const [subscription, setSubscription] = useState<Subscription | null>(null)
@@ -68,9 +73,9 @@ export const SubscriptionUsageWidget: React.FC = () => {
 
   if (loading) {
     return (
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-6 flex items-center justify-center h-48">
-        <div className="h-6 w-6 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
-      </div>
+      <OwnCard className="p-8 flex items-center justify-center h-48 bg-card border-border">
+        <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+      </OwnCard>
     )
   }
 
@@ -85,198 +90,196 @@ export const SubscriptionUsageWidget: React.FC = () => {
   const maxCentres = plan.max_centres
 
   return (
-    <div className="rounded-2xl border border-slate-800 bg-slate-900/60 p-6 shadow-xl backdrop-blur-sm space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2 border-b border-slate-800/80 pb-4">
+    <OwnCard className="bg-card border-border shadow-md">
+      <OwnCardHeader className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border pb-4">
         <div>
-          <div className="flex items-center space-x-2">
-            <h2 className="text-lg font-bold text-white tracking-tight">Subscription & Capacity Usage</h2>
-            <span
-              className={`rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                status === 'ACTIVE'
-                  ? 'bg-emerald-900/40 text-emerald-400 border border-emerald-700/50'
-                  : 'bg-amber-900/40 text-amber-400 border border-amber-700/50'
-              }`}
+          <div className="flex items-center space-x-2.5">
+            <OwnCardTitle className="text-lg font-bold text-foreground tracking-tight">Subscription & Capacity Usage</OwnCardTitle>
+            <OwnBadge
+              variant={status === 'ACTIVE' ? 'success' : 'warning'}
+              size="sm"
             >
               {status}
-            </span>
+            </OwnBadge>
           </div>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Plan: <span className="font-semibold text-slate-200">{plan.name}</span> (₹{parseFloat(plan.monthly_charge).toFixed(0)}/mo)
+          <p className="text-xs text-muted-foreground mt-1">
+            Plan: <span className="font-semibold text-foreground">{plan.name}</span> (₹{parseFloat(plan.monthly_charge).toFixed(0)}/mo)
           </p>
         </div>
 
-        <div className="flex items-center space-x-4 text-xs font-mono text-slate-400">
+        <div className="flex items-center space-x-4 text-xs font-mono text-muted-foreground">
           <div>
-            Centres: <span className="text-white font-bold">{centresCount}</span> / {maxCentres}
+            Centres: <span className="text-foreground font-bold">{centresCount}</span> / {maxCentres}
           </div>
-          <div className="h-4 w-px bg-slate-800" />
+          <div className="h-4 w-px bg-border" />
           <div>
-            Unallocated Pool: <span className="text-emerald-400 font-bold">{unallocated_capacity} seats</span>
+            Unallocated Pool: <span className="text-primary font-bold">{unallocated_capacity} seats</span>
           </div>
         </div>
-      </div>
+      </OwnCardHeader>
 
-      {/* Progress Bars */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div className="rounded-xl border border-slate-800/80 bg-slate-950/60 p-4">
-          <div className="flex justify-between text-xs mb-2">
-            <span className="text-slate-400">Centre Quota</span>
-            <span className="font-mono text-slate-200">
-              {centresCount} of {maxCentres} Centres Used
-            </span>
+      <OwnCardContent className="space-y-6 pt-6">
+        {/* Progress Bars */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="rounded-xl border border-border bg-muted/40 p-4">
+            <div className="flex justify-between text-xs mb-2">
+              <span className="text-muted-foreground">Centre Quota</span>
+              <span className="font-mono text-foreground font-medium">
+                {centresCount} of {maxCentres} Centres Used
+              </span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-300 ${
+                  centresCount >= maxCentres ? 'bg-warning' : 'bg-primary'
+                }`}
+                style={{ width: `${Math.min(100, (centresCount / maxCentres) * 100)}%` }}
+              />
+            </div>
           </div>
-          <div className="h-2 w-full rounded-full bg-slate-800 overflow-hidden">
-            <div
-              className={`h-full rounded-full ${
-                centresCount >= maxCentres ? 'bg-amber-500' : 'bg-emerald-500'
-              }`}
-              style={{ width: `${Math.min(100, (centresCount / maxCentres) * 100)}%` }}
-            />
+
+          <div className="rounded-xl border border-border bg-muted/40 p-4">
+            <div className="flex justify-between text-xs mb-2">
+              <span className="text-muted-foreground">Allocated Seat Capacity</span>
+              <span className="font-mono text-foreground font-medium">
+                {total_allocated_capacity} of {totalCapacity} Seats ({capacityPercent}%)
+              </span>
+            </div>
+            <div className="h-2 w-full rounded-full bg-muted overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-300 ${
+                  capacityPercent >= 100 ? 'bg-warning' : 'bg-primary'
+                }`}
+                style={{ width: `${capacityPercent}%` }}
+              />
+            </div>
           </div>
         </div>
 
-        <div className="rounded-xl border border-slate-800/80 bg-slate-950/60 p-4">
-          <div className="flex justify-between text-xs mb-2">
-            <span className="text-slate-400">Allocated Seat Capacity</span>
-            <span className="font-mono text-slate-200">
-              {total_allocated_capacity} of {totalCapacity} Seats ({capacityPercent}%)
-            </span>
-          </div>
-          <div className="h-2 w-full rounded-full bg-slate-800 overflow-hidden">
-            <div
-              className={`h-full rounded-full ${
-                capacityPercent >= 100 ? 'bg-amber-500' : 'bg-emerald-500'
-              }`}
-              style={{ width: `${capacityPercent}%` }}
-            />
-          </div>
-        </div>
-      </div>
-
-      {/* Centre Allocation Breakdown */}
-      <div>
-        <h3 className="text-xs font-semibold uppercase tracking-wider text-slate-400 mb-3">
-          Centre Capacity Breakdown & Reallocation
-        </h3>
-        <div className="overflow-x-auto rounded-xl border border-slate-800 bg-slate-950/50">
-          <table className="w-full text-left text-xs">
-            <thead className="bg-slate-950 text-slate-400 font-mono uppercase text-[10px]">
-              <tr>
-                <th className="p-3">Centre Name</th>
-                <th className="p-3">Code</th>
-                <th className="p-3">Allocated Seats</th>
-                <th className="p-3">Active Staff</th>
-                <th className="p-3">Available Seats</th>
-                <th className="p-3 text-right">Action</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60 text-slate-300 font-mono">
-              {centre_allocations.length === 0 ? (
+        {/* Centre Allocation Breakdown */}
+        <div>
+          <h3 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-3">
+            Centre Capacity Breakdown & Reallocation
+          </h3>
+          <div className="overflow-x-auto rounded-xl border border-border bg-card">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-muted/60 text-muted-foreground font-mono uppercase text-[10px] border-b border-border">
                 <tr>
-                  <td colSpan={6} className="p-4 text-center text-slate-500">
-                    No centres configured for capacity allocation.
-                  </td>
+                  <th className="p-3">Centre Name</th>
+                  <th className="p-3">Code</th>
+                  <th className="p-3">Allocated Seats</th>
+                  <th className="p-3">Active Staff</th>
+                  <th className="p-3">Available Seats</th>
+                  <th className="p-3 text-right">Action</th>
                 </tr>
-              ) : (
-                centre_allocations.map((alloc) => (
-                  <tr key={alloc.id} className="hover:bg-slate-800/30 transition">
-                    <td className="p-3 font-sans font-semibold text-white">{alloc.centre_name}</td>
-                    <td className="p-3 text-slate-400">{alloc.centre_code}</td>
-                    <td className="p-3 font-bold text-slate-200">{alloc.allocated_capacity}</td>
-                    <td className="p-3 text-slate-300">{alloc.active_employees_count}</td>
-                    <td className="p-3">
-                      <span
-                        className={
-                          alloc.available_capacity > 0 ? 'text-emerald-400 font-bold' : 'text-amber-400'
-                        }
-                      >
-                        {alloc.available_capacity}
-                      </span>
-                    </td>
-                    <td className="p-3 text-right">
-                      <button
-                        onClick={() => handleOpenReallocate(alloc)}
-                        className="rounded-lg border border-slate-700 bg-slate-800 hover:bg-slate-700 px-2.5 py-1 text-[11px] font-sans font-medium text-slate-200 transition"
-                      >
-                        Reallocate
-                      </button>
+              </thead>
+              <tbody className="divide-y divide-border text-foreground font-mono">
+                {centre_allocations.length === 0 ? (
+                  <tr>
+                    <td colSpan={6} className="p-6 text-center text-muted-foreground">
+                      No centres configured for capacity allocation.
                     </td>
                   </tr>
-                ))
-              )}
-            </tbody>
-          </table>
+                ) : (
+                  centre_allocations.map((alloc) => (
+                    <tr key={alloc.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="p-3 font-sans font-semibold text-foreground">{alloc.centre_name}</td>
+                      <td className="p-3 text-muted-foreground">{alloc.centre_code}</td>
+                      <td className="p-3 font-bold text-foreground">{alloc.allocated_capacity}</td>
+                      <td className="p-3 text-muted-foreground">{alloc.active_employees_count}</td>
+                      <td className="p-3">
+                        <span
+                          className={
+                            alloc.available_capacity > 0 ? 'text-primary font-bold' : 'text-warning font-semibold'
+                          }
+                        >
+                          {alloc.available_capacity}
+                        </span>
+                      </td>
+                      <td className="p-3 text-right">
+                        <OwnButton
+                          onClick={() => handleOpenReallocate(alloc)}
+                          variant="secondary"
+                          size="sm"
+                        >
+                          Reallocate
+                        </OwnButton>
+                      </td>
+                    </tr>
+                  ))
+                )}
+              </tbody>
+            </table>
+          </div>
         </div>
-      </div>
+      </OwnCardContent>
 
       {/* Reallocate Capacity Modal */}
       {selectedCentre && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-white mb-1">Reallocate Capacity</h3>
-            <p className="text-xs text-slate-400 mb-4">
-              Adjust seats for <span className="font-semibold text-white">{selectedCentre.name}</span>.
-            </p>
-
-            <div className="rounded-xl border border-slate-800 bg-slate-950 p-3 text-xs space-y-1 mb-4 text-slate-300">
+        <OwnDialog
+          open={!!selectedCentre}
+          onOpenChange={(open) => {
+            if (!open) setSelectedCentre(null)
+          }}
+          title="Reallocate Capacity"
+          description={`Adjust allocated seats for ${selectedCentre.name}.`}
+          size="sm"
+        >
+          <div className="space-y-4">
+            <div className="rounded-xl border border-border bg-muted/30 p-3 text-xs space-y-1.5 text-muted-foreground">
               <div className="flex justify-between">
                 <span>Current Active Employees:</span>
-                <span className="font-bold text-white">{selectedCentre.activeStaff}</span>
+                <span className="font-bold text-foreground">{selectedCentre.activeStaff}</span>
               </div>
               <div className="flex justify-between">
                 <span>Total Plan Capacity:</span>
-                <span className="font-mono text-white">{totalCapacity} seats</span>
+                <span className="font-mono text-foreground">{totalCapacity} seats</span>
               </div>
               <div className="flex justify-between">
                 <span>Max Available for this Centre:</span>
-                <span className="font-bold text-emerald-400">
+                <span className="font-bold text-primary">
                   {selectedCentre.currentCapacity + unallocated_capacity} seats
                 </span>
               </div>
             </div>
 
             {modalError && (
-              <div className="mb-4 rounded-xl border border-rose-800 bg-rose-950/40 p-3 text-xs text-rose-300">
+              <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive font-medium">
                 {modalError}
               </div>
             )}
 
             <form onSubmit={handleSaveReallocate} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
-                  New Allocated Seats
-                </label>
-                <input
-                  type="number"
-                  required
-                  min={selectedCentre.activeStaff}
-                  max={selectedCentre.currentCapacity + unallocated_capacity}
-                  value={newCapacity}
-                  onChange={(e) => setNewCapacity(Number(e.target.value))}
-                  className="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-white font-mono focus:border-emerald-500 focus:outline-none"
-                />
-              </div>
+              <OwnInput
+                type="number"
+                label="New Allocated Seats"
+                required
+                min={selectedCentre.activeStaff}
+                max={selectedCentre.currentCapacity + unallocated_capacity}
+                value={newCapacity}
+                onChange={(e) => setNewCapacity(Number(e.target.value))}
+              />
 
-              <div className="flex justify-end space-x-2 pt-3 border-t border-slate-800">
-                <button
+              <div className="flex justify-end space-x-2 pt-3 border-t border-border">
+                <OwnButton
                   type="button"
+                  variant="ghost"
                   onClick={() => setSelectedCentre(null)}
-                  className="rounded-xl border border-slate-800 bg-slate-950 px-3.5 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800"
                 >
                   Cancel
-                </button>
-                <button
+                </OwnButton>
+                <OwnButton
                   type="submit"
-                  disabled={modalSubmitting}
-                  className="rounded-xl bg-emerald-500 hover:bg-emerald-400 px-4 py-2 text-xs font-bold text-slate-950 transition disabled:opacity-50"
+                  loading={modalSubmitting}
                 >
-                  {modalSubmitting ? 'Saving...' : 'Update Seats'}
-                </button>
+                  Update Seats
+                </OwnButton>
               </div>
             </form>
           </div>
-        </div>
+        </OwnDialog>
       )}
-    </div>
+    </OwnCard>
   )
 }
+

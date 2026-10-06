@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react'
 import apiClient from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import type { Business } from '../types'
+import { ToggleSwitch } from '../components/ToggleSwitch'
 
 export const Settings: React.FC = () => {
   const { business: currentBizSummary, role } = useAuth()
@@ -70,29 +71,29 @@ export const Settings: React.FC = () => {
   if (role !== 'SUPERADMIN' && role !== 'BUSINESS_ADMIN') {
     return (
       <div className="p-10 max-w-4xl mx-auto text-center">
-        <p className="text-rose-400">Settings are reserved for Business Administrators.</p>
+        <p className="text-rose-500 font-semibold">Settings are reserved for Business Administrators.</p>
       </div>
     )
   }
 
   return (
-    <div className="p-6 md:p-10 max-w-4xl mx-auto w-full space-y-8">
+    <div className="p-4 sm:p-6 md:p-10 max-w-4xl mx-auto w-full space-y-6 sm:space-y-8">
       {/* Header */}
       <div>
-        <h1 className="text-2xl font-bold text-white tracking-tight">Business Settings</h1>
-        <p className="text-sm text-slate-400 mt-1">
+        <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Business Settings</h1>
+        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
           Manage your organizational profile, regional localization, and sequential employee ID policies.
         </p>
       </div>
 
       {success && (
-        <div className="p-4 rounded-xl bg-emerald-950/60 border border-emerald-800 text-emerald-300 text-sm">
+        <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-sm">
           {success}
         </div>
       )}
 
       {error && (
-        <div className="p-4 rounded-xl bg-rose-950/60 border border-rose-800 text-rose-300 text-sm">
+        <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-sm">
           {error}
         </div>
       )}
@@ -103,61 +104,61 @@ export const Settings: React.FC = () => {
           <p className="text-sm">Loading business configuration...</p>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
           {/* General Information Card */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
-            <h2 className="text-lg font-bold text-white border-b border-slate-800 pb-3">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-6 shadow-sm space-y-6">
+            <h2 className="text-lg font-bold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-3">
               Organization Profile
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Business Name</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Business Name *</label>
                 <input
                   type="text"
                   required
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Legal Registered Name</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Legal Registered Name</label>
                 <input
                   type="text"
                   value={formData.legal_name}
                   onChange={(e) => setFormData({ ...formData, legal_name: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Primary Email</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Primary Email</label>
                 <input
                   type="email"
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Primary Phone</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Primary Phone</label>
                 <input
                   type="text"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Timezone</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Timezone</label>
                 <select
                   value={formData.timezone}
                   onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
                 >
                   <option value="Asia/Kolkata">Asia/Kolkata (IST +05:30)</option>
                   <option value="UTC">UTC (GMT +00:00)</option>
@@ -169,48 +170,44 @@ export const Settings: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Currency Code</label>
+                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Currency Code</label>
                 <input
                   type="text"
                   maxLength={5}
                   value={formData.currency}
                   onChange={(e) => setFormData({ ...formData, currency: e.target.value.toUpperCase() })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 font-mono"
+                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
                 />
               </div>
             </div>
           </div>
 
           {/* Employee ID Configuration Card */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
-            <div className="border-b border-slate-800 pb-3">
-              <h2 className="text-lg font-bold text-white">Employee ID Scheme</h2>
-              <p className="text-xs text-slate-400 mt-0.5">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-6 shadow-sm space-y-6">
+            <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
+              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Employee ID Scheme</h2>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
                 Configure whether new staff automatically receive a sequential company badge ID.
               </p>
             </div>
 
             <div className="space-y-4">
-              <label className="flex items-center space-x-3 cursor-pointer">
-                <input
-                  type="checkbox"
+              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4">
+                <ToggleSwitch
+                  id="employee_id_enabled"
                   checked={formData.employee_id_enabled}
-                  onChange={(e) => setFormData({ ...formData, employee_id_enabled: e.target.checked })}
-                  className="h-4 w-4 rounded border-slate-700 bg-slate-950 text-emerald-500 focus:ring-emerald-500"
+                  onChange={(val) => setFormData({ ...formData, employee_id_enabled: val })}
+                  label="Enable Automatic Employee IDs"
+                  description="When enabled, the backend increments and generates unique sequential IDs upon onboarding."
+                  className="w-full"
                 />
-                <div>
-                  <span className="text-sm font-semibold text-white">Enable Automatic Employee IDs</span>
-                  <span className="text-xs text-slate-400 block">
-                    When enabled, the backend increments and generates unique IDs upon onboarding.
-                  </span>
-                </div>
-              </label>
+              </div>
 
               {formData.employee_id_enabled && (
-                <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 space-y-4">
+                <div className="p-4 sm:p-5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-xs font-medium text-slate-400 mb-1">ID Prefix</label>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">ID Prefix</label>
                       <input
                         type="text"
                         maxLength={10}
@@ -218,17 +215,17 @@ export const Settings: React.FC = () => {
                         value={formData.employee_id_prefix}
                         onChange={(e) => setFormData({ ...formData, employee_id_prefix: e.target.value.toUpperCase() })}
                         placeholder="e.g. ACME"
-                        className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-white font-mono focus:outline-none focus:border-emerald-500"
+                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
                       />
                     </div>
 
                     <div>
-                      <label className="block text-xs font-medium text-slate-400 mb-1">Next Number Sequence</label>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Next Number Sequence</label>
                       <input
                         type="text"
                         disabled
                         value={business ? String(business.employee_id_next_number).padStart(3, '0') : '001'}
-                        className="w-full bg-slate-900/50 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-500 font-mono cursor-not-allowed"
+                        className="w-full bg-slate-100 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-500 font-mono cursor-not-allowed"
                       />
                       <span className="text-[10px] text-slate-500 mt-1 block">
                         Managed atomically by the backend to prevent collisions.
@@ -236,9 +233,9 @@ export const Settings: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="p-3 rounded-lg bg-emerald-950/40 border border-emerald-900/50 text-xs text-emerald-300">
+                  <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 text-xs text-emerald-800 dark:text-emerald-300">
                     <span className="font-semibold">Live Preview: </span>
-                    <span className="font-mono text-emerald-200">
+                    <span className="font-mono text-emerald-700 dark:text-emerald-200 font-bold">
                       {formData.employee_id_prefix}
                       {business ? String(business.employee_id_next_number).padStart(3, '0') : '001'}
                     </span>
@@ -252,7 +249,7 @@ export const Settings: React.FC = () => {
             <button
               type="submit"
               disabled={saving}
-              className="px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-sm transition shadow-lg shadow-emerald-900/30 disabled:opacity-50"
+              className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition disabled:opacity-50 text-center cursor-pointer"
             >
               {saving ? 'Saving Settings...' : 'Save Settings'}
             </button>

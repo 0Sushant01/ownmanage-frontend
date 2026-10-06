@@ -1,6 +1,7 @@
 import React, { useState } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import { useAuth } from '../context/AuthContext'
+import { ThemeToggle } from '../components/ThemeToggle'
 
 export const Login: React.FC = () => {
   const { login } = useAuth()
@@ -54,7 +55,10 @@ export const Login: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 px-4">
+    <div className="min-h-screen min-h-dvh bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 px-4 relative font-sans antialiased" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
+      <div className="absolute right-4 z-10" style={{ top: 'max(1rem, env(safe-area-inset-top))' }}>
+        <ThemeToggle size="sm" />
+      </div>
       <div className="sm:mx-auto sm:w-full sm:max-w-md text-center">
         <div className="inline-flex h-12 w-12 rounded-xl bg-emerald-500 items-center justify-center font-bold text-slate-950 text-2xl mb-4 shadow-lg shadow-emerald-500/20">
           OM
@@ -84,7 +88,7 @@ export const Login: React.FC = () => {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="name@company.com"
-                className="w-full bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition"
+                className="w-full min-h-11 bg-slate-950 border border-slate-800 rounded-xl px-4 py-2.5 text-base md:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition"
               />
             </div>
 
@@ -104,14 +108,14 @@ export const Login: React.FC = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-11 py-2.5 text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition"
+                  className="w-full min-h-11 bg-slate-950 border border-slate-800 rounded-xl pl-4 pr-11 py-2.5 text-base md:text-sm text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500 transition"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
                   aria-label={showPassword ? 'Hide password' : 'View password'}
                   title={showPassword ? 'Hide password' : 'View password'}
-                  className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-emerald-400 transition focus:outline-none cursor-pointer"
+                  className="absolute inset-y-0 right-0 min-w-11 min-h-11 pr-3.5 flex items-center justify-center text-slate-400 hover:text-emerald-400 transition focus:outline-none cursor-pointer"
                 >
                   {showPassword ? (
                     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.75} stroke="currentColor" className="w-5 h-5">
@@ -130,7 +134,7 @@ export const Login: React.FC = () => {
             <button
               type="submit"
               disabled={loading}
-              className="w-full flex justify-center items-center py-3 px-4 rounded-xl text-sm font-semibold text-slate-950 bg-emerald-400 hover:bg-emerald-300 transition shadow-lg shadow-emerald-500/10 disabled:opacity-50"
+              className="w-full min-h-12 flex justify-center items-center py-3 px-4 rounded-xl text-sm font-semibold tracking-tight text-slate-950 bg-emerald-400 hover:bg-emerald-300 active:scale-[0.99] transition shadow-lg shadow-emerald-500/10 disabled:opacity-50"
             >
               {loading ? (
                 <div className="h-5 w-5 border-2 border-slate-950 border-t-transparent rounded-full animate-spin" />
@@ -155,7 +159,7 @@ export const Login: React.FC = () => {
               <button
                 type="button"
                 onClick={() => fillCredentials('superadmin@ownmanage.in')}
-                className="p-2 bg-slate-950 border border-slate-800 hover:border-purple-500/50 rounded-lg text-slate-300 text-left truncate transition"
+                className="min-h-11 p-2.5 bg-slate-950 border border-slate-800 hover:border-purple-500/50 rounded-lg text-slate-300 text-left truncate transition"
               >
                 <span className="text-[10px] text-purple-400 block font-mono">SUPERADMIN</span>
                 superadmin@ownmanage.in
@@ -163,7 +167,7 @@ export const Login: React.FC = () => {
               <button
                 type="button"
                 onClick={() => fillCredentials('broker@ownmanage.in')}
-                className="p-2 bg-slate-950 border border-slate-800 hover:border-amber-500/50 rounded-lg text-slate-300 text-left truncate transition"
+                className="min-h-11 p-2.5 bg-slate-950 border border-slate-800 hover:border-amber-500/50 rounded-lg text-slate-300 text-left truncate transition"
               >
                 <span className="text-[10px] text-amber-400 block font-mono">BROKER PARTNER</span>
                 broker@ownmanage.in
@@ -171,7 +175,7 @@ export const Login: React.FC = () => {
               <button
                 type="button"
                 onClick={() => fillCredentials('admin@acme.com')}
-                className="p-2 bg-slate-950 border border-slate-800 hover:border-emerald-500/50 rounded-lg text-slate-300 text-left truncate transition"
+                className="min-h-11 p-2.5 bg-slate-950 border border-slate-800 hover:border-emerald-500/50 rounded-lg text-slate-300 text-left truncate transition"
               >
                 <span className="text-[10px] text-emerald-400 block font-mono">BUSINESS ADMIN</span>
                 admin@acme.com
@@ -179,7 +183,7 @@ export const Login: React.FC = () => {
               <button
                 type="button"
                 onClick={() => fillCredentials('manager1@acme.com')}
-                className="p-2 bg-slate-950 border border-slate-800 hover:border-blue-500/50 rounded-lg text-slate-300 text-left truncate transition"
+                className="min-h-11 p-2.5 bg-slate-950 border border-slate-800 hover:border-blue-500/50 rounded-lg text-slate-300 text-left truncate transition"
               >
                 <span className="text-[10px] text-blue-400 block font-mono">MANAGER 1</span>
                 manager1@acme.com

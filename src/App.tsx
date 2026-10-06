@@ -1,5 +1,6 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider } from './context/AuthContext'
+import { ThemeProvider } from './context/ThemeContext'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { Layout } from './components/Layout'
 
@@ -26,11 +27,13 @@ import { AttendancePolicies } from './pages/AttendancePolicies'
 import { ManagerAccessControl } from './pages/ManagerAccessControl'
 import { Holidays } from './pages/Holidays'
 import { PayrollRuns } from './pages/PayrollRuns'
+import { ThemeAudit } from './pages/ThemeAudit'
 
 export default function App() {
   return (
     <Router>
-      <AuthProvider>
+      <ThemeProvider>
+        <AuthProvider>
         <Routes>
           {/* Public Auth Routes */}
           <Route path="/login" element={<Login />} />
@@ -40,6 +43,7 @@ export default function App() {
           {/* Protected Application Routes */}
           <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route path="/dashboard" element={<Dashboard />} />
+            <Route path="/theme-audit" element={<ThemeAudit />} />
             
             {/* SuperAdmin Routes */}
             <Route
@@ -181,7 +185,8 @@ export default function App() {
           {/* Catch-all redirect to Dashboard */}
           <Route path="*" element={<Navigate to="/dashboard" replace />} />
         </Routes>
-      </AuthProvider>
+        </AuthProvider>
+      </ThemeProvider>
     </Router>
   )
 }

@@ -206,6 +206,17 @@ export interface LeaveType {
   is_paid: boolean
 }
 
+export interface PayrollLineItem {
+  id: string
+  name: string
+  line_type: 'BASIC' | 'ALLOWANCE' | 'BONUS' | 'OVERTIME' | 'DEDUCTION' | 'OTHER'
+  amount: string
+  rate?: string
+  units?: string
+  is_deduction: boolean
+  compensation_item?: string
+}
+
 export interface Payroll {
   id: string
   employee: string
@@ -220,6 +231,7 @@ export interface Payroll {
   currency: string
   status: 'DRAFT' | 'PROCESSED' | 'PAID' | 'CANCELLED'
   generated_at: string
+  line_items?: PayrollLineItem[]
 }
 
 export interface Department {

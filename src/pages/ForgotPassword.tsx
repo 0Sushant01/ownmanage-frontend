@@ -85,7 +85,7 @@ export const ForgotPassword: React.FC = () => {
   }
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+    <div className="min-h-screen min-h-dvh bg-slate-950 flex flex-col justify-center py-12 sm:px-6 lg:px-8 px-4 font-sans antialiased" style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}>
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
           <div className="h-12 w-12 rounded-2xl bg-gradient-to-tr from-emerald-500 to-teal-400 flex items-center justify-center font-bold text-slate-950 text-2xl shadow-lg shadow-emerald-500/20">
@@ -186,7 +186,7 @@ export const ForgotPassword: React.FC = () => {
                     onClick={() => setShowPassword(!showPassword)}
                     aria-label={showPassword ? 'Hide password' : 'View password'}
                     title={showPassword ? 'Hide password' : 'View password'}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-emerald-400 transition focus:outline-none cursor-pointer"
+                    className="absolute inset-y-0 right-0 min-w-11 min-h-11 pr-3.5 flex items-center justify-center text-slate-400 hover:text-emerald-400 transition focus:outline-none cursor-pointer"
                   >
                     {showPassword ? (
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.75} stroke="currentColor" className="w-5 h-5">
@@ -221,7 +221,7 @@ export const ForgotPassword: React.FC = () => {
                     onClick={() => setShowConfirmPassword(!showConfirmPassword)}
                     aria-label={showConfirmPassword ? 'Hide password' : 'View password'}
                     title={showConfirmPassword ? 'Hide password' : 'View password'}
-                    className="absolute inset-y-0 right-0 pr-3.5 flex items-center text-slate-400 hover:text-emerald-400 transition focus:outline-none cursor-pointer"
+                    className="absolute inset-y-0 right-0 min-w-11 min-h-11 pr-3.5 flex items-center justify-center text-slate-400 hover:text-emerald-400 transition focus:outline-none cursor-pointer"
                   >
                     {showConfirmPassword ? (
                       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={1.75} stroke="currentColor" className="w-5 h-5">

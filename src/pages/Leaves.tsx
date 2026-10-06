@@ -3,6 +3,15 @@ import apiClient from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import { CentreSelector } from '../components/CentreSelector'
 import type { LeaveRequest, LeaveType } from '../types'
+import { OwnPageHeader } from '../design-system/components/OwnPageHeader'
+import { OwnButton } from '../design-system/components/OwnButton'
+import { OwnFilterBar } from '../design-system/components/OwnFilterBar'
+import { OwnSelect } from '../design-system/components/OwnSelect'
+import { OwnInput } from '../design-system/components/OwnInput'
+import { OwnCard } from '../design-system/components/OwnCard'
+import { OwnStatusBadge } from '../design-system/components/OwnBadge'
+import { OwnDialog } from '../design-system/components/OwnDialog'
+import { OwnEmptyState } from '../design-system/components/OwnEmptyState'
 
 export const Leaves: React.FC = () => {
   const { role, employee } = useAuth()
@@ -117,101 +126,107 @@ export const Leaves: React.FC = () => {
     }
   }
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case 'APPROVED':
-        return 'bg-emerald-950/80 text-emerald-400 border-emerald-800/80'
-      case 'PENDING':
-        return 'bg-amber-950/80 text-amber-400 border-amber-800/80'
-      case 'REJECTED':
-        return 'bg-rose-950/80 text-rose-400 border-rose-800/80'
-      default:
-        return 'bg-slate-800 text-slate-400 border-slate-700'
-    }
-  }
-
   const canManageLeaves = role === 'SUPERADMIN' || role === 'BUSINESS_ADMIN' || role === 'MANAGER'
 
   return (
-    <div className="p-6 md:p-10 max-w-7xl mx-auto w-full space-y-8">
+    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Leave Management</h1>
-          <p className="text-sm text-slate-400 mt-1">
-            {role === 'STAFF'
-              ? 'Apply for time off and track your leave status.'
-              : 'Review and action team leave requests with strict organizational permissions.'}
-          </p>
-        </div>
-        {employee && (
-          <button
-            onClick={() => setShowApplyModal(true)}
-            className="flex items-center justify-center space-x-2 px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-sm transition shadow-lg shadow-emerald-900/30"
-          >
-            <span>+</span>
-            <span>Apply For Leave</span>
-          </button>
-        )}
-      </div>
+      <OwnPageHeader
+        title="Leave Management"
+        description={
+          role === 'STAFF'
+            ? 'Apply for time off and track your leave status.'
+            : 'Review and action team leave requests with strict organizational permissions.'
+        }
+        breadcrumbs={[
+          { label: 'Workspace', href: '/' },
+          { label: 'Leaves' }
+        ]}
+        actions={
+          employee ? (
+            <OwnButton
+              onClick={() => setShowApplyModal(true)}
+              variant="primary"
+              size="md"
+            >
+              + Apply For Leave
+            </OwnButton>
+          ) : undefined
+        }
+      />
 
       {actionSuccess && (
-        <div className="p-4 rounded-xl bg-emerald-950/50 border border-emerald-800 text-emerald-300 text-sm flex items-center justify-between">
+        <div className="p-4 rounded-xl bg-success/10 border border-success/30 text-success text-sm flex items-center justify-between font-medium">
           <span>{actionSuccess}</span>
-          <button onClick={() => setActionSuccess(null)} className="text-emerald-400 hover:text-white font-bold ml-4">
+          <button onClick={() => setActionSuccess(null)} className="text-success hover:opacity-75 font-bold ml-4">
             ✕
           </button>
         </div>
       )}
 
       {/* Filters */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-slate-800 pb-4">
-        <div className="flex items-center space-x-2">
-          {['', 'PENDING', 'APPROVED', 'REJECTED'].map((st) => (
-            <button
-              key={st}
-              onClick={() => setStatusFilter(st)}
-              className={`px-4 py-2 rounded-xl text-xs font-semibold transition ${
-                statusFilter === st
-                  ? 'bg-slate-800 text-white border border-slate-700'
-                  : 'text-slate-400 hover:text-slate-200'
-              }`}
-            >
-              {st || 'All Requests'}
-            </button>
-          ))}
-        </div>
+      <OwnFilterBar
+        filters={
+          <div className="flex flex-wrap items-center justify-between gap-3 w-full">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              {[
+                { val: '', label: 'All Requests' },
+                { val: 'PENDING', label: 'Pending' },
+                { val: 'APPROVED', label: 'Approved' },
+                { val: 'REJECTED', label: 'Rejected' }
+              ].map((st) => (
+                <OwnButton
+                  key={st.val}
+                  variant={statusFilter === st.val ? 'primary' : 'ghost'}
+                  size="sm"
+                  onClick={() => setStatusFilter(st.val)}
+                >
+                  {st.label}
+                </OwnButton>
+              ))}
+            </div>
 
-        <div>
-          <CentreSelector
-            value={selectedCentre}
-            onChange={(val: string) => setSelectedCentre(val)}
-            showAllOption={true}
-          />
-        </div>
-      </div>
+            <div>
+              <CentreSelector
+                value={selectedCentre}
+                onChange={(val: string) => setSelectedCentre(val)}
+                showAllOption={true}
+                className="w-48"
+              />
+            </div>
+          </div>
+        }
+      />
 
       {/* Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-2xl">
+      <OwnCard className="overflow-hidden border-border bg-card shadow-sm">
         {loading ? (
-          <div className="p-12 text-center text-slate-400">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500 mb-3" />
+          <div className="p-12 text-center text-muted-foreground">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary mb-3" />
             <p className="text-sm">Fetching leave requests...</p>
           </div>
         ) : error ? (
-          <div className="p-8 text-center text-rose-400 text-sm">{error}</div>
+          <div className="p-8 text-center text-destructive text-sm font-medium">{error}</div>
         ) : leaves.length === 0 ? (
-          <div className="p-12 text-center text-slate-400">
-            <span className="text-4xl block mb-3">🏖️</span>
-            <p className="text-base font-semibold text-slate-300">No leave requests found</p>
-            <p className="text-xs text-slate-500 mt-1">
-              Any applied leaves will appear here.
-            </p>
-          </div>
+          <OwnEmptyState
+            title="No leave requests found"
+            description="Any applied leaves will appear here."
+            action={
+              employee ? (
+                <OwnButton
+                  onClick={() => setShowApplyModal(true)}
+                  variant="primary"
+                  size="sm"
+                >
+                  Apply For Leave
+                </OwnButton>
+              ) : undefined
+            }
+          />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-300">
-              <thead className="bg-slate-950/60 text-xs uppercase tracking-wider text-slate-400 border-b border-slate-800">
+            <table className="w-full text-left text-sm text-foreground">
+              <thead className="bg-muted/60 text-xs uppercase font-semibold text-muted-foreground border-b border-border">
                 <tr>
                   <th className="px-6 py-4">Employee</th>
                   <th className="px-6 py-4">Type</th>
@@ -221,51 +236,51 @@ export const Leaves: React.FC = () => {
                   <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-border">
                 {leaves.map((req) => (
-                  <tr key={req.id} className="hover:bg-slate-800/40 transition">
+                  <tr key={req.id} className="hover:bg-muted/30 transition-colors">
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="font-medium text-white">{req.employee_name}</div>
+                      <div className="font-semibold text-foreground">{req.employee_name}</div>
                       {req.employee_id_code && (
-                        <div className="text-xs text-slate-500 font-mono">{req.employee_id_code}</div>
+                        <div className="text-xs text-muted-foreground font-mono">{req.employee_id_code}</div>
                       )}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-xs text-slate-300">
-                      <span className="font-semibold text-white">{req.leave_type_name}</span>
-                      <span className="text-slate-500 ml-1 font-mono">({req.leave_type_code})</span>
+                    <td className="px-6 py-4 whitespace-nowrap text-xs text-foreground">
+                      <span className="font-semibold text-foreground">{req.leave_type_name}</span>
+                      <span className="text-muted-foreground ml-1 font-mono">({req.leave_type_code})</span>
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-xs font-mono text-slate-300">
+                    <td className="px-6 py-4 whitespace-nowrap text-xs font-mono text-muted-foreground">
                       {req.start_date} → {req.end_date}
                     </td>
-                    <td className="px-6 py-4 text-xs text-slate-400 max-w-xs truncate" title={req.reason}>
+                    <td className="px-6 py-4 text-xs text-muted-foreground max-w-xs truncate" title={req.reason}>
                       {req.reason}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
-                      <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border ${getStatusBadge(req.status)}`}>
-                        {req.status}
-                      </span>
+                      <OwnStatusBadge status={req.status} size="sm" />
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-right text-xs">
                       {req.status === 'PENDING' && canManageLeaves ? (
                         <div className="flex items-center justify-end space-x-2">
-                          <button
+                          <OwnButton
                             onClick={() => handleApprove(req.id)}
-                            className="px-3 py-1.5 rounded-lg bg-emerald-950 text-emerald-300 hover:bg-emerald-900 border border-emerald-800 font-semibold transition"
+                            variant="primary"
+                            size="sm"
                           >
                             Approve
-                          </button>
-                          <button
+                          </OwnButton>
+                          <OwnButton
                             onClick={() => {
                               setRejectingReq(req)
                               setRejectionReason('')
                             }}
-                            className="px-3 py-1.5 rounded-lg bg-rose-950 text-rose-300 hover:bg-rose-900 border border-rose-800 font-semibold transition"
+                            variant="destructive"
+                            size="sm"
                           >
                             Reject
-                          </button>
+                          </OwnButton>
                         </div>
                       ) : (
-                        <span className="text-slate-500 italic">
+                        <span className="text-muted-foreground italic">
                           {req.approved_by_name ? `By ${req.approved_by_name}` : 'Completed'}
                         </span>
                       )}
@@ -276,151 +291,131 @@ export const Leaves: React.FC = () => {
             </table>
           </div>
         )}
-      </div>
+      </OwnCard>
 
       {/* Apply Leave Modal */}
       {showApplyModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <h3 className="text-lg font-bold text-white">Apply for Leave</h3>
-              <button
-                onClick={() => setShowApplyModal(false)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg"
-              >
-                ✕
-              </button>
-            </div>
-
+        <OwnDialog
+          open={showApplyModal}
+          onOpenChange={setShowApplyModal}
+          title="Apply for Leave"
+          description="Submit an official leave request for approval."
+          size="md"
+        >
+          <div className="space-y-4">
             {applyError && (
-              <div className="p-3 rounded-xl bg-rose-950/50 border border-rose-800 text-rose-300 text-xs">
+              <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs font-medium">
                 {applyError}
               </div>
             )}
 
             <form onSubmit={handleApplySubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Leave Type</label>
-                <select
-                  required
-                  value={applyForm.leave_type}
-                  onChange={(e) => setApplyForm({ ...applyForm, leave_type: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
-                >
-                  {leaveTypes.map((lt) => (
-                    <option key={lt.id} value={lt.id}>
-                      {lt.name} ({lt.code}) {lt.is_paid ? '• Paid' : '• Unpaid'}
-                    </option>
-                  ))}
-                </select>
-              </div>
+              <OwnSelect
+                label="Leave Type"
+                required
+                value={applyForm.leave_type}
+                onChange={(e) => setApplyForm({ ...applyForm, leave_type: e.target.value })}
+                options={leaveTypes.map((lt) => ({
+                  value: lt.id,
+                  label: `${lt.name} (${lt.code}) ${lt.is_paid ? '• Paid' : '• Unpaid'}`
+                }))}
+              />
 
               <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">Start Date</label>
-                  <input
-                    type="date"
-                    required
-                    value={applyForm.start_date}
-                    onChange={(e) => setApplyForm({ ...applyForm, start_date: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-400 mb-1">End Date</label>
-                  <input
-                    type="date"
-                    required
-                    value={applyForm.end_date}
-                    onChange={(e) => setApplyForm({ ...applyForm, end_date: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
+                <OwnInput
+                  label="Start Date"
+                  type="date"
+                  required
+                  value={applyForm.start_date}
+                  onChange={(e) => setApplyForm({ ...applyForm, start_date: e.target.value })}
+                />
+                <OwnInput
+                  label="End Date"
+                  type="date"
+                  required
+                  value={applyForm.end_date}
+                  onChange={(e) => setApplyForm({ ...applyForm, end_date: e.target.value })}
+                />
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Reason</label>
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                  Reason
+                </label>
                 <textarea
                   required
                   rows={3}
                   value={applyForm.reason}
                   onChange={(e) => setApplyForm({ ...applyForm, reason: e.target.value })}
                   placeholder="State the reason for leave..."
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 resize-none"
+                  className="w-full bg-card border border-border rounded-xl px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary resize-none"
                 />
               </div>
 
-              <div className="pt-2 flex justify-end space-x-3">
-                <button
+              <div className="pt-2 flex justify-end space-x-3 border-t border-border">
+                <OwnButton
                   type="button"
+                  variant="ghost"
                   onClick={() => setShowApplyModal(false)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
                 >
                   Cancel
-                </button>
-                <button
+                </OwnButton>
+                <OwnButton
                   type="submit"
-                  disabled={applying}
-                  className="px-5 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-xs transition disabled:opacity-50"
+                  loading={applying}
                 >
-                  {applying ? 'Submitting...' : 'Submit Application'}
-                </button>
+                  Submit Application
+                </OwnButton>
               </div>
             </form>
           </div>
-        </div>
+        </OwnDialog>
       )}
 
       {/* Reject Modal */}
       {rejectingReq && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-6">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <h3 className="text-lg font-bold text-white">Reject Leave Request</h3>
-              <button
-                onClick={() => setRejectingReq(null)}
-                className="text-slate-400 hover:text-white p-1 rounded-lg"
-              >
-                ✕
-              </button>
+        <OwnDialog
+          open={!!rejectingReq}
+          onOpenChange={(open) => {
+            if (!open) setRejectingReq(null)
+          }}
+          title="Reject Leave Request"
+          description={`Rejecting leave for ${rejectingReq.employee_name} (${rejectingReq.start_date} to ${rejectingReq.end_date}).`}
+          size="md"
+        >
+          <form onSubmit={handleRejectSubmit} className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                Rejection Reason
+              </label>
+              <textarea
+                required
+                rows={3}
+                value={rejectionReason}
+                onChange={(e) => setRejectionReason(e.target.value)}
+                placeholder="Explain why this request is being rejected..."
+                className="w-full bg-card border border-border rounded-xl px-3.5 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-destructive/20 focus:border-destructive resize-none"
+              />
             </div>
 
-            <p className="text-sm text-slate-300">
-              Rejecting leave for <strong className="text-white">{rejectingReq.employee_name}</strong> ({rejectingReq.start_date} to {rejectingReq.end_date}).
-            </p>
-
-            <form onSubmit={handleRejectSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Rejection Reason</label>
-                <textarea
-                  required
-                  rows={3}
-                  value={rejectionReason}
-                  onChange={(e) => setRejectionReason(e.target.value)}
-                  placeholder="Explain why this request is being rejected..."
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-rose-500 resize-none"
-                />
-              </div>
-
-              <div className="pt-2 flex justify-end space-x-3">
-                <button
-                  type="button"
-                  onClick={() => setRejectingReq(null)}
-                  className="px-4 py-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-xs font-semibold transition"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={rejecting}
-                  className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-500 text-white font-semibold text-xs transition disabled:opacity-50"
-                >
-                  {rejecting ? 'Rejecting...' : 'Confirm Rejection'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+            <div className="pt-2 flex justify-end space-x-3 border-t border-border">
+              <OwnButton
+                type="button"
+                variant="ghost"
+                onClick={() => setRejectingReq(null)}
+              >
+                Cancel
+              </OwnButton>
+              <OwnButton
+                type="submit"
+                variant="destructive"
+                loading={rejecting}
+              >
+                Confirm Rejection
+              </OwnButton>
+            </div>
+          </form>
+        </OwnDialog>
       )}
     </div>
   )

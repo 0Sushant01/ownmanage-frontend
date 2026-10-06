@@ -65,7 +65,27 @@ export const CentreSelector: React.FC<CentreSelectorProps> = ({
 
   // For Center Manager, limit to their assigned centre
   const isManager = role === 'MANAGER'
-  const managerBranchId = (employee as any)?.branch_id || (employee as any)?.branch
+
+  // Resolve actual manager branch UUID
+  const resolvedManagerCentre = React.useMemo(() => {
+    if (!isManager) return null
+    const rawId = (employee as any)?.branch_id
+    if (rawId) {
+      const match = centres.find((c) => c.id === rawId)
+      if (match) return match
+      return { id: rawId, name: (employee as any)?.branch_name || (employee as any)?.branch || 'Assigned Centre' }
+    }
+    const rawName = (employee as any)?.branch_name || (employee as any)?.branch
+    if (rawName && centres.length > 0) {
+      const match = centres.find(
+        (c) => c.id === rawName || c.name.toLowerCase() === rawName.toLowerCase()
+      )
+      if (match) return match
+    }
+    return null
+  }, [isManager, employee, centres])
+
+  const managerBranchId = resolvedManagerCentre?.id || (employee as any)?.branch_id
 
   const visibleCentres = isManager && managerBranchId
     ? centres.filter((c) => c.id === managerBranchId)
@@ -74,10 +94,10 @@ export const CentreSelector: React.FC<CentreSelectorProps> = ({
   // Auto-select manager's branch if locked
   useEffect(() => {
     if (isManager && managerBranchId && value !== managerBranchId) {
-      const match = visibleCentres.find((c) => c.id === managerBranchId)
+      const match = visibleCentres.find((c) => c.id === managerBranchId) || resolvedManagerCentre || undefined
       onChange(managerBranchId, match)
     }
-  }, [isManager, managerBranchId, value, visibleCentres, onChange])
+  }, [isManager, managerBranchId, value, visibleCentres, resolvedManagerCentre, onChange])
 
   const handleSelect = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const val = e.target.value
@@ -88,36 +108,36 @@ export const CentreSelector: React.FC<CentreSelectorProps> = ({
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       {label && (
-        <span className="text-xs font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-1.5 whitespace-nowrap">
-          <Building2 className="w-3.5 h-3.5 text-blue-400" />
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 whitespace-nowrap">
+          <Building2 className="w-3.5 h-3.5 text-primary" />
           {label}
         </span>
       )}
-      <div className="relative inline-block min-w-[160px]">
+      <div className="relative inline-block min-w-[170px]">
         <select
           value={value}
           onChange={handleSelect}
           disabled={disabled || (isManager && !!managerBranchId)}
-          className="w-full appearance-none bg-slate-900/90 border border-slate-700/80 hover:border-slate-600 focus:border-blue-500 focus:ring-1 focus:ring-blue-500 rounded-lg px-3 py-1.5 pr-8 text-sm font-medium text-slate-100 shadow-sm transition-all cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed"
+          className="w-full appearance-none bg-card border border-border hover:border-border-strong focus:border-ring focus:ring-1 focus:ring-ring rounded-xl px-3 py-2 pr-8 text-xs sm:text-sm font-semibold text-foreground shadow-xs transition-all cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed min-h-10"
           title="Select Centre filter"
         >
           {effectiveShowAll && !isManager && (
-            <option value="all" className="bg-slate-900 text-slate-200">
+            <option value="all" className="bg-card text-foreground">
               All Centres ({centres.length})
             </option>
           )}
           {visibleCentres.map((centre) => (
-            <option key={centre.id} value={centre.id} className="bg-slate-900 text-slate-200">
+            <option key={centre.id} value={centre.id} className="bg-card text-foreground">
               {centre.name} {centre.city ? `(${centre.city})` : ''}
             </option>
           ))}
           {visibleCentres.length === 0 && !loading && (
-            <option value="" disabled className="bg-slate-900 text-slate-500">
+            <option value="" disabled className="bg-card text-muted-foreground">
               No centres found
             </option>
           )}
         </select>
-        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-slate-400">
+        <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2.5 text-muted-foreground">
           <ChevronDown className="w-4 h-4" />
         </div>
       </div>

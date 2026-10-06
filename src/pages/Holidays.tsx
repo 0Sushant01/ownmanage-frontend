@@ -15,7 +15,12 @@ import {
 import apiClient from '../services/api'
 import { Can } from '../components/Can'
 import { CentreSelector } from '../components/CentreSelector'
+import { ToggleSwitch } from '../components/ToggleSwitch'
 import type { Holiday } from '../types'
+import { OwnPageHeader } from '../design-system/components/OwnPageHeader'
+import { OwnButton } from '../design-system/components/OwnButton'
+import { OwnKpiCard } from '../design-system/components/OwnKpiCard'
+import { OwnDialog } from '../design-system/components/OwnDialog'
 
 export const Holidays: React.FC = () => {
   const today = new Date()
@@ -322,84 +327,86 @@ export const Holidays: React.FC = () => {
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl w-full mx-auto space-y-6 animate-in fade-in duration-200">
+    <div className="p-4 sm:p-6 md:p-8 max-w-7xl w-full mx-auto space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
-            <Calendar className="w-7 h-7 text-indigo-400" />
-            Holiday Calendar
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Enterprise global holidays & centre-specific operational calendars.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => loadData()}
-            disabled={loading}
-            className="flex items-center gap-2 px-3.5 py-2 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl transition shadow-sm"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
-
-          <Can permission="holidays.manage">
-            <button
-              onClick={() => {
-                setNewHoliday((prev) => ({ ...prev, holiday_date: selectedDate || todayStr }))
-                setShowAddModal(true)
-              }}
-              className="bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs px-4 py-2 rounded-xl transition shadow-lg shadow-blue-900/30 flex items-center space-x-1.5"
+      <OwnPageHeader
+        title="Holiday Calendar"
+        description="Enterprise global holidays & centre-specific operational calendars."
+        breadcrumbs={[
+          { label: 'Workspace', href: '/' },
+          { label: 'Holidays' }
+        ]}
+        actions={
+          <div className="flex items-center gap-3">
+            <OwnButton
+              onClick={() => loadData()}
+              disabled={loading}
+              variant="secondary"
+              size="md"
+              leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />}
             >
-              <Plus className="w-4 h-4" />
-              <span>Add Holiday</span>
-            </button>
-          </Can>
-        </div>
-      </div>
+              Refresh
+            </OwnButton>
+
+            <Can permission="holidays.manage">
+              <OwnButton
+                onClick={() => {
+                  setNewHoliday((prev) => ({ ...prev, holiday_date: selectedDate || todayStr }))
+                  setShowAddModal(true)
+                }}
+                variant="primary"
+                size="md"
+                leftIcon={<Plus className="w-4 h-4" />}
+              >
+                Add Holiday
+              </OwnButton>
+            </Can>
+          </div>
+        }
+      />
 
       {/* Alerts */}
       {error && (
-        <div className="p-4 rounded-xl bg-rose-950/60 border border-rose-800 text-rose-300 text-sm flex items-center justify-between">
+        <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm flex items-center justify-between font-medium">
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="text-rose-400 hover:text-white">✕</button>
+          <button onClick={() => setError(null)} className="text-destructive hover:opacity-75">✕</button>
         </div>
       )}
       {successMsg && (
-        <div className="p-4 rounded-xl bg-emerald-950/60 border border-emerald-800 text-emerald-300 text-sm flex items-center justify-between">
+        <div className="p-4 rounded-xl bg-success/10 border border-success/30 text-success text-sm flex items-center justify-between font-medium">
           <span>{successMsg}</span>
-          <button onClick={() => setSuccessMsg(null)} className="text-emerald-400 hover:text-white">✕</button>
+          <button onClick={() => setSuccessMsg(null)} className="text-success hover:opacity-75">✕</button>
         </div>
       )}
 
       {/* Summary KPI Cards */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5">
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
-          <div className="text-xs font-medium text-slate-400">Total Holidays</div>
-          <div className="text-2xl font-bold text-white mt-1">{summary.total}</div>
-        </div>
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
-          <div className="text-xs font-medium text-emerald-400 flex items-center gap-1.5">
-            <Clock className="w-3.5 h-3.5" /> Upcoming
-          </div>
-          <div className="text-2xl font-bold text-emerald-300 mt-1">{summary.upcoming}</div>
-        </div>
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
-          <div className="text-xs font-medium text-amber-400 flex items-center gap-1.5">
-            <Sparkles className="w-3.5 h-3.5" /> Optional
-          </div>
-          <div className="text-2xl font-bold text-amber-300 mt-1">{summary.optional}</div>
-        </div>
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 shadow-sm">
-          <div className="text-xs font-medium text-slate-500">Past in {selectedYear}</div>
-          <div className="text-2xl font-bold text-slate-400 mt-1">{summary.past}</div>
-        </div>
+        <OwnKpiCard
+          title="Total Holidays"
+          value={summary.total}
+          variant="default"
+        />
+        <OwnKpiCard
+          title="Upcoming"
+          value={summary.upcoming}
+          icon={<Clock className="w-3.5 h-3.5" />}
+          variant="success"
+        />
+        <OwnKpiCard
+          title="Optional"
+          value={summary.optional}
+          icon={<Sparkles className="w-3.5 h-3.5" />}
+          variant="warning"
+        />
+        <OwnKpiCard
+          title={`Past in ${selectedYear}`}
+          value={summary.past}
+          variant="default"
+        />
       </div>
 
       {/* Filters Bar: Year, Centre, Month, Holiday Type, Search */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm space-y-3">
+      <div className="bg-card border border-border rounded-2xl p-4 shadow-sm space-y-3">
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 items-center">
           {/* Centre Selector */}
           <div>
@@ -415,7 +422,7 @@ export const Holidays: React.FC = () => {
 
           {/* Year Select */}
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 whitespace-nowrap">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
               Year:
             </span>
             <select
@@ -426,7 +433,7 @@ export const Holidays: React.FC = () => {
                 setCalYear(yr)
                 setSelectedDate(null)
               }}
-              className="w-full bg-slate-950 border border-slate-700/80 focus:border-blue-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-200"
+              className="w-full bg-card border border-border focus:border-primary rounded-lg px-2.5 py-1.5 text-xs text-foreground"
             >
               {[currentYear - 1, currentYear, currentYear + 1, currentYear + 2].map((y) => (
                 <option key={y} value={y}>{y}</option>
@@ -436,7 +443,7 @@ export const Holidays: React.FC = () => {
 
           {/* Month Select */}
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 whitespace-nowrap">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
               Month:
             </span>
             <select
@@ -448,7 +455,7 @@ export const Holidays: React.FC = () => {
                 }
                 setSelectedDate(null)
               }}
-              className="w-full bg-slate-950 border border-slate-700/80 focus:border-blue-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-200"
+              className="w-full bg-card border border-border focus:border-primary rounded-lg px-2.5 py-1.5 text-xs text-foreground"
             >
               <option value="all">All Months</option>
               {monthNames.map((name, i) => (
@@ -459,7 +466,7 @@ export const Holidays: React.FC = () => {
 
           {/* Holiday Type */}
           <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 whitespace-nowrap">
+            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
               Type:
             </span>
             <select
@@ -468,7 +475,7 @@ export const Holidays: React.FC = () => {
                 setSelectedType(e.target.value)
                 setSelectedDate(null)
               }}
-              className="w-full bg-slate-950 border border-slate-700/80 focus:border-blue-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-200"
+              className="w-full bg-card border border-border focus:border-primary rounded-lg px-2.5 py-1.5 text-xs text-foreground"
             >
               <option value="all">All Types</option>
               <option value="ENTERPRISE">Enterprise Holiday</option>
@@ -479,13 +486,13 @@ export const Holidays: React.FC = () => {
 
           {/* Search */}
           <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+            <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               placeholder="Search holiday..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-950 border border-slate-700/80 focus:border-blue-500 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-100 placeholder-slate-500"
+              className="w-full bg-card border border-border focus:border-primary rounded-lg pl-9 pr-3 py-1.5 text-xs text-foreground placeholder-muted-foreground"
             />
           </div>
         </div>
@@ -494,27 +501,27 @@ export const Holidays: React.FC = () => {
       {/* Main Content Area: Left Calendar Widget & Right Holiday Table */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
         {/* Left Column: Calendar Widget (Always Visible Even When 0 Holidays) */}
-        <div className="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl space-y-4">
+        <div className="lg:col-span-5 bg-card border border-border rounded-2xl p-5 shadow-sm space-y-4">
           {/* Calendar Navigation Bar: «  ‹  Month Year  ›  » */}
-          <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <div className="flex items-center justify-between pb-3 border-b border-border">
             <div className="flex items-center gap-1">
               <button
                 onClick={prevYear}
                 title="Previous Year"
-                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
+                className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition"
               >
                 <ChevronsLeft className="w-4 h-4" />
               </button>
               <button
                 onClick={prevMonth}
                 title="Previous Month"
-                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
+                className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition"
               >
                 <ChevronLeft className="w-4 h-4" />
               </button>
             </div>
 
-            <div className="text-center font-bold text-base text-white tracking-wide">
+            <div className="text-center font-bold text-base text-foreground tracking-wide">
               {monthNames[calMonth]} {calYear}
             </div>
 
@@ -522,14 +529,14 @@ export const Holidays: React.FC = () => {
               <button
                 onClick={nextMonth}
                 title="Next Month"
-                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
+                className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition"
               >
                 <ChevronRight className="w-4 h-4" />
               </button>
               <button
                 onClick={nextYear}
                 title="Next Year"
-                className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
+                className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-muted rounded-lg transition"
               >
                 <ChevronsRight className="w-4 h-4" />
               </button>
@@ -664,73 +671,75 @@ export const Holidays: React.FC = () => {
         </div>
 
         {/* Right Column: Holidays Table / Listing */}
-        <div className="lg:col-span-7 bg-slate-900 border border-slate-800 rounded-2xl shadow-xl overflow-hidden flex flex-col justify-between">
+        <div className="lg:col-span-7 bg-card border border-border rounded-2xl shadow-sm overflow-hidden flex flex-col justify-between">
           <div>
             {/* Table Header Controls */}
-            <div className="p-4 border-b border-slate-800 flex items-center justify-between flex-wrap gap-2">
+            <div className="p-4 border-b border-border flex items-center justify-between flex-wrap gap-2">
               <div>
-                <h3 className="text-sm font-bold text-white flex items-center gap-2">
+                <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
                   <span>Holidays List</span>
                   {selectedDate && (
-                    <span className="text-xs font-normal text-blue-400 bg-blue-950/80 px-2 py-0.5 rounded-full border border-blue-800">
+                    <span className="text-xs font-normal text-primary bg-primary/10 px-2 py-0.5 rounded-full border border-primary/20">
                       Filtered: {selectedDate}
                     </span>
                   )}
                 </h3>
-                <p className="text-xs text-slate-400 mt-0.5">
+                <p className="text-xs text-muted-foreground mt-0.5">
                   {tableHolidays.length} holiday{tableHolidays.length !== 1 ? 's' : ''} configured
                 </p>
               </div>
 
               {selectedDate && (
                 <Can permission="holidays.manage">
-                  <button
+                  <OwnButton
                     onClick={() => openAddWithDate(selectedDate)}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-600/90 hover:bg-blue-600 text-white rounded-lg text-xs font-semibold transition"
+                    variant="primary"
+                    size="sm"
+                    leftIcon={<Plus className="w-3.5 h-3.5" />}
                   >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Add for {selectedDate}</span>
-                  </button>
+                    Add for {selectedDate}
+                  </OwnButton>
                 </Can>
               )}
             </div>
 
             {/* Table Body */}
             {loading ? (
-              <div className="p-16 text-center text-slate-400 text-sm flex flex-col items-center justify-center gap-2">
-                <RefreshCw className="w-7 h-7 animate-spin text-blue-500" />
+              <div className="p-16 text-center text-muted-foreground text-sm flex flex-col items-center justify-center gap-2">
+                <RefreshCw className="w-7 h-7 animate-spin text-primary" />
                 <span>Loading holidays...</span>
               </div>
             ) : tableHolidays.length === 0 ? (
-              <div className="p-16 text-center text-slate-400 space-y-3">
-                <Calendar className="w-10 h-10 mx-auto text-slate-600" />
-                <p className="text-base font-semibold text-slate-300">
+              <div className="p-16 text-center text-muted-foreground space-y-3">
+                <Calendar className="w-10 h-10 mx-auto text-muted-foreground/60" />
+                <p className="text-base font-semibold text-foreground">
                   {selectedDate
                     ? `No holidays scheduled on ${selectedDate}`
                     : 'No holidays found matching selected filters'}
                 </p>
-                <p className="text-xs text-slate-500 max-w-sm mx-auto">
+                <p className="text-xs text-muted-foreground max-w-sm mx-auto">
                   {selectedDate
                     ? 'You can add a holiday on this day by clicking the Add button above.'
                     : 'The calendar on the left shows the complete monthly schedule. Click "+ Add Holiday" to configure a holiday.'}
                 </p>
                 <Can permission="holidays.manage">
-                  <button
+                  <OwnButton
                     onClick={() => {
                       setNewHoliday((prev) => ({ ...prev, holiday_date: selectedDate || todayStr }))
                       setShowAddModal(true)
                     }}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold rounded-xl transition shadow"
+                    variant="primary"
+                    size="sm"
+                    leftIcon={<Plus className="w-3.5 h-3.5" />}
                   >
-                    <Plus className="w-3.5 h-3.5" />
-                    <span>Add Holiday</span>
-                  </button>
+                    Add Holiday
+                  </OwnButton>
                 </Can>
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm text-slate-300">
-                  <thead className="bg-slate-950/80 text-[11px] uppercase font-semibold text-slate-400 border-b border-slate-800">
+                <table className="w-full text-left text-sm text-foreground">
+                  <thead className="bg-muted/60 text-[11px] uppercase font-semibold text-muted-foreground border-b border-border">
                     <tr>
                       <th className="px-4 py-3.5 w-14">Sr. No.</th>
                       <th className="px-4 py-3.5">Name</th>
@@ -740,7 +749,7 @@ export const Holidays: React.FC = () => {
                       <th className="px-4 py-3.5 text-right">Actions</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y divide-slate-800/60 font-medium">
+                  <tbody className="divide-y divide-border font-medium">
                     {paginatedHolidays.map((h, index) => {
                       const dateObj = new Date(h.holiday_date)
                       const formattedDate = !isNaN(dateObj.getTime())
@@ -752,33 +761,33 @@ export const Holidays: React.FC = () => {
                       return (
                         <tr
                           key={h.id}
-                          className={`hover:bg-slate-800/40 transition-colors ${
-                            selectedDate === h.holiday_date ? 'bg-blue-950/20' : ''
+                          className={`hover:bg-muted/30 transition-colors ${
+                            selectedDate === h.holiday_date ? 'bg-primary/10' : ''
                           }`}
                         >
                           {/* Sr. No. */}
-                          <td className="px-4 py-3 text-xs text-slate-400 font-mono">
+                          <td className="px-4 py-3 text-xs text-muted-foreground font-mono">
                             {srNo}
                           </td>
 
                           {/* Name */}
-                          <td className="px-4 py-3 font-semibold text-white">
+                          <td className="px-4 py-3 font-semibold text-foreground">
                             {h.name}
                           </td>
 
                           {/* Date */}
-                          <td className="px-4 py-3 text-xs font-mono text-slate-300 whitespace-nowrap">
+                          <td className="px-4 py-3 text-xs font-mono text-muted-foreground whitespace-nowrap">
                             {formattedDate}
                           </td>
 
                           {/* Type */}
                           <td className="px-4 py-3 text-xs whitespace-nowrap">
                             {h.is_optional ? (
-                              <span className="px-2.5 py-0.5 rounded-full bg-amber-950/80 text-amber-300 border border-amber-800 font-semibold text-[10px]">
+                              <span className="px-2.5 py-0.5 rounded-full bg-warning/10 text-warning border border-warning/30 font-semibold text-[10px]">
                                 OPTIONAL
                               </span>
                             ) : (
-                              <span className="px-2.5 py-0.5 rounded-full bg-orange-950/80 text-orange-300 border border-orange-800 font-semibold text-[10px]">
+                              <span className="px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/30 font-semibold text-[10px]">
                                 MANDATORY
                               </span>
                             )}
@@ -787,11 +796,11 @@ export const Holidays: React.FC = () => {
                           {/* Scope / Status */}
                           <td className="px-4 py-3 text-xs whitespace-nowrap">
                             {h.applies_to_all_centres ? (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-blue-950/80 text-blue-300 border border-blue-800 font-semibold text-[10px]">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-muted text-foreground border border-border font-semibold text-[10px]">
                                 Enterprise
                               </span>
                             ) : (
-                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-purple-950/80 text-purple-300 border border-purple-800 font-semibold text-[10px]">
+                              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 font-semibold text-[10px]">
                                 <Building2 className="w-2.5 h-2.5" />
                                 Centre Specific
                               </span>
@@ -801,21 +810,23 @@ export const Holidays: React.FC = () => {
                           {/* Actions */}
                           <td className="px-4 py-3 text-right whitespace-nowrap">
                             <div className="flex items-center justify-end gap-1.5">
-                              <button
+                              <OwnButton
                                 onClick={() => setViewingHoliday(h)}
-                                className="px-2.5 py-1 text-xs rounded bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition"
+                                variant="secondary"
+                                size="sm"
                                 title="View Details"
                               >
                                 View
-                              </button>
+                              </OwnButton>
                               <Can permission="holidays.manage">
-                                <button
+                                <OwnButton
                                   onClick={() => handleDelete(h.id, h.name)}
-                                  className="px-2.5 py-1 text-xs rounded bg-rose-950/60 hover:bg-rose-900/80 text-rose-300 border border-rose-800/80 transition"
+                                  variant="destructive"
+                                  size="sm"
                                   title="Delete Holiday"
                                 >
                                   Delete
-                                </button>
+                                </OwnButton>
                               </Can>
                             </div>
                           </td>
@@ -830,26 +841,28 @@ export const Holidays: React.FC = () => {
 
           {/* Pagination Controls */}
           {tableHolidays.length > 0 && (
-            <div className="p-3.5 border-t border-slate-800 bg-slate-950/40 flex items-center justify-between text-xs text-slate-400">
-              <button
+            <div className="p-3.5 border-t border-border bg-muted/20 flex items-center justify-between text-xs text-muted-foreground">
+              <OwnButton
                 disabled={currentPage === 1}
                 onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
-                className="px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                variant="secondary"
+                size="sm"
               >
                 Previous
-              </button>
+              </OwnButton>
 
-              <span className="font-semibold text-slate-300">
+              <span className="font-semibold text-foreground">
                 Page {currentPage} / {totalPages}
               </span>
 
-              <button
+              <OwnButton
                 disabled={currentPage === totalPages}
                 onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
-                className="px-3 py-1.5 rounded-lg border border-slate-800 bg-slate-900 hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                variant="secondary"
+                size="sm"
               >
                 Next
-              </button>
+              </OwnButton>
             </div>
           )}
         </div>
@@ -857,209 +870,200 @@ export const Holidays: React.FC = () => {
 
       {/* View Holiday Details Modal */}
       {viewingHoliday && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-md p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="text-base font-bold text-white flex items-center gap-2">
-                <Calendar className="w-5 h-5 text-indigo-400" />
-                <span>Holiday Details</span>
-              </h3>
-              <button onClick={() => setViewingHoliday(null)} className="text-slate-400 hover:text-white">✕</button>
-            </div>
-
-            <div className="space-y-3 text-sm">
+        <OwnDialog
+          open={!!viewingHoliday}
+          onOpenChange={(open) => {
+            if (!open) setViewingHoliday(null)
+          }}
+          title={viewingHoliday.name}
+          description="Holiday details and centre applicability."
+          size="md"
+        >
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-xs text-slate-500 font-medium">Holiday Name</label>
-                <div className="text-base font-bold text-white mt-0.5">{viewingHoliday.name}</div>
+                <label className="text-xs text-muted-foreground font-medium">Date</label>
+                <div className="text-sm font-semibold font-mono text-foreground mt-0.5">{viewingHoliday.holiday_date}</div>
               </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="text-xs text-slate-500 font-medium">Date</label>
-                  <div className="text-sm font-semibold font-mono text-slate-200 mt-0.5">{viewingHoliday.holiday_date}</div>
-                </div>
-                <div>
-                  <label className="text-xs text-slate-500 font-medium">Type</label>
-                  <div className="mt-0.5">
-                    {viewingHoliday.is_optional ? (
-                      <span className="px-2 py-0.5 rounded bg-amber-950 text-amber-300 border border-amber-800 text-xs font-semibold">
-                        Optional
-                      </span>
-                    ) : (
-                      <span className="px-2 py-0.5 rounded bg-orange-950 text-orange-300 border border-orange-800 text-xs font-semibold">
-                        Mandatory
-                      </span>
-                    )}
-                  </div>
-                </div>
-              </div>
-
               <div>
-                <label className="text-xs text-slate-500 font-medium">Applicability Scope</label>
-                <div className="mt-0.5 text-xs text-slate-300">
-                  {viewingHoliday.applies_to_all_centres ? (
-                    <span className="text-blue-400 font-semibold">Enterprise-Wide (All Centres)</span>
+                <label className="text-xs text-muted-foreground font-medium">Type</label>
+                <div className="mt-0.5">
+                  {viewingHoliday.is_optional ? (
+                    <span className="px-2 py-0.5 rounded bg-warning/10 text-warning border border-warning/30 text-xs font-semibold">
+                      Optional
+                    </span>
                   ) : (
-                    <span className="text-purple-400 font-semibold">
-                      Centre-Specific ({(viewingHoliday.centres || []).length} Centre{((viewingHoliday.centres || []).length > 1 ? 's' : '')})
+                    <span className="px-2 py-0.5 rounded bg-primary/10 text-primary border border-primary/30 text-xs font-semibold">
+                      Mandatory
                     </span>
                   )}
                 </div>
               </div>
+            </div>
 
-              <div>
-                <label className="text-xs text-slate-500 font-medium">Description</label>
-                <p className="text-xs text-slate-300 bg-slate-950 p-2.5 rounded-lg border border-slate-800 mt-0.5">
-                  {viewingHoliday.description || 'No description provided.'}
-                </p>
+            <div>
+              <label className="text-xs text-muted-foreground font-medium">Applicability Scope</label>
+              <div className="mt-0.5 text-xs text-foreground font-medium">
+                {viewingHoliday.applies_to_all_centres ? (
+                  <span className="text-primary font-semibold">Enterprise-Wide (All Centres)</span>
+                ) : (
+                  <span className="text-primary font-semibold">
+                    Centre-Specific ({(viewingHoliday.centres || []).length} Centre{((viewingHoliday.centres || []).length > 1 ? 's' : '')})
+                  </span>
+                )}
               </div>
             </div>
 
-            <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
-              <button
+            <div>
+              <label className="text-xs text-muted-foreground font-medium">Description</label>
+              <p className="text-xs text-foreground bg-muted/40 p-2.5 rounded-lg border border-border mt-0.5">
+                {viewingHoliday.description || 'No description provided.'}
+              </p>
+            </div>
+
+            <div className="flex justify-end pt-3 border-t border-border">
+              <OwnButton
                 type="button"
                 onClick={() => setViewingHoliday(null)}
-                className="px-4 py-2 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-white rounded-xl"
+                variant="secondary"
+                size="sm"
               >
                 Close
-              </button>
+              </OwnButton>
             </div>
           </div>
-        </div>
+        </OwnDialog>
       )}
 
       {/* Add Holiday Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="text-base font-bold text-white">Add New Holiday</h3>
-              <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-white">✕</button>
+        <OwnDialog
+          open={showAddModal}
+          onOpenChange={setShowAddModal}
+          title="Add New Holiday"
+          description="Configure enterprise-wide or centre-specific holiday."
+          size="lg"
+        >
+          <form onSubmit={handleCreate} className="space-y-4">
+            <div>
+              <label className="block text-xs font-medium text-foreground mb-1">Holiday Name *</label>
+              <input
+                type="text"
+                required
+                placeholder="e.g. Independence Day, Diwali, Ganesh Chaturthi"
+                value={newHoliday.name}
+                onChange={(e) => setNewHoliday({ ...newHoliday, name: e.target.value })}
+                className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none"
+              />
             </div>
 
-            <form onSubmit={handleCreate} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Holiday Name *</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="e.g. Independence Day, Diwali, Ganesh Chaturthi"
-                  value={newHoliday.name}
-                  onChange={(e) => setNewHoliday({ ...newHoliday, name: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-blue-500"
-                />
-              </div>
+            <div>
+              <label className="block text-xs font-medium text-foreground mb-1">Holiday Date *</label>
+              <input
+                type="date"
+                required
+                value={newHoliday.holiday_date}
+                onChange={(e) => setNewHoliday({ ...newHoliday, holiday_date: e.target.value })}
+                className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground focus:border-primary focus:outline-none"
+              />
+            </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Holiday Date *</label>
-                <input
-                  type="date"
-                  required
-                  value={newHoliday.holiday_date}
-                  onChange={(e) => setNewHoliday({ ...newHoliday, holiday_date: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Applicability Scope</label>
-                <div className="grid grid-cols-2 gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setNewHoliday({ ...newHoliday, holiday_scope: 'ENTERPRISE', applies_to_all_centres: true })}
-                    className={`p-2.5 rounded-lg border text-xs font-semibold text-center transition ${
-                      newHoliday.holiday_scope === 'ENTERPRISE'
-                        ? 'bg-blue-600 text-white border-blue-500'
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
-                    }`}
-                  >
-                    Enterprise-Wide (All Centres)
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setNewHoliday({ ...newHoliday, holiday_scope: 'CENTRE', applies_to_all_centres: false })}
-                    className={`p-2.5 rounded-lg border text-xs font-semibold text-center transition ${
-                      newHoliday.holiday_scope === 'CENTRE'
-                        ? 'bg-blue-600 text-white border-blue-500'
-                        : 'bg-slate-950 border-slate-800 text-slate-400 hover:border-slate-700'
-                    }`}
-                  >
-                    Centre Specific
-                  </button>
-                </div>
-              </div>
-
-              {newHoliday.holiday_scope === 'CENTRE' && (
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Select Applicable Centres</label>
-                  <div className="max-h-36 overflow-y-auto bg-slate-950 border border-slate-800 rounded-lg p-2 space-y-1.5">
-                    {centres.map((c) => {
-                      const isChecked = newHoliday.centres.includes(c.id)
-                      return (
-                        <label key={c.id} className="flex items-center gap-2 text-xs text-slate-300 cursor-pointer p-1 rounded hover:bg-slate-900">
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => {
-                              const curr = newHoliday.centres
-                              const updated = isChecked ? curr.filter((id) => id !== c.id) : [...curr, c.id]
-                              setNewHoliday({ ...newHoliday, centres: updated })
-                            }}
-                            className="rounded text-blue-600 bg-slate-900 border-slate-700"
-                          />
-                          <span>{c.name} {c.city ? `(${c.city})` : ''}</span>
-                        </label>
-                      )
-                    })}
-                  </div>
-                </div>
-              )}
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="checkbox"
-                  id="is_optional"
-                  checked={newHoliday.is_optional}
-                  onChange={(e) => setNewHoliday({ ...newHoliday, is_optional: e.target.checked })}
-                  className="rounded text-blue-600 bg-slate-950 border-slate-700"
-                />
-                <label htmlFor="is_optional" className="text-xs font-medium text-slate-300 cursor-pointer">
-                  Optional / Restricted Holiday
-                </label>
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-slate-300 mb-1">Description / Notes</label>
-                <textarea
-                  rows={2}
-                  value={newHoliday.description}
-                  onChange={(e) => setNewHoliday({ ...newHoliday, description: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-blue-500"
-                />
-              </div>
-
-              <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
+            <div>
+              <label className="block text-xs font-medium text-foreground mb-1">Applicability Scope</label>
+              <div className="grid grid-cols-2 gap-3">
                 <button
                   type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 text-xs text-slate-400 hover:text-white"
+                  onClick={() => setNewHoliday({ ...newHoliday, holiday_scope: 'ENTERPRISE', applies_to_all_centres: true })}
+                  className={`p-2.5 rounded-lg border text-xs font-semibold text-center transition ${
+                    newHoliday.holiday_scope === 'ENTERPRISE'
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-card border-border text-muted-foreground hover:border-primary/50'
+                  }`}
                 >
-                  Cancel
+                  Enterprise-Wide (All Centres)
                 </button>
                 <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-5 py-2 text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white rounded-xl shadow disabled:opacity-50"
+                  type="button"
+                  onClick={() => setNewHoliday({ ...newHoliday, holiday_scope: 'CENTRE', applies_to_all_centres: false })}
+                  className={`p-2.5 rounded-lg border text-xs font-semibold text-center transition ${
+                    newHoliday.holiday_scope === 'CENTRE'
+                      ? 'bg-primary text-primary-foreground border-primary'
+                      : 'bg-card border-border text-muted-foreground hover:border-primary/50'
+                  }`}
                 >
-                  {saving ? 'Creating...' : 'Create Holiday'}
+                  Centre Specific
                 </button>
               </div>
-            </form>
-          </div>
-        </div>
+            </div>
+
+            {newHoliday.holiday_scope === 'CENTRE' && (
+              <div>
+                <label className="block text-xs font-medium text-foreground mb-1">Select Applicable Centres</label>
+                <div className="max-h-36 overflow-y-auto bg-muted/30 border border-border rounded-lg p-2 space-y-1.5">
+                  {centres.map((c) => {
+                    const isChecked = newHoliday.centres.includes(c.id)
+                    return (
+                      <label key={c.id} className="flex items-center gap-2 text-xs text-foreground cursor-pointer p-1 rounded hover:bg-muted">
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => {
+                            const curr = newHoliday.centres
+                            const updated = isChecked ? curr.filter((id) => id !== c.id) : [...curr, c.id]
+                            setNewHoliday({ ...newHoliday, centres: updated })
+                          }}
+                          className="rounded text-primary border-border"
+                        />
+                        <span>{c.name} {c.city ? `(${c.city})` : ''}</span>
+                      </label>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            <div className="p-3 bg-muted/40 border border-border rounded-xl">
+              <ToggleSwitch
+                id="is_optional"
+                checked={newHoliday.is_optional}
+                onChange={(val) => setNewHoliday({ ...newHoliday, is_optional: val })}
+                label="Optional / Restricted Holiday"
+                description="Eligible staff can choose from optional floating holidays"
+                size="sm"
+              />
+            </div>
+
+            <div>
+              <label className="block text-xs font-medium text-foreground mb-1">Description / Notes</label>
+              <textarea
+                rows={2}
+                value={newHoliday.description}
+                onChange={(e) => setNewHoliday({ ...newHoliday, description: e.target.value })}
+                className="w-full bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground placeholder-muted-foreground focus:border-primary focus:outline-none"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-3 border-t border-border">
+              <OwnButton
+                type="button"
+                variant="ghost"
+                onClick={() => setShowAddModal(false)}
+              >
+                Cancel
+              </OwnButton>
+              <OwnButton
+                type="submit"
+                loading={saving}
+              >
+                Create Holiday
+              </OwnButton>
+            </div>
+          </form>
+        </OwnDialog>
       )}
     </div>
   )
 }
+
 
 export default Holidays

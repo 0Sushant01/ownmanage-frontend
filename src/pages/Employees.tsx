@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import {
-  Users,
   Search,
   Plus,
   Eye,
@@ -11,6 +10,15 @@ import apiClient from '../services/api'
 import { Can } from '../components/Can'
 import { CentreSelector } from '../components/CentreSelector'
 import { EmployeeProfileModal } from '../components/EmployeeProfileModal'
+import { OwnPageHeader } from '../design-system/components/OwnPageHeader'
+import { OwnButton } from '../design-system/components/OwnButton'
+import { OwnFilterBar } from '../design-system/components/OwnFilterBar'
+import { OwnInput } from '../design-system/components/OwnInput'
+import { OwnSelect } from '../design-system/components/OwnSelect'
+import { OwnStatusBadge } from '../design-system/components/OwnBadge'
+import { OwnDialog } from '../design-system/components/OwnDialog'
+import { OwnEmptyState } from '../design-system/components/OwnEmptyState'
+import { OwnCard } from '../design-system/components/OwnCard'
 
 interface EmployeeRow {
   id: string
@@ -156,248 +164,233 @@ export const Employees: React.FC<{ isStaffOnlyView?: boolean }> = ({ isStaffOnly
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl w-full mx-auto space-y-6">
+    <div className="p-4 sm:p-6 md:p-8 max-w-7xl w-full mx-auto space-y-6">
       {/* Top Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-3">
-            <Users className="w-7 h-7 text-blue-500" />
-            {isStaffOnlyView ? 'My Assigned Staff' : 'Enterprise Employee Directory'}
-          </h1>
-          <p className="text-sm text-slate-400 mt-1">
-            Workforce roster with centre, department, manager, and salary details.
-          </p>
-        </div>
+      <OwnPageHeader
+        title={isStaffOnlyView ? 'My Assigned Staff' : 'Enterprise Employee Directory'}
+        description="Workforce roster with centre, department, manager, and salary details."
+        breadcrumbs={[
+          { label: 'Workspace', href: '/' },
+          { label: isStaffOnlyView ? 'Staff' : 'Employees' }
+        ]}
+        actions={
+          <div className="flex items-center gap-3">
+            <OwnButton
+              onClick={() => loadEmployees()}
+              disabled={loading}
+              variant="secondary"
+              size="md"
+              leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />}
+            >
+              Refresh
+            </OwnButton>
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => loadEmployees()}
-            disabled={loading}
-            className="flex items-center gap-2 px-3 py-2 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 rounded-xl transition"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
-
-          {!isStaffOnlyView && (
-            <Can permission="employees.create">
-              <button
-                onClick={() => setShowAddModal(true)}
-                className="bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs px-4 py-2 rounded-xl transition shadow-lg shadow-blue-900/30 flex items-center space-x-1.5"
-              >
-                <Plus className="w-4 h-4" />
-                <span>Add Employee</span>
-              </button>
-            </Can>
-          )}
-        </div>
-      </div>
+            {!isStaffOnlyView && (
+              <Can permission="employees.create">
+                <OwnButton
+                  onClick={() => setShowAddModal(true)}
+                  variant="primary"
+                  size="md"
+                  leftIcon={<Plus className="w-4 h-4" />}
+                >
+                  Add Employee
+                </OwnButton>
+              </Can>
+            )}
+          </div>
+        }
+      />
 
       {/* Alerts */}
       {error && (
-        <div className="p-4 rounded-xl bg-rose-950/60 border border-rose-800 text-rose-300 text-sm flex items-center justify-between">
+        <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm flex items-center justify-between font-medium">
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="text-rose-400 hover:text-white">✕</button>
+          <button onClick={() => setError(null)} className="text-destructive hover:opacity-75">✕</button>
         </div>
       )}
       {successMsg && (
-        <div className="p-4 rounded-xl bg-emerald-950/60 border border-emerald-800 text-emerald-300 text-sm flex items-center justify-between">
+        <div className="p-4 rounded-xl bg-success/10 border border-success/30 text-success text-sm flex items-center justify-between font-medium">
           <span>{successMsg}</span>
-          <button onClick={() => setSuccessMsg(null)} className="text-emerald-400 hover:text-white">✕</button>
+          <button onClick={() => setSuccessMsg(null)} className="text-success hover:opacity-75">✕</button>
         </div>
       )}
 
-      {/* Filters Bar: Centre, Department, Manager, Status, Search */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-sm space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 items-center">
-          {/* Centre Selector */}
-          <div>
+      {/* Filters Bar: Centre, Search, Department, Manager, Status */}
+      <OwnFilterBar
+        search={
+          <OwnInput
+            placeholder="Search name, code, email..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            leftIcon={<Search className="w-4 h-4" />}
+            size="sm"
+          />
+        }
+        filters={
+          <div className="flex flex-wrap items-center gap-3">
             <CentreSelector
               value={selectedCentre}
               onChange={(val) => setSelectedCentre(val)}
-              className="w-full"
+              className="w-48"
             />
-          </div>
 
-          {/* Search Input */}
-          <div className="relative">
-            <Search className="w-4 h-4 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            <input
-              type="text"
-              placeholder="Search name, code, email..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700/80 focus:border-blue-500 rounded-lg pl-9 pr-3 py-1.5 text-xs text-slate-100 placeholder-slate-500"
-            />
-          </div>
-
-          {/* Department Filter */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 whitespace-nowrap">
-              Dept:
-            </span>
-            <select
+            <OwnSelect
               value={selectedDept}
               onChange={(e) => setSelectedDept(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700/80 focus:border-blue-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-200"
-            >
-              <option value="all">All Departments</option>
-              {departments.map((d) => (
-                <option key={d.id} value={d.id}>{d.name}</option>
-              ))}
-            </select>
-          </div>
+              options={[
+                { value: 'all', label: 'All Departments' },
+                ...departments.map((d) => ({ value: d.id, label: d.name }))
+              ]}
+              size="sm"
+              className="w-40"
+            />
 
-          {/* Manager Filter */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 whitespace-nowrap">
-              Manager:
-            </span>
-            <select
+            <OwnSelect
               value={selectedManager}
               onChange={(e) => setSelectedManager(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700/80 focus:border-blue-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-200"
-            >
-              <option value="all">All Managers</option>
-              {managers.map((m) => (
-                <option key={m.id} value={m.id}>{m.name}</option>
-              ))}
-            </select>
-          </div>
+              options={[
+                { value: 'all', label: 'All Managers' },
+                ...managers.map((m) => ({ value: m.id, label: m.name }))
+              ]}
+              size="sm"
+              className="w-40"
+            />
 
-          {/* Status Filter */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-slate-400 whitespace-nowrap">
-              Status:
-            </span>
-            <select
+            <OwnSelect
               value={selectedStatus}
               onChange={(e) => setSelectedStatus(e.target.value)}
-              className="w-full bg-slate-900 border border-slate-700/80 focus:border-blue-500 rounded-lg px-2.5 py-1.5 text-xs text-slate-200"
-            >
-              <option value="all">All Statuses</option>
-              <option value="ACTIVE">Active</option>
-              <option value="ON_LEAVE">On Leave</option>
-              <option value="SUSPENDED">Suspended</option>
-              <option value="TERMINATED">Terminated</option>
-              <option value="RESIGNED">Resigned</option>
-            </select>
+              options={[
+                { value: 'all', label: 'All Statuses' },
+                { value: 'ACTIVE', label: 'Active' },
+                { value: 'ON_LEAVE', label: 'On Leave' },
+                { value: 'SUSPENDED', label: 'Suspended' },
+                { value: 'TERMINATED', label: 'Terminated' },
+                { value: 'RESIGNED', label: 'Resigned' }
+              ]}
+              size="sm"
+              className="w-36"
+            />
           </div>
-        </div>
-      </div>
+        }
+      />
 
       {/* Employee Table */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
+      <OwnCard className="overflow-hidden border-border bg-card shadow-sm">
         {loading ? (
-          <div className="p-16 text-center text-slate-400 text-sm flex flex-col items-center justify-center gap-2">
-            <RefreshCw className="w-7 h-7 animate-spin text-blue-500" />
+          <div className="p-16 text-center text-muted-foreground text-sm flex flex-col items-center justify-center gap-2">
+            <RefreshCw className="w-7 h-7 animate-spin text-primary" />
             <span>Loading employees...</span>
           </div>
         ) : employees.length === 0 ? (
-          <div className="p-16 text-center text-slate-400">
-            <Users className="w-10 h-10 mx-auto text-slate-600 mb-3" />
-            <p className="text-base font-semibold text-slate-300">No employees found</p>
-            <p className="text-xs text-slate-500 mt-1">
-              Adjust filters or click "Add Employee" to register team members.
-            </p>
-          </div>
+          <OwnEmptyState
+            title="No employees found"
+            description="Adjust search and filters or onboard a new team member."
+            action={
+              !isStaffOnlyView ? (
+                <Can permission="employees.create">
+                  <OwnButton
+                    onClick={() => setShowAddModal(true)}
+                    variant="primary"
+                    size="sm"
+                    leftIcon={<Plus className="w-4 h-4" />}
+                  >
+                    Add Employee
+                  </OwnButton>
+                </Can>
+              ) : undefined
+            }
+          />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-slate-300">
-              <thead className="bg-slate-950 text-xs uppercase font-semibold text-slate-400 border-b border-slate-800">
+            <table className="w-full text-left text-sm text-foreground">
+              <thead className="bg-muted/60 text-xs uppercase font-semibold text-muted-foreground border-b border-border">
                 <tr>
-                  <th className="px-5 py-4">Employee ID</th>
-                  <th className="px-5 py-4">Name</th>
-                  <th className="px-5 py-4">Centre</th>
-                  <th className="px-5 py-4">Department</th>
-                  <th className="px-5 py-4">Designation</th>
-                  <th className="px-5 py-4">Manager</th>
-                  <th className="px-5 py-4">Joining Date</th>
-                  <th className="px-5 py-4">Status</th>
-                  <th className="px-5 py-4">Current Salary</th>
-                  <th className="px-5 py-4 text-right">Actions</th>
+                  <th className="px-5 py-3.5">Employee ID</th>
+                  <th className="px-5 py-3.5">Name</th>
+                  <th className="px-5 py-3.5">Centre</th>
+                  <th className="px-5 py-3.5">Department</th>
+                  <th className="px-5 py-3.5">Designation</th>
+                  <th className="px-5 py-3.5">Manager</th>
+                  <th className="px-5 py-3.5">Joining Date</th>
+                  <th className="px-5 py-3.5">Status</th>
+                  <th className="px-5 py-3.5">Current Salary</th>
+                  <th className="px-5 py-3.5 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60 font-medium">
+              <tbody className="divide-y divide-border font-medium">
                 {employees.map((e) => (
-                  <tr key={e.id} className="hover:bg-slate-800/30 transition-colors">
+                  <tr key={e.id} className="hover:bg-muted/30 transition-colors">
                     {/* Employee ID */}
-                    <td className="px-5 py-3.5 font-mono text-xs text-blue-400 font-semibold">
+                    <td className="px-5 py-3.5 font-mono text-xs text-primary font-semibold">
                       {e.employee_id || '—'}
                     </td>
 
                     {/* Name */}
                     <td className="px-5 py-3.5">
-                      <div className="font-semibold text-white">{e.full_name}</div>
-                      <div className="text-xs text-slate-500 font-normal">{e.email}</div>
+                      <div className="font-semibold text-foreground">{e.full_name}</div>
+                      <div className="text-xs text-muted-foreground font-normal">{e.email}</div>
                     </td>
 
                     {/* Centre */}
-                    <td className="px-5 py-3.5 text-slate-300">
+                    <td className="px-5 py-3.5 text-foreground">
                       <div className="flex items-center gap-1.5">
-                        <Building2 className="w-3.5 h-3.5 text-slate-500" />
+                        <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
                         <span>{e.branch_name || '—'}</span>
                       </div>
                     </td>
 
                     {/* Department */}
-                    <td className="px-5 py-3.5 text-slate-300 text-xs">
+                    <td className="px-5 py-3.5 text-muted-foreground text-xs">
                       {e.department_name || '—'}
                     </td>
 
                     {/* Designation */}
-                    <td className="px-5 py-3.5 text-slate-300 text-xs">
+                    <td className="px-5 py-3.5 text-muted-foreground text-xs">
                       {e.designation_name || e.designation || 'Staff'}
                     </td>
 
                     {/* Manager */}
-                    <td className="px-5 py-3.5 text-slate-400 text-xs">
+                    <td className="px-5 py-3.5 text-muted-foreground text-xs">
                       {e.manager_name ? e.manager_name : '—'}
                     </td>
 
                     {/* Joining Date */}
-                    <td className="px-5 py-3.5 text-slate-400 text-xs">
+                    <td className="px-5 py-3.5 text-muted-foreground text-xs">
                       {e.joining_date || '—'}
                     </td>
 
                     {/* Employment Status */}
                     <td className="px-5 py-3.5">
-                      <span
-                        className={`text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full border ${
-                          e.employment_status === 'ACTIVE'
-                            ? 'bg-emerald-950/60 border-emerald-800 text-emerald-400'
-                            : 'bg-rose-950/60 border-rose-800 text-rose-400'
-                        }`}
-                      >
-                        {e.employment_status}
-                      </span>
+                      <OwnStatusBadge status={e.employment_status || 'ACTIVE'} size="sm" />
                     </td>
 
                     {/* Current Salary */}
-                    <td className="px-5 py-3.5 font-mono text-xs text-slate-200">
+                    <td className="px-5 py-3.5 font-mono text-xs text-foreground">
                       {e.current_salary || '—'}
                     </td>
 
                     {/* Actions: VIEW button */}
                     <td className="px-5 py-3.5 text-right">
                       <div className="flex items-center justify-end gap-2">
-                        <button
+                        <OwnButton
                           onClick={() => setViewEmployeeId(e.id)}
-                          className="flex items-center gap-1 px-3 py-1.5 text-xs font-semibold bg-blue-600/20 hover:bg-blue-600/30 text-blue-300 border border-blue-500/30 rounded-lg transition"
+                          variant="secondary"
+                          size="sm"
+                          leftIcon={<Eye className="w-3.5 h-3.5" />}
                           title="View complete 7-tab employee profile"
                         >
-                          <Eye className="w-3.5 h-3.5" />
                           View
-                        </button>
+                        </OwnButton>
 
                         <Can permission="employees.change_status">
                           {e.employment_status === 'ACTIVE' && (
-                            <button
+                            <OwnButton
                               onClick={() => handleDeactivate(e.id, e.full_name)}
-                              className="text-xs text-rose-400 hover:text-rose-300 bg-rose-950/30 hover:bg-rose-950/60 px-2 py-1.5 rounded-lg border border-rose-800/40 transition"
+                              variant="destructive"
+                              size="sm"
                             >
                               Deactivate
-                            </button>
+                            </OwnButton>
                           )}
                         </Can>
                       </div>
@@ -408,7 +401,7 @@ export const Employees: React.FC<{ isStaffOnlyView?: boolean }> = ({ isStaffOnly
             </table>
           </div>
         )}
-      </div>
+      </OwnCard>
 
       {/* 7-Tab Employee Profile Modal */}
       {viewEmployeeId && (
@@ -422,136 +415,106 @@ export const Employees: React.FC<{ isStaffOnlyView?: boolean }> = ({ isStaffOnly
 
       {/* Add Employee Modal */}
       {showAddModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-xl p-6 shadow-2xl space-y-4">
-            <div className="flex items-center justify-between pb-3 border-b border-slate-800">
-              <h3 className="text-base font-bold text-white">Add New Employee</h3>
-              <button onClick={() => setShowAddModal(false)} className="text-slate-400 hover:text-white">✕</button>
+        <OwnDialog
+          open={showAddModal}
+          onOpenChange={setShowAddModal}
+          title="Add New Employee"
+          description="Register a new staff or manager in the organization workspace."
+          size="lg"
+        >
+          <form onSubmit={handleCreateSubmit} className="space-y-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <OwnInput
+                label="First Name *"
+                type="text"
+                required
+                value={formData.first_name}
+                onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+              />
+              <OwnInput
+                label="Last Name"
+                type="text"
+                value={formData.last_name}
+                onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+              />
             </div>
 
-            <form onSubmit={handleCreateSubmit} className="space-y-4">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">First Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.first_name}
-                    onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Last Name</label>
-                  <input
-                    type="text"
-                    value={formData.last_name}
-                    onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100"
-                  />
-                </div>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <OwnInput
+                label="Email *"
+                type="email"
+                required
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              />
+              <OwnInput
+                label="Phone"
+                type="text"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              />
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Email *</label>
-                  <input
-                    type="email"
-                    required
-                    value={formData.email}
-                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Phone</label>
-                  <input
-                    type="text"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100"
-                  />
-                </div>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <OwnSelect
+                label="Centre / Branch *"
+                required
+                value={formData.branch}
+                onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
+                options={[
+                  { value: '', label: 'Select Centre' },
+                  ...branches.map((b) => ({ value: b.id, label: b.name }))
+                ]}
+              />
+              <OwnSelect
+                label="Department"
+                value={formData.department}
+                onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+                options={[
+                  { value: '', label: 'Select Department' },
+                  ...departments.map((d) => ({ value: d.id, label: d.name }))
+                ]}
+              />
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Centre / Branch *</label>
-                  <select
-                    required
-                    value={formData.branch}
-                    onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100"
-                  >
-                    <option value="">Select Centre</option>
-                    {branches.map((b) => (
-                      <option key={b.id} value={b.id}>{b.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Department</label>
-                  <select
-                    value={formData.department}
-                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100"
-                  >
-                    <option value="">Select Department</option>
-                    {departments.map((d) => (
-                      <option key={d.id} value={d.id}>{d.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <OwnSelect
+                label="Reporting Manager"
+                value={formData.manager}
+                onChange={(e) => setFormData({ ...formData, manager: e.target.value })}
+                options={[
+                  { value: '', label: 'None / Independent' },
+                  ...managers.map((m) => ({ value: m.id, label: m.name }))
+                ]}
+              />
+              <OwnInput
+                label="Joining Date"
+                type="date"
+                required
+                value={formData.joining_date}
+                onChange={(e) => setFormData({ ...formData, joining_date: e.target.value })}
+              />
+            </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Reporting Manager</label>
-                  <select
-                    value={formData.manager}
-                    onChange={(e) => setFormData({ ...formData, manager: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100"
-                  >
-                    <option value="">None / Independent</option>
-                    {managers.map((m) => (
-                      <option key={m.id} value={m.id}>{m.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-slate-300 mb-1">Joining Date</label>
-                  <input
-                    type="date"
-                    required
-                    value={formData.joining_date}
-                    onChange={(e) => setFormData({ ...formData, joining_date: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-700 rounded-lg px-3 py-2 text-sm text-slate-100"
-                  />
-                </div>
-              </div>
-
-              <div className="flex justify-end gap-3 pt-3 border-t border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setShowAddModal(false)}
-                  className="px-4 py-2 text-xs text-slate-400 hover:text-white"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={creating}
-                  className="px-5 py-2 text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white rounded-xl shadow disabled:opacity-50"
-                >
-                  {creating ? 'Creating...' : 'Onboard Employee'}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+            <div className="flex justify-end gap-3 pt-3 border-t border-border">
+              <OwnButton
+                type="button"
+                variant="ghost"
+                onClick={() => setShowAddModal(false)}
+              >
+                Cancel
+              </OwnButton>
+              <OwnButton
+                type="submit"
+                loading={creating}
+              >
+                Onboard Employee
+              </OwnButton>
+            </div>
+          </form>
+        </OwnDialog>
       )}
     </div>
   )
 }
-
 export default Employees

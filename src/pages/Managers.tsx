@@ -1,8 +1,18 @@
 import React, { useEffect, useState, useCallback } from 'react'
 import { Link } from 'react-router-dom'
+import { Plus, Shield, UserX, Users } from 'lucide-react'
 import apiClient from '../services/api'
 import type { EmployeeSummary, Department, Branch } from '../types'
 import { CentreSelector } from '../components/CentreSelector'
+import { OwnPageHeader } from '../design-system/components/OwnPageHeader'
+import { OwnButton } from '../design-system/components/OwnButton'
+import { OwnFilterBar } from '../design-system/components/OwnFilterBar'
+import { OwnCard } from '../design-system/components/OwnCard'
+import { OwnStatusBadge } from '../design-system/components/OwnBadge'
+import { OwnDialog, OwnDialogFooter } from '../design-system/components/OwnDialog'
+import { OwnInput } from '../design-system/components/OwnInput'
+import { OwnSelect } from '../design-system/components/OwnSelect'
+import { OwnEmptyState } from '../design-system/components/OwnEmptyState'
 
 export const Managers: React.FC = () => {
   const [managers, setManagers] = useState<EmployeeSummary[]>([])
@@ -58,8 +68,7 @@ export const Managers: React.FC = () => {
     try {
       await apiClient.post('/managers/', {
         ...formData,
-        department: formData.department || null,
-        branch: formData.branch || null,
+        ...(selectedCentreId ? { centre_id: selectedCentreId } : {}),
       })
       setShowModal(false)
       setFormData({
@@ -75,7 +84,7 @@ export const Managers: React.FC = () => {
       })
       await loadData()
     } catch (err: any) {
-      alert(err.response?.data?.detail || err.response?.data?.email?.[0] || 'Failed to create manager.')
+      alert(err.response?.data?.detail || 'Failed to create manager.')
     } finally {
       setCreating(false)
     }
@@ -93,243 +102,215 @@ export const Managers: React.FC = () => {
 
   return (
     <div className="p-6 lg:p-10 max-w-7xl w-full mx-auto space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">Manager Roster</h1>
-          <p className="text-sm text-slate-400">Managers supervise assigned team members and authorize leave requests.</p>
-        </div>
-        <button
-          onClick={() => setShowModal(true)}
-          className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-xs px-4 py-2.5 rounded-xl transition shadow-lg shadow-emerald-500/10 flex items-center justify-center space-x-1"
-        >
-          <span>+ Add Manager</span>
-        </button>
-      </div>
+      <OwnPageHeader
+        title="Manager Roster"
+        description="Managers supervise assigned team members and authorize leave requests."
+        action={
+          <OwnButton
+            variant="primary"
+            onClick={() => setShowModal(true)}
+            icon={<Plus className="w-4 h-4" />}
+          >
+            Add Manager
+          </OwnButton>
+        }
+      />
 
       {/* Filter Bar with CentreSelector */}
-      <div className="bg-slate-900 border border-slate-800 p-4 rounded-2xl flex flex-wrap items-center gap-4">
-        <div className="w-64">
+      <OwnFilterBar>
+        <div className="w-72">
           <CentreSelector
             value={selectedCentreId}
             onChange={(cid) => setSelectedCentreId(cid)}
             allowAll={true}
           />
         </div>
-      </div>
+      </OwnFilterBar>
 
       {loading ? (
-        <div className="h-64 bg-slate-900 border border-slate-800 rounded-2xl animate-pulse flex items-center justify-center text-slate-500">
+        <div className="h-64 bg-card border border-border rounded-2xl animate-pulse flex items-center justify-center text-muted-foreground">
           Loading managers...
         </div>
       ) : error ? (
-        <div className="bg-rose-950/40 border border-rose-900 text-rose-300 p-4 rounded-xl">{error}</div>
+        <div className="bg-destructive/10 border border-destructive/20 text-destructive p-4 rounded-xl">{error}</div>
       ) : managers.length === 0 ? (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-12 text-center text-slate-400">
-          No managers assigned yet. Click &quot;Add Manager&quot; to appoint your first supervisor.
-        </div>
+        <OwnEmptyState
+          icon={<Users className="w-8 h-8 text-muted-foreground" />}
+          title="No managers assigned yet"
+          description="Appoint your first supervisor to manage staff attendance, approvals, and permissions."
+          action={
+            <OwnButton variant="primary" onClick={() => setShowModal(true)}>
+              Add Manager
+            </OwnButton>
+          }
+        />
       ) : (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-          <table className="w-full text-left text-sm text-slate-300">
-            <thead className="bg-slate-950 text-xs uppercase font-semibold text-slate-400 border-b border-slate-800">
-              <tr>
-                <th className="px-6 py-4">Manager Name</th>
-                <th className="px-6 py-4">Employee ID</th>
-                <th className="px-6 py-4">Designation</th>
-                <th className="px-6 py-4">Department / Branch</th>
-                <th className="px-6 py-4">Status</th>
-                <th className="px-6 py-4 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-800/60">
-              {managers.map((m) => (
-                <tr key={m.id} className="hover:bg-slate-800/40 transition">
-                  <td className="px-6 py-4 font-semibold text-white">
-                    {m.full_name}
-                    <span className="block text-xs font-normal text-slate-400">{m.email}</span>
-                  </td>
-                  <td className="px-6 py-4 font-mono text-xs text-emerald-400">
-                    {m.employee_id || '—'}
-                  </td>
-                  <td className="px-6 py-4 text-slate-300">
-                    {m.designation}
-                  </td>
-                  <td className="px-6 py-4 text-xs text-slate-400">
-                    {m.department_name || '—'} ({m.branch_name || 'Main'})
-                  </td>
-                  <td className="px-6 py-4">
-                    <span
-                      className={`text-[10px] font-bold uppercase px-2 py-0.5 rounded-full border ${
-                        m.employment_status === 'ACTIVE'
-                          ? 'bg-emerald-950/60 border-emerald-800 text-emerald-400'
-                          : 'bg-rose-950/60 border-rose-800 text-rose-400'
-                      }`}
-                    >
-                      {m.employment_status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-right">
-                    <div className="flex items-center justify-end gap-2">
-                      <Link
-                        to={`/managers/${m.id}/access-control`}
-                        className="text-xs text-blue-400 hover:text-blue-300 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800 transition"
-                      >
-                        Access Control
-                      </Link>
-                      {m.employment_status === 'ACTIVE' && (
-                        <button
-                          onClick={() => handleDeactivate(m.id, m.full_name)}
-                          className="text-xs text-rose-400 hover:text-rose-300 bg-slate-950 px-2.5 py-1 rounded-lg border border-slate-800 transition"
-                        >
-                          Deactivate
-                        </button>
-                      )}
-                    </div>
-                  </td>
+        <OwnCard className="overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-sm text-foreground">
+              <thead className="bg-muted text-xs uppercase font-semibold text-muted-foreground border-b border-border">
+                <tr>
+                  <th className="px-6 py-4">Manager Name</th>
+                  <th className="px-6 py-4">Employee ID</th>
+                  <th className="px-6 py-4">Designation</th>
+                  <th className="px-6 py-4">Department / Branch</th>
+                  <th className="px-6 py-4">Status</th>
+                  <th className="px-6 py-4 text-right">Actions</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {managers.map((m) => (
+                  <tr key={m.id} className="hover:bg-muted/40 transition">
+                    <td className="px-6 py-4 font-semibold text-foreground">
+                      {m.full_name}
+                      <span className="block text-xs font-normal text-muted-foreground">{m.email}</span>
+                    </td>
+                    <td className="px-6 py-4 font-mono text-xs text-primary font-bold">
+                      {m.employee_id || '—'}
+                    </td>
+                    <td className="px-6 py-4 text-foreground">
+                      {m.designation}
+                    </td>
+                    <td className="px-6 py-4 text-xs text-muted-foreground">
+                      {m.department_name || '—'} ({m.branch_name || 'Main'})
+                    </td>
+                    <td className="px-6 py-4">
+                      <OwnStatusBadge status={m.employment_status || 'ACTIVE'} />
+                    </td>
+                    <td className="px-6 py-4 text-right">
+                      <div className="flex items-center justify-end gap-2">
+                        <Link
+                          to={`/managers/${m.id}/access-control`}
+                          className="inline-flex items-center gap-1.5 text-xs text-info hover:text-info/80 bg-muted px-2.5 py-1.5 rounded-lg border border-border font-medium transition"
+                        >
+                          <Shield className="w-3.5 h-3.5" />
+                          <span>Access Control</span>
+                        </Link>
+                        {m.employment_status === 'ACTIVE' && (
+                          <OwnButton
+                            variant="destructive"
+                            size="sm"
+                            onClick={() => handleDeactivate(m.id, m.full_name)}
+                            icon={<UserX className="w-3.5 h-3.5" />}
+                          >
+                            Deactivate
+                          </OwnButton>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </OwnCard>
       )}
 
       {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-white">Add Manager</h3>
-              <button onClick={() => setShowModal(false)} className="text-slate-400 hover:text-white">✕</button>
-            </div>
-
-            <form onSubmit={handleCreateSubmit} className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1">First Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={formData.first_name}
-                    onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Last Name</label>
-                  <input
-                    type="text"
-                    value={formData.last_name}
-                    onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-slate-300 font-semibold mb-1">Official Email *</label>
-                <input
-                  type="email"
-                  required
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  placeholder="manager@company.com"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Phone</label>
-                  <input
-                    type="text"
-                    value={formData.phone}
-                    onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Password *</label>
-                  <input
-                    type="password"
-                    required
-                    value={formData.password}
-                    onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    placeholder="••••••••"
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Designation</label>
-                  <input
-                    type="text"
-                    value={formData.designation}
-                    onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Joining Date</label>
-                  <input
-                    type="date"
-                    required
-                    value={formData.joining_date}
-                    onChange={(e) => setFormData({ ...formData, joining_date: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Department</label>
-                  <select
-                    value={formData.department}
-                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
-                  >
-                    <option value="">None</option>
-                    {departments.map((d) => (
-                      <option key={d.id} value={d.id}>{d.name}</option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Branch</label>
-                  <select
-                    value={formData.branch}
-                    onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
-                  >
-                    <option value="">Main Branch</option>
-                    {branches.map((b) => (
-                      <option key={b.id} value={b.id}>{b.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex justify-end space-x-2 pt-3 border-t border-slate-800">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 bg-slate-800 text-slate-300 rounded-xl font-medium"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={creating}
-                  className="px-5 py-2 bg-emerald-500 text-slate-950 rounded-xl font-semibold disabled:opacity-50"
-                >
-                  {creating ? 'Saving...' : 'Add Manager'}
-                </button>
-              </div>
-            </form>
+      <OwnDialog
+        open={showModal}
+        onOpenChange={setShowModal}
+        title="Add Manager"
+        description="Provide account and role credentials to authorize a manager in this workspace."
+      >
+        <form onSubmit={handleCreateSubmit} className="space-y-4 text-sm mt-2">
+          <div className="grid grid-cols-2 gap-3">
+            <OwnInput
+              label="First Name *"
+              required
+              value={formData.first_name}
+              onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
+              placeholder="First name"
+            />
+            <OwnInput
+              label="Last Name"
+              value={formData.last_name}
+              onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
+              placeholder="Last name"
+            />
           </div>
-        </div>
-      )}
+
+          <OwnInput
+            label="Official Email *"
+            type="email"
+            required
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            placeholder="manager@company.com"
+          />
+
+          <div className="grid grid-cols-2 gap-3">
+            <OwnInput
+              label="Phone"
+              value={formData.phone}
+              onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              placeholder="+91..."
+            />
+            <OwnInput
+              label="Password *"
+              type="password"
+              required
+              value={formData.password}
+              onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+              placeholder="••••••••"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <OwnInput
+              label="Designation"
+              value={formData.designation}
+              onChange={(e) => setFormData({ ...formData, designation: e.target.value })}
+              placeholder="Department Manager"
+            />
+            <OwnInput
+              label="Joining Date"
+              type="date"
+              required
+              value={formData.joining_date}
+              onChange={(e) => setFormData({ ...formData, joining_date: e.target.value })}
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-3">
+            <OwnSelect
+              label="Department"
+              value={formData.department}
+              onChange={(e) => setFormData({ ...formData, department: e.target.value })}
+              options={[
+                { value: '', label: 'None' },
+                ...departments.map((d) => ({ value: d.id, label: d.name })),
+              ]}
+            />
+            <OwnSelect
+              label="Branch"
+              value={formData.branch}
+              onChange={(e) => setFormData({ ...formData, branch: e.target.value })}
+              options={[
+                { value: '', label: 'Main Branch' },
+                ...branches.map((b) => ({ value: b.id, label: b.name })),
+              ]}
+            />
+          </div>
+
+          <OwnDialogFooter className="mt-6">
+            <OwnButton
+              type="button"
+              variant="outline"
+              onClick={() => setShowModal(false)}
+            >
+              Cancel
+            </OwnButton>
+            <OwnButton
+              type="submit"
+              variant="primary"
+              loading={creating}
+            >
+              Add Manager
+            </OwnButton>
+          </OwnDialogFooter>
+        </form>
+      </OwnDialog>
     </div>
   )
 }

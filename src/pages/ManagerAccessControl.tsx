@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import apiClient from '../services/api'
 import { usePermission } from '../context/AuthContext'
+import { ToggleSwitch } from '../components/ToggleSwitch'
 import type { ManagerAccessControlData, PermissionItem } from '../types'
 
 export const ManagerAccessControl: React.FC = () => {
@@ -250,30 +251,30 @@ export const ManagerAccessControl: React.FC = () => {
                     {modPerms.map((p) => {
                       const isChecked = !!permissionStates[p.key]
                       return (
-                        <label
+                        <div
                           key={p.key}
-                          className={`flex items-start gap-3 p-2.5 rounded-xl border transition cursor-pointer ${
+                          className={`flex items-start justify-between gap-3 p-3 rounded-xl border transition ${
                             isChecked
-                              ? 'bg-emerald-950/20 border-emerald-900/60'
+                              ? 'bg-emerald-950/20 border-emerald-900/60 shadow-xs'
                               : 'bg-slate-950/40 border-slate-800/80 hover:border-slate-700'
                           }`}
                         >
-                          <input
-                            type="checkbox"
-                            checked={isChecked}
-                            onChange={() => handleToggle(p.key)}
-                            className="mt-1 h-4 w-4 rounded bg-slate-950 border-slate-800 text-emerald-500 focus:ring-emerald-500 cursor-pointer"
-                          />
-                          <div className="flex-1">
-                            <div className="flex items-center justify-between">
+                          <div className="flex-1 min-w-0 pr-2">
+                            <div className="flex items-center gap-2 flex-wrap">
                               <span className="text-sm font-medium text-slate-200">{p.name}</span>
                               <span className="text-[10px] font-mono text-slate-500 px-1.5 py-0.5 rounded bg-slate-800/60">
                                 {p.scope}
                               </span>
                             </div>
-                            <p className="text-xs text-slate-400 mt-0.5">{p.description}</p>
+                            <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">{p.description}</p>
                           </div>
-                        </label>
+                          <ToggleSwitch
+                            id={`perm-${p.key}`}
+                            checked={isChecked}
+                            onChange={() => handleToggle(p.key)}
+                            size="sm"
+                          />
+                        </div>
                       )
                     })}
                   </div>

@@ -16,6 +16,9 @@ import apiClient from '../services/api'
 import { SubscriptionUsageWidget } from '../components/SubscriptionUsageWidget'
 import { SuperAdminDashboard } from './superadmin/SuperAdminDashboard'
 import { CentreSelector } from '../components/CentreSelector'
+import { OwnKpiCard } from '../design-system/components/OwnKpiCard'
+import { OwnButton } from '../design-system/components/OwnButton'
+import { OwnCard, OwnCardContent } from '../design-system/components/OwnCard'
 
 interface EnterpriseStats {
   business_id: string
@@ -73,150 +76,127 @@ export const Dashboard: React.FC = () => {
   }
 
   return (
-    <div className="p-6 md:p-8 max-w-7xl w-full mx-auto space-y-6">
-      {/* Welcome Header */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl">
-        <div>
-          <div className="flex items-center space-x-2 mb-1">
-            <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
-            <span className="text-xs uppercase font-mono tracking-wider text-emerald-400">
-              {role === 'BUSINESS_ADMIN' ? 'Enterprise Workspace' : `${role} Workspace`}
-            </span>
-          </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight">
-            {business?.name || 'Enterprise'} Overview
-          </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Operational workforce, attendance, and centre analytics for today ({stats?.date || new Date().toISOString().split('T')[0]}).
-          </p>
-        </div>
+    <div className="p-4 sm:p-6 md:p-8 max-w-7xl w-full mx-auto space-y-6">
+      {/* Enterprise Executive Header Card */}
+      <OwnCard className="bg-card border-border shadow-md">
+        <OwnCardContent className="p-6">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <div className="flex items-center space-x-2 mb-1.5">
+                <span className="h-2 w-2 rounded-full bg-primary animate-pulse" />
+                <span className="text-xs uppercase font-mono tracking-wider text-primary font-bold">
+                  {role === 'BUSINESS_ADMIN' ? 'Enterprise Workspace' : `${role} Workspace`}
+                </span>
+              </div>
+              <h1 className="text-2xl font-bold text-foreground tracking-tight">
+                {business?.name || 'Enterprise'} Overview
+              </h1>
+              <p className="text-xs text-muted-foreground mt-1">
+                Operational workforce, attendance, and centre analytics for today ({stats?.date || new Date().toISOString().split('T')[0]}).
+              </p>
+            </div>
 
-        {/* Global Centre Selector & Refresh */}
-        <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
-          <CentreSelector
-            value={selectedCentre}
-            onChange={(val) => setSelectedCentre(val)}
-            showAllOption={true}
-          />
-          <button
-            onClick={() => fetchStats()}
-            disabled={loading}
-            className="flex items-center justify-center gap-2 px-3 py-1.5 text-xs font-semibold bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 rounded-lg transition"
-            title="Refresh statistics"
-          >
-            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </button>
-        </div>
-      </div>
+            {/* Global Centre Selector & Refresh */}
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
+              <CentreSelector
+                value={selectedCentre}
+                onChange={(val) => setSelectedCentre(val)}
+                showAllOption={true}
+              />
+              <OwnButton
+                onClick={() => fetchStats()}
+                disabled={loading}
+                variant="secondary"
+                size="md"
+                leftIcon={<RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />}
+                title="Refresh statistics"
+              >
+                Refresh
+              </OwnButton>
+            </div>
+          </div>
+        </OwnCardContent>
+      </OwnCard>
 
       {error && (
-        <div className="p-4 bg-rose-950/60 border border-rose-800 text-rose-300 rounded-xl text-sm">
+        <div className="p-4 bg-destructive/10 border border-destructive/30 text-destructive rounded-xl text-sm font-medium">
           {error}
         </div>
       )}
 
-      {/* KPI Cards: 9 Operational Metrics */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5">
+      {/* KPI Cards: 8 Operational Metrics */}
+      <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         {/* Total Centres */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-1">
-          <div className="text-xs font-medium text-slate-400 flex items-center justify-between">
-            <span>Centres</span>
-            <Building2 className="w-4 h-4 text-blue-400" />
-          </div>
-          <div className="text-2xl font-bold text-white">
-            {loading ? '—' : stats?.total_centres ?? 0}
-          </div>
-          <div className="text-[11px] text-slate-500">
-            {loading ? '' : `${stats?.active_centres ?? 0} Active Centres`}
-          </div>
-        </div>
+        <OwnKpiCard
+          title="Centres"
+          value={loading ? '—' : stats?.total_centres ?? 0}
+          icon={<Building2 className="w-4 h-4" />}
+          change={`${stats?.active_centres ?? 0} Active Centres`}
+          variant="primary"
+        />
 
         {/* Total Employees */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-1">
-          <div className="text-xs font-medium text-slate-400 flex items-center justify-between">
-            <span>Workforce</span>
-            <Users className="w-4 h-4 text-purple-400" />
-          </div>
-          <div className="text-2xl font-bold text-white">
-            {loading ? '—' : stats?.total_employees ?? 0}
-          </div>
-          <div className="text-[11px] text-slate-500">
-            {loading ? '' : `${stats?.active_employees ?? 0} Active Staff`}
-          </div>
-        </div>
+        <OwnKpiCard
+          title="Workforce"
+          value={loading ? '—' : stats?.total_employees ?? 0}
+          icon={<Users className="w-4 h-4" />}
+          change={`${stats?.active_employees ?? 0} Active Staff`}
+          variant="default"
+        />
 
         {/* Present Today */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-1">
-          <div className="text-xs font-medium text-emerald-400 flex items-center justify-between">
-            <span>Present Today</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-          </div>
-          <div className="text-2xl font-bold text-emerald-300">
-            {loading ? '—' : stats?.present_today ?? 0}
-          </div>
-          <div className="text-[11px] text-slate-500">Punched in & verified</div>
-        </div>
+        <OwnKpiCard
+          title="Present Today"
+          value={loading ? '—' : stats?.present_today ?? 0}
+          icon={<CheckCircle2 className="w-4 h-4" />}
+          change="Punched in & verified"
+          variant="success"
+        />
 
         {/* Late Today */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-1">
-          <div className="text-xs font-medium text-amber-400 flex items-center justify-between">
-            <span>Late Today</span>
-            <Clock className="w-4 h-4 text-amber-400" />
-          </div>
-          <div className="text-2xl font-bold text-amber-300">
-            {loading ? '—' : stats?.late_today ?? 0}
-          </div>
-          <div className="text-[11px] text-slate-500">Past grace threshold</div>
-        </div>
+        <OwnKpiCard
+          title="Late Today"
+          value={loading ? '—' : stats?.late_today ?? 0}
+          icon={<Clock className="w-4 h-4" />}
+          change="Past grace threshold"
+          variant="warning"
+        />
 
         {/* Overtime Today */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-1">
-          <div className="text-xs font-medium text-indigo-400 flex items-center justify-between">
-            <span>Overtime Today</span>
-            <TrendingUp className="w-4 h-4 text-indigo-400" />
-          </div>
-          <div className="text-2xl font-bold text-indigo-300">
-            {loading ? '—' : stats?.overtime_today ?? 0}
-          </div>
-          <div className="text-[11px] text-slate-500">Extended shift hours</div>
-        </div>
+        <OwnKpiCard
+          title="Overtime Today"
+          value={loading ? '—' : stats?.overtime_today ?? 0}
+          icon={<TrendingUp className="w-4 h-4" />}
+          change="Extended shift hours"
+          variant="info"
+        />
 
         {/* Half Day Today */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-1">
-          <div className="text-xs font-medium text-yellow-400 flex items-center justify-between">
-            <span>Half Day</span>
-            <AlertTriangle className="w-4 h-4 text-yellow-400" />
-          </div>
-          <div className="text-2xl font-bold text-yellow-300">
-            {loading ? '—' : stats?.half_day_today ?? 0}
-          </div>
-          <div className="text-[11px] text-slate-500">Partial work duration</div>
-        </div>
+        <OwnKpiCard
+          title="Half Day"
+          value={loading ? '—' : stats?.half_day_today ?? 0}
+          icon={<AlertTriangle className="w-4 h-4" />}
+          change="Partial work duration"
+          variant="warning"
+        />
 
         {/* On Leave */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-1">
-          <div className="text-xs font-medium text-blue-400 flex items-center justify-between">
-            <span>On Leave</span>
-            <CalendarDays className="w-4 h-4 text-blue-400" />
-          </div>
-          <div className="text-2xl font-bold text-blue-300">
-            {loading ? '—' : stats?.on_leave ?? 0}
-          </div>
-          <div className="text-[11px] text-slate-500">Approved leave requests</div>
-        </div>
+        <OwnKpiCard
+          title="On Leave"
+          value={loading ? '—' : stats?.on_leave ?? 0}
+          icon={<CalendarDays className="w-4 h-4" />}
+          change="Approved leave requests"
+          variant="primary"
+        />
 
         {/* Absent Today */}
-        <div className="bg-slate-900 border border-slate-800 rounded-xl p-4 space-y-1">
-          <div className="text-xs font-medium text-rose-400 flex items-center justify-between">
-            <span>Absent / Unmarked</span>
-            <UserX className="w-4 h-4 text-rose-400" />
-          </div>
-          <div className="text-2xl font-bold text-rose-300">
-            {loading ? '—' : stats?.absent_today ?? 0}
-          </div>
-          <div className="text-[11px] text-slate-500">No shift punch recorded</div>
-        </div>
+        <OwnKpiCard
+          title="Absent / Unmarked"
+          value={loading ? '—' : stats?.absent_today ?? 0}
+          icon={<UserX className="w-4 h-4" />}
+          change="No shift punch recorded"
+          variant="danger"
+        />
       </div>
 
       {/* Subscription Usage Widget (For Enterprise Admins) */}

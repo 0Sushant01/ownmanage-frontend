@@ -223,7 +223,7 @@ export const Brokers: React.FC = () => {
               No broker partners created yet. Add one to expand enterprise referrals.
             </div>
           ) : (
-            <table className="w-full text-left text-sm">
+            <table className="w-full min-w-[760px] text-left text-sm">
               <thead className="bg-slate-950/80 text-slate-400 font-mono uppercase text-xs">
                 <tr>
                   <th className="p-4">Partner Entity</th>
@@ -417,9 +417,9 @@ export const Brokers: React.FC = () => {
                   {/* Referred Businesses Table */}
                   <div className="space-y-2">
                     <h3 className="text-sm font-bold text-white">Referred Enterprise Tenants</h3>
-                    <div className="rounded-xl border border-slate-800 bg-slate-950 overflow-hidden">
+                    <div className="rounded-xl border border-slate-800 bg-slate-950 overflow-x-auto">
                       {brokerDetail.referred_businesses_list && brokerDetail.referred_businesses_list.length > 0 ? (
-                        <table className="w-full text-left text-xs">
+                        <table className="w-full min-w-[380px] text-left text-xs">
                           <thead className="bg-slate-900 text-slate-400 font-mono uppercase text-[10px]">
                             <tr>
                               <th className="p-2.5">Business</th>
@@ -468,9 +468,9 @@ export const Brokers: React.FC = () => {
                     <div className="flex items-center justify-between">
                       <h3 className="text-sm font-bold text-white">Commission Accruals & Payouts</h3>
                     </div>
-                    <div className="rounded-xl border border-slate-800 bg-slate-950 overflow-hidden">
+                    <div className="rounded-xl border border-slate-800 bg-slate-950 overflow-x-auto">
                       {brokerDetail.commissions_list && brokerDetail.commissions_list.length > 0 ? (
-                        <table className="w-full text-left text-xs">
+                        <table className="w-full min-w-[420px] text-left text-xs">
                           <thead className="bg-slate-900 text-slate-400 font-mono uppercase text-[10px]">
                             <tr>
                               <th className="p-2.5">Billing Period</th>
@@ -708,7 +708,7 @@ export const Brokers: React.FC = () => {
                 />
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
                     Referral Code
