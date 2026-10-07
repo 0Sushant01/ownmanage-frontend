@@ -29,10 +29,27 @@ const DAYS_OF_WEEK = [
   { label: 'Sunday', value: 6 }
 ]
 
-export const AttendancePolicies: React.FC = () => {
+export interface AttendancePoliciesProps {
+  initialCentreId?: string
+  isEmbedded?: boolean
+  onClose?: () => void
+}
+
+export const AttendancePolicies: React.FC<AttendancePoliciesProps> = ({
+  initialCentreId,
+  isEmbedded = false,
+  onClose,
+}) => {
   const [activeTab, setActiveTab] = useState<'policy' | 'methods' | 'schedule'>('policy')
   const [scope, setScope] = useState<'centre' | 'enterprise'>('centre')
-  const [selectedCentreId, setSelectedCentreId] = useState<string>('')
+  const [selectedCentreId, setSelectedCentreId] = useState<string>(initialCentreId || '')
+
+  useEffect(() => {
+    if (initialCentreId && initialCentreId !== 'all') {
+      setSelectedCentreId(initialCentreId)
+      setScope('centre')
+    }
+  }, [initialCentreId])
 
   const [policyData, setPolicyData] = useState<any>(null)
   const [loading, setLoading] = useState<boolean>(true)
@@ -249,14 +266,25 @@ export const AttendancePolicies: React.FC = () => {
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6">
+    <div className={isEmbedded ? "space-y-6" : "p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6"}>
       {/* Page Title & Scope Toggle */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
-            <ShieldAlert className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-600 dark:text-indigo-400 shrink-0" />
-            <span>Attendance Policy & Verification Engine</span>
-          </h1>
+          <div className="flex items-center gap-3">
+            <h1 className="text-xl sm:text-2xl font-bold text-slate-900 dark:text-white tracking-tight flex items-center gap-2.5">
+              <ShieldAlert className="w-6 h-6 sm:w-7 sm:h-7 text-indigo-600 dark:text-indigo-400 shrink-0" />
+              <span>Attendance Policy & Verification Engine</span>
+            </h1>
+            {onClose && (
+              <button
+                type="button"
+                onClick={onClose}
+                className="text-xs text-muted-foreground hover:text-foreground px-2 py-1 rounded-md border border-border"
+              >
+                Back to Register
+              </button>
+            )}
+          </div>
           <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-1">
             Field-level inheritance model: Centre Override → Enterprise Default → System Default.
           </p>

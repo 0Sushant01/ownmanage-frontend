@@ -19,6 +19,7 @@ interface CentreSelectorProps {
   className?: string
   disabled?: boolean
   label?: string
+  size?: 'sm' | 'md'
 }
 
 let cachedCentres: CentreItem[] | null = null
@@ -30,7 +31,8 @@ export const CentreSelector: React.FC<CentreSelectorProps> = ({
   allowAll,
   className = '',
   disabled = false,
-  label = 'Centre:'
+  label = 'Centre:',
+  size = 'md'
 }) => {
   const { role, employee } = useAuth()
   const [centres, setCentres] = useState<CentreItem[]>(cachedCentres || [])
@@ -118,7 +120,9 @@ export const CentreSelector: React.FC<CentreSelectorProps> = ({
           value={value}
           onChange={handleSelect}
           disabled={disabled || (isManager && !!managerBranchId)}
-          className="w-full appearance-none bg-card border border-border hover:border-border-strong focus:border-ring focus:ring-1 focus:ring-ring rounded-xl px-3 py-2 pr-8 text-xs sm:text-sm font-semibold text-foreground shadow-xs transition-all cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed min-h-10"
+          className={`w-full appearance-none bg-card border border-border hover:border-border-strong focus:border-ring focus:ring-1 focus:ring-ring rounded-xl ${
+            size === 'sm' ? 'px-3 py-1.5 pr-8 min-h-8.5 text-xs' : 'px-3 py-2 pr-8 min-h-10 text-xs sm:text-sm'
+          } font-semibold text-foreground shadow-xs transition-all cursor-pointer disabled:opacity-75 disabled:cursor-not-allowed`}
           title="Select Centre filter"
         >
           {effectiveShowAll && !isManager && (

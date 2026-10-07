@@ -44,8 +44,11 @@ export const OwnSelect = React.forwardRef<HTMLSelectElement, OwnSelectProps>(
       lg: 'min-h-12 px-4 py-2.5 text-base',
     }[typeof size === 'string' ? size : 'md']
 
+    const widthMatch = className?.match(/\b(w-(?:auto|min|max|fit|[0-9]+(?:\/[0-9]+)?|\[[^\]]+\]))\b/)
+    const defaultWidth = widthMatch ? widthMatch[1] : 'w-full'
+
     return (
-      <div className={cn('w-full space-y-1.5', containerClassName)}>
+      <div className={cn(defaultWidth, 'space-y-1.5', containerClassName)}>
         {label && (
           <label
             htmlFor={selectId}

@@ -231,7 +231,8 @@ export const Employees: React.FC<{ isStaffOnlyView?: boolean }> = ({ isStaffOnly
             <CentreSelector
               value={selectedCentre}
               onChange={(val) => setSelectedCentre(val)}
-              className="w-48"
+              className="w-auto"
+              size="sm"
             />
 
             <OwnSelect

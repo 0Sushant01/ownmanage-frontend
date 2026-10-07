@@ -23,7 +23,6 @@ import { Brokers } from './pages/superadmin/Brokers'
 import { BrokerDashboard } from './pages/broker/BrokerDashboard'
 import { Referrals } from './pages/broker/Referrals'
 import { Commissions } from './pages/broker/Commissions'
-import { AttendancePolicies } from './pages/AttendancePolicies'
 import { ManagerAccessControl } from './pages/ManagerAccessControl'
 import { Holidays } from './pages/Holidays'
 import { PayrollRuns } from './pages/PayrollRuns'
@@ -141,8 +140,14 @@ export default function App() {
               }
             />
 
+            {/* Team & Access */}
+            <Route
+              path="/team-access"
+              element={<Navigate to="/managers" replace />}
+            />
+
             {/* Attendance Policies */}
-            <Route path="/attendance/policies" element={<AttendancePolicies />} />
+            <Route path="/attendance/policies" element={<Navigate to="/attendance?tab=policy" replace />} />
 
             {/* Manager Access Control */}
             <Route

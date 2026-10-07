@@ -3,6 +3,14 @@ import apiClient from '../services/api'
 import { useAuth } from '../context/AuthContext'
 import type { Business } from '../types'
 import { ToggleSwitch } from '../components/ToggleSwitch'
+import {
+  OwnCard,
+  OwnButton,
+  OwnInput,
+  OwnSelect,
+  OwnPageHeader,
+} from '../design-system'
+import { RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react'
 
 export const Settings: React.FC = () => {
   const { business: currentBizSummary, role } = useAuth()
@@ -26,7 +34,6 @@ export const Settings: React.FC = () => {
   const loadBusiness = async () => {
     try {
       setLoading(true)
-      // If SuperAdmin or BusinessAdmin, fetch details of active business
       if (!currentBizSummary?.id) return
       const res = await apiClient.get(`/businesses/${currentBizSummary.id}/`)
       setBusiness(res.data)
@@ -71,128 +78,109 @@ export const Settings: React.FC = () => {
   if (role !== 'SUPERADMIN' && role !== 'BUSINESS_ADMIN') {
     return (
       <div className="p-10 max-w-4xl mx-auto text-center">
-        <p className="text-rose-500 font-semibold">Settings are reserved for Business Administrators.</p>
+        <p className="text-destructive font-semibold">Settings are reserved for Business Administrators.</p>
       </div>
     )
   }
 
   return (
-    <div className="p-4 sm:p-6 md:p-10 max-w-4xl mx-auto w-full space-y-6 sm:space-y-8">
+    <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto w-full space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Business Settings</h1>
-        <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-          Manage your organizational profile, regional localization, and sequential employee ID policies.
-        </p>
-      </div>
+      <OwnPageHeader
+        title="Business Settings"
+        description="Manage your organizational profile, regional localization, and sequential employee ID policies."
+      />
 
       {success && (
-        <div className="p-4 rounded-xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-300 text-sm">
-          {success}
+        <div className="p-4 rounded-xl bg-success/10 border border-success/30 text-success text-sm flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          <span>{success}</span>
         </div>
       )}
 
       {error && (
-        <div className="p-4 rounded-xl bg-rose-50 dark:bg-rose-950/60 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-300 text-sm">
-          {error}
+        <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{error}</span>
         </div>
       )}
 
       {loading ? (
-        <div className="p-12 text-center text-slate-400">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500 mb-3" />
-          <p className="text-sm">Loading business configuration...</p>
+        <div className="p-16 text-center text-muted-foreground flex flex-col items-center justify-center gap-3">
+          <RefreshCw className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-sm font-medium">Loading business configuration...</p>
         </div>
       ) : (
-        <form onSubmit={handleSubmit} className="space-y-6 sm:space-y-8">
+        <form onSubmit={handleSubmit} className="space-y-6">
           {/* General Information Card */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-6 shadow-sm space-y-6">
-            <h2 className="text-lg font-bold text-slate-900 dark:text-white border-b border-slate-200 dark:border-slate-800 pb-3">
+          <OwnCard className="p-6 space-y-6">
+            <h2 className="text-lg font-bold text-foreground border-b border-border pb-3">
               Organization Profile
             </h2>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Business Name *</label>
-                <input
-                  type="text"
-                  required
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
+              <OwnInput
+                label="Business Name *"
+                required
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+              />
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Legal Registered Name</label>
-                <input
-                  type="text"
-                  value={formData.legal_name}
-                  onChange={(e) => setFormData({ ...formData, legal_name: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
+              <OwnInput
+                label="Legal Registered Name"
+                value={formData.legal_name}
+                onChange={(e) => setFormData({ ...formData, legal_name: e.target.value })}
+              />
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Primary Email</label>
-                <input
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
+              <OwnInput
+                label="Primary Email"
+                type="email"
+                value={formData.email}
+                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+              />
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Primary Phone</label>
-                <input
-                  type="text"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                />
-              </div>
+              <OwnInput
+                label="Primary Phone"
+                type="text"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+              />
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Timezone</label>
-                <select
-                  value={formData.timezone}
-                  onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                >
-                  <option value="Asia/Kolkata">Asia/Kolkata (IST +05:30)</option>
-                  <option value="UTC">UTC (GMT +00:00)</option>
-                  <option value="America/New_York">America/New_York (EST)</option>
-                  <option value="Europe/London">Europe/London (BST/GMT)</option>
-                  <option value="Asia/Dubai">Asia/Dubai (+04:00)</option>
-                  <option value="Asia/Singapore">Asia/Singapore (+08:00)</option>
-                </select>
-              </div>
+              <OwnSelect
+                label="Timezone"
+                value={formData.timezone}
+                onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
+                options={[
+                  { value: 'Asia/Kolkata', label: 'Asia/Kolkata (IST +05:30)' },
+                  { value: 'UTC', label: 'UTC (GMT +00:00)' },
+                  { value: 'America/New_York', label: 'America/New_York (EST)' },
+                  { value: 'Europe/London', label: 'Europe/London (BST/GMT)' },
+                  { value: 'Asia/Dubai', label: 'Asia/Dubai (+04:00)' },
+                  { value: 'Asia/Singapore', label: 'Asia/Singapore (+08:00)' },
+                ]}
+              />
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Currency Code</label>
-                <input
-                  type="text"
-                  maxLength={5}
-                  value={formData.currency}
-                  onChange={(e) => setFormData({ ...formData, currency: e.target.value.toUpperCase() })}
-                  className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-emerald-500 font-mono"
-                />
-              </div>
+              <OwnInput
+                label="Currency Code"
+                maxLength={5}
+                value={formData.currency}
+                onChange={(e) => setFormData({ ...formData, currency: e.target.value.toUpperCase() })}
+                className="font-mono uppercase"
+              />
             </div>
-          </div>
+          </OwnCard>
 
           {/* Employee ID Configuration Card */}
-          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-6 shadow-sm space-y-6">
-            <div className="border-b border-slate-200 dark:border-slate-800 pb-3">
-              <h2 className="text-lg font-bold text-slate-900 dark:text-white">Employee ID Scheme</h2>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+          <OwnCard className="p-6 space-y-6">
+            <div className="border-b border-border pb-3">
+              <h2 className="text-lg font-bold text-foreground">Employee ID Scheme</h2>
+              <p className="text-xs text-muted-foreground mt-0.5">
                 Configure whether new staff automatically receive a sequential company badge ID.
               </p>
             </div>
 
             <div className="space-y-4">
-              <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 flex items-center justify-between gap-4">
+              <div className="p-4 rounded-xl bg-muted/40 border border-border flex items-center justify-between gap-4">
                 <ToggleSwitch
                   id="employee_id_enabled"
                   checked={formData.employee_id_enabled}
@@ -204,38 +192,37 @@ export const Settings: React.FC = () => {
               </div>
 
               {formData.employee_id_enabled && (
-                <div className="p-4 sm:p-5 rounded-xl bg-slate-50 dark:bg-slate-950/80 border border-slate-200 dark:border-slate-800 space-y-4">
+                <div className="p-4 sm:p-5 rounded-xl bg-muted/30 border border-border space-y-4">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">ID Prefix</label>
-                      <input
-                        type="text"
-                        maxLength={10}
-                        required={formData.employee_id_enabled}
-                        value={formData.employee_id_prefix}
-                        onChange={(e) => setFormData({ ...formData, employee_id_prefix: e.target.value.toUpperCase() })}
-                        placeholder="e.g. ACME"
-                        className="w-full bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl px-3.5 py-2.5 text-sm text-slate-900 dark:text-white font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500"
-                      />
-                    </div>
+                    <OwnInput
+                      label="ID Prefix"
+                      maxLength={10}
+                      required={formData.employee_id_enabled}
+                      value={formData.employee_id_prefix}
+                      onChange={(e) => setFormData({ ...formData, employee_id_prefix: e.target.value.toUpperCase() })}
+                      placeholder="e.g. ACME"
+                      className="font-mono uppercase"
+                    />
 
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Next Number Sequence</label>
+                      <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                        Next Number Sequence
+                      </label>
                       <input
                         type="text"
                         disabled
                         value={business ? String(business.employee_id_next_number).padStart(3, '0') : '001'}
-                        className="w-full bg-slate-100 dark:bg-slate-900/50 border border-slate-300 dark:border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-slate-500 font-mono cursor-not-allowed"
+                        className="w-full bg-muted border border-border rounded-xl px-3.5 py-2 text-sm text-muted-foreground font-mono cursor-not-allowed min-h-10 sm:min-h-11"
                       />
-                      <span className="text-[10px] text-slate-500 mt-1 block">
+                      <span className="text-[10px] text-muted-foreground mt-1 block">
                         Managed atomically by the backend to prevent collisions.
                       </span>
                     </div>
                   </div>
 
-                  <div className="p-3 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-900/50 text-xs text-emerald-800 dark:text-emerald-300">
+                  <div className="p-3 rounded-lg bg-primary/10 border border-primary/25 text-xs text-primary">
                     <span className="font-semibold">Live Preview: </span>
-                    <span className="font-mono text-emerald-700 dark:text-emerald-200 font-bold">
+                    <span className="font-mono text-primary font-bold">
                       {formData.employee_id_prefix}
                       {business ? String(business.employee_id_next_number).padStart(3, '0') : '001'}
                     </span>
@@ -243,16 +230,16 @@ export const Settings: React.FC = () => {
                 </div>
               )}
             </div>
-          </div>
+          </OwnCard>
 
           <div className="flex justify-end">
-            <button
+            <OwnButton
               type="submit"
-              disabled={saving}
-              className="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold text-xs shadow-md transition disabled:opacity-50 text-center cursor-pointer"
+              variant="primary"
+              loading={saving}
             >
-              {saving ? 'Saving Settings...' : 'Save Settings'}
-            </button>
+              Save Settings
+            </OwnButton>
           </div>
         </form>
       )}

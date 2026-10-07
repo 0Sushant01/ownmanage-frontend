@@ -13,7 +13,6 @@ import {
   User,
   TrendingUp,
   Users,
-  UserCheck,
   Clock,
   Settings,
   Palmtree,
@@ -21,10 +20,23 @@ import {
   DollarSign,
   FileText,
   Shield,
+  ChevronDown,
 } from './Icons'
 import { Palette } from 'lucide-react'
 
 const navIcon = 'w-[18px] h-[18px] shrink-0'
+
+interface NavChild {
+  label: string
+  path: string
+}
+
+interface NavItem {
+  label: string
+  path: string
+  icon: ReactNode
+  children?: NavChild[]
+}
 
 export const Layout: React.FC = () => {
   const { user, role, business, logout } = useAuth()
@@ -33,7 +45,7 @@ export const Layout: React.FC = () => {
 
   const { can } = usePermission()
 
-  let navItems: { label: string; path: string; icon: ReactNode }[] = []
+  let navItems: NavItem[] = []
 
   if (role === 'SUPERADMIN') {
     navItems = [
@@ -54,14 +66,30 @@ export const Layout: React.FC = () => {
     navItems = [
       { label: 'Dashboard', path: '/dashboard', icon: <Layers className={navIcon} /> },
       { label: 'Employees', path: '/employees', icon: <Users className={navIcon} /> },
-      { label: 'Managers', path: '/managers', icon: <UserCheck className={navIcon} /> },
-      { label: 'Attendance', path: '/attendance', icon: <Clock className={navIcon} /> },
-      { label: 'Attendance Policies', path: '/attendance/policies', icon: <Settings className={navIcon} /> },
+      {
+        label: 'Team & Access',
+        path: '/managers',
+        icon: <Shield className={navIcon} />,
+        children: [
+          { label: 'Managers', path: '/managers' },
+          { label: 'Roles & Permissions', path: '/managers/access-control' },
+          { label: 'Centre Access', path: '/managers?tab=centres' },
+        ],
+      },
+      {
+        label: 'Attendance',
+        path: '/attendance',
+        icon: <Clock className={navIcon} />,
+        children: [
+          { label: 'Daily Register', path: '/attendance' },
+          { label: 'Monthly Grid', path: '/attendance?tab=monthly' },
+          { label: 'Attendance Policy', path: '/attendance?tab=policy' },
+        ],
+      },
       { label: 'Leaves', path: '/leaves', icon: <Palmtree className={navIcon} /> },
       { label: 'Holidays', path: '/holidays', icon: <CalendarDays className={navIcon} /> },
       { label: 'Compensation', path: '/salary', icon: <DollarSign className={navIcon} /> },
       { label: 'Payroll Runs', path: '/payroll/runs', icon: <FileText className={navIcon} /> },
-      { label: 'Access Control', path: '/managers/access-control', icon: <Shield className={navIcon} /> },
       { label: 'Settings', path: '/settings', icon: <Settings className={navIcon} /> },
       { label: 'Profile', path: '/profile', icon: <User className={navIcon} /> },
     ]
@@ -69,15 +97,21 @@ export const Layout: React.FC = () => {
     navItems = [
       { label: 'Dashboard', path: '/dashboard', icon: <Layers className={navIcon} /> },
       { label: 'My Staff', path: '/my-staff', icon: <Users className={navIcon} /> },
-      { label: 'Attendance', path: '/attendance', icon: <Clock className={navIcon} /> },
-    ]
-    if (can('attendance.manage_policy')) {
-      navItems.push({ label: 'Attendance Policy', path: '/attendance/policies', icon: <Settings className={navIcon} /> })
-    }
-    navItems.push(
+      {
+        label: 'Attendance',
+        path: '/attendance',
+        icon: <Clock className={navIcon} />,
+        children: [
+          { label: 'Daily Register', path: '/attendance' },
+          { label: 'Monthly Grid', path: '/attendance?tab=monthly' },
+          ...(can('attendance.manage_policy')
+            ? [{ label: 'Attendance Policy', path: '/attendance?tab=policy' }]
+            : []),
+        ],
+      },
       { label: 'Leaves', path: '/leaves', icon: <Palmtree className={navIcon} /> },
-      { label: 'Holidays', path: '/holidays', icon: <CalendarDays className={navIcon} /> }
-    )
+      { label: 'Holidays', path: '/holidays', icon: <CalendarDays className={navIcon} /> },
+    ]
     if (can('salary.view')) {
       navItems.push({ label: 'Salary', path: '/salary', icon: <DollarSign className={navIcon} /> })
     }
@@ -91,11 +125,40 @@ export const Layout: React.FC = () => {
   // Design system testbed
   navItems.push({ label: 'Theme Audit', path: '/theme-audit', icon: <Palette className={navIcon} /> })
 
-
   const currentPath = location.pathname.replace(/\/+$/, '') || '/'
 
-  const isItemActive = (itemPath: string) => {
-    const cleanItemPath = itemPath.replace(/\/+$/, '') || '/'
+  const isSubItemActive = (targetPath: string) => {
+    const [pathPart, queryPart] = targetPath.split('?')
+    const cleanTarget = pathPart.replace(/\/+$/, '') || '/'
+
+    if (queryPart) {
+      return location.pathname === cleanTarget && location.search.includes(queryPart)
+    }
+
+    if (targetPath === '/attendance') {
+      return location.pathname === '/attendance' && (!location.search || location.search.includes('tab=register'))
+    }
+
+    if (targetPath === '/managers') {
+      return (
+        location.pathname === '/managers' &&
+        (!location.search || !location.search.includes('tab=centres'))
+      )
+    }
+
+    if (targetPath === '/managers/access-control') {
+      return location.pathname.includes('/access-control')
+    }
+
+    return location.pathname === cleanTarget
+  }
+
+  const isItemActive = (item: NavItem) => {
+    if (item.children && item.children.length > 0) {
+      return item.children.some((c) => isSubItemActive(c.path)) || location.pathname.startsWith(item.path)
+    }
+
+    const cleanItemPath = item.path.replace(/\/+$/, '') || '/'
     if (currentPath === cleanItemPath) return true
 
     const hasMoreSpecificMatch = navItems.some((other) => {
@@ -158,14 +221,39 @@ export const Layout: React.FC = () => {
 
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
-            const isActive = isItemActive(item.path)
+            const isActive = isItemActive(item)
             return (
-              <Link key={item.path} to={item.path} className={navLinkClass(isActive)}>
-                <span className={`shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
-                  {item.icon}
-                </span>
-                <span className="truncate">{item.label}</span>
-              </Link>
+              <div key={item.label} className="space-y-0.5">
+                <Link to={item.path} className={navLinkClass(isActive)}>
+                  <span className={`shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
+                    {item.icon}
+                  </span>
+                  <span className="truncate flex-1">{item.label}</span>
+                  {item.children && (
+                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isActive ? 'text-primary' : 'text-muted-foreground/60'}`} />
+                  )}
+                </Link>
+                {item.children && (
+                  <div className="ml-5 pl-3 border-l border-sidebar-border/70 my-1 space-y-0.5">
+                    {item.children.map((child) => {
+                      const isChildActive = isSubItemActive(child.path)
+                      return (
+                        <Link
+                          key={child.path}
+                          to={child.path}
+                          className={`block px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${
+                            isChildActive
+                              ? 'bg-primary/10 text-primary font-bold'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                          }`}
+                        >
+                          {child.label}
+                        </Link>
+                      )
+                    })}
+                  </div>
+                )}
+              </div>
             )
           })}
         </nav>
@@ -243,19 +331,41 @@ export const Layout: React.FC = () => {
             </div>
             <nav className="flex-1 overflow-y-auto p-3 space-y-1">
               {navItems.map((item) => {
-                const isActive = isItemActive(item.path)
+                const isActive = isItemActive(item)
                 return (
-                  <Link
-                    key={item.path}
-                    to={item.path}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className={navLinkClass(isActive)}
-                  >
-                    <span className={`shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
-                      {item.icon}
-                    </span>
-                    <span className="truncate">{item.label}</span>
-                  </Link>
+                  <div key={item.label} className="space-y-0.5">
+                    <Link
+                      to={item.path}
+                      onClick={() => setMobileMenuOpen(false)}
+                      className={navLinkClass(isActive)}
+                    >
+                      <span className={`shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
+                        {item.icon}
+                      </span>
+                      <span className="truncate flex-1">{item.label}</span>
+                    </Link>
+                    {item.children && (
+                      <div className="ml-5 pl-3 border-l border-sidebar-border/70 my-1 space-y-0.5">
+                        {item.children.map((child) => {
+                          const isChildActive = isSubItemActive(child.path)
+                          return (
+                            <Link
+                              key={child.path}
+                              to={child.path}
+                              onClick={() => setMobileMenuOpen(false)}
+                              className={`block px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${
+                                isChildActive
+                                  ? 'bg-primary/10 text-primary font-bold'
+                                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                              }`}
+                            >
+                              {child.label}
+                            </Link>
+                          )
+                        })}
+                      </div>
+                    )}
+                  </div>
                 )
               })}
             </nav>

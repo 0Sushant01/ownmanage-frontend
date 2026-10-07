@@ -406,10 +406,10 @@ export const Holidays: React.FC = () => {
       </div>
 
       {/* Filters Bar: Year, Centre, Month, Holiday Type, Search */}
-      <div className="bg-card border border-border rounded-2xl p-4 shadow-sm space-y-3">
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-3 items-center">
-          {/* Centre Selector */}
-          <div>
+      <div className="bg-card border border-border rounded-2xl p-3 sm:p-4 shadow-xs">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
+            {/* Centre Selector */}
             <CentreSelector
               value={selectedCentre}
               onChange={(val) => {
@@ -417,82 +417,84 @@ export const Holidays: React.FC = () => {
                 setSelectedDate(null)
               }}
               showAllOption={true}
+              className="w-auto"
+              size="sm"
             />
-          </div>
 
-          {/* Year Select */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
-              Year:
-            </span>
-            <select
-              value={selectedYear}
-              onChange={(e) => {
-                const yr = parseInt(e.target.value, 10)
-                setSelectedYear(yr)
-                setCalYear(yr)
-                setSelectedDate(null)
-              }}
-              className="w-full bg-card border border-border focus:border-primary rounded-lg px-2.5 py-1.5 text-xs text-foreground"
-            >
-              {[currentYear - 1, currentYear, currentYear + 1, currentYear + 2].map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-          </div>
+            {/* Year Select */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                Year:
+              </span>
+              <select
+                value={selectedYear}
+                onChange={(e) => {
+                  const yr = parseInt(e.target.value, 10)
+                  setSelectedYear(yr)
+                  setCalYear(yr)
+                  setSelectedDate(null)
+                }}
+                className="bg-card border border-border hover:border-border-strong focus:border-ring focus:ring-1 focus:ring-ring rounded-xl px-3 py-1.5 text-xs sm:text-sm font-semibold text-foreground min-h-8.5 shadow-xs transition-all cursor-pointer"
+              >
+                {[currentYear - 1, currentYear, currentYear + 1, currentYear + 2].map((y) => (
+                  <option key={y} value={y} className="bg-card text-foreground">{y}</option>
+                ))}
+              </select>
+            </div>
 
-          {/* Month Select */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
-              Month:
-            </span>
-            <select
-              value={selectedMonth}
-              onChange={(e) => {
-                setSelectedMonth(e.target.value)
-                if (e.target.value !== 'all') {
-                  setCalMonth(parseInt(e.target.value, 10) - 1)
-                }
-                setSelectedDate(null)
-              }}
-              className="w-full bg-card border border-border focus:border-primary rounded-lg px-2.5 py-1.5 text-xs text-foreground"
-            >
-              <option value="all">All Months</option>
-              {monthNames.map((name, i) => (
-                <option key={i + 1} value={i + 1}>{name}</option>
-              ))}
-            </select>
-          </div>
+            {/* Month Select */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                Month:
+              </span>
+              <select
+                value={selectedMonth}
+                onChange={(e) => {
+                  setSelectedMonth(e.target.value)
+                  if (e.target.value !== 'all') {
+                    setCalMonth(parseInt(e.target.value, 10) - 1)
+                  }
+                  setSelectedDate(null)
+                }}
+                className="bg-card border border-border hover:border-border-strong focus:border-ring focus:ring-1 focus:ring-ring rounded-xl px-3 py-1.5 text-xs sm:text-sm font-semibold text-foreground min-h-8.5 shadow-xs transition-all cursor-pointer"
+              >
+                <option value="all" className="bg-card text-foreground">All Months</option>
+                {monthNames.map((name, i) => (
+                  <option key={i + 1} value={i + 1} className="bg-card text-foreground">{name}</option>
+                ))}
+              </select>
+            </div>
 
-          {/* Holiday Type */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
-              Type:
-            </span>
-            <select
-              value={selectedType}
-              onChange={(e) => {
-                setSelectedType(e.target.value)
-                setSelectedDate(null)
-              }}
-              className="w-full bg-card border border-border focus:border-primary rounded-lg px-2.5 py-1.5 text-xs text-foreground"
-            >
-              <option value="all">All Types</option>
-              <option value="ENTERPRISE">Enterprise Holiday</option>
-              <option value="CENTRE">Centre Holiday</option>
-              <option value="OPTIONAL">Optional Holiday</option>
-            </select>
+            {/* Holiday Type */}
+            <div className="flex items-center gap-1.5 shrink-0">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap">
+                Type:
+              </span>
+              <select
+                value={selectedType}
+                onChange={(e) => {
+                  setSelectedType(e.target.value)
+                  setSelectedDate(null)
+                }}
+                className="bg-card border border-border hover:border-border-strong focus:border-ring focus:ring-1 focus:ring-ring rounded-xl px-3 py-1.5 text-xs sm:text-sm font-semibold text-foreground min-h-8.5 shadow-xs transition-all cursor-pointer"
+              >
+                <option value="all" className="bg-card text-foreground">All Types</option>
+                <option value="ENTERPRISE" className="bg-card text-foreground">Enterprise Holiday</option>
+                <option value="CENTRE" className="bg-card text-foreground">Centre Holiday</option>
+                <option value="OPTIONAL" className="bg-card text-foreground">Optional Holiday</option>
+              </select>
+            </div>
           </div>
 
           {/* Search */}
-          <div className="relative">
+          <div className="relative w-full sm:w-60 md:w-64 shrink-0">
             <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2 pointer-events-none" />
             <input
               type="text"
               placeholder="Search holiday..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-card border border-border focus:border-primary rounded-lg pl-9 pr-3 py-1.5 text-xs text-foreground placeholder-muted-foreground"
+              className="w-full bg-card border border-border hover:border-border-strong focus:border-ring focus:ring-1 focus:ring-ring rounded-xl pl-9 pr-3 py-1.5 text-xs sm:text-sm text-foreground placeholder:text-muted-foreground min-h-8.5 shadow-xs transition-all"
             />
           </div>
         </div>
@@ -573,16 +575,16 @@ export const Holidays: React.FC = () => {
                       setSelectedDate(cell.dateStr)
                     }
                   }}
-                  className={`min-h-[58px] p-1 rounded-xl flex flex-col items-center justify-between cursor-pointer transition-all border ${
+                  className={`min-h-[58px] p-1.5 rounded-xl flex flex-col items-center justify-between cursor-pointer transition-all border ${
                     isSelected
-                      ? 'bg-blue-600/20 border-blue-500 ring-2 ring-blue-500/40'
+                      ? 'bg-primary/20 border-primary ring-2 ring-primary/40 shadow-xs'
                       : cell.isToday
-                      ? 'bg-sky-950/40 border-sky-500/60 shadow-inner'
+                      ? 'bg-primary/10 border-primary shadow-xs ring-1 ring-primary/30'
                       : hasHolidays
-                      ? 'bg-orange-950/20 border-orange-800/60 hover:bg-orange-900/30'
+                      ? 'bg-amber-500/15 border-amber-500/50 hover:bg-amber-500/25'
                       : cell.isCurrentMonth
-                      ? 'bg-slate-950/60 border-slate-800/80 hover:bg-slate-800/50 hover:border-slate-700'
-                      : 'bg-slate-950/30 border-transparent text-slate-600 hover:bg-slate-900/30'
+                      ? 'bg-card border-border hover:bg-muted/60 hover:border-border-strong'
+                      : 'bg-muted/30 border-transparent text-muted-foreground/40 hover:bg-muted/50'
                   }`}
                   title={`${cell.dateStr}${hasHolidays ? `: ${cell.holidays.map(h => h.name).join(', ')}` : ''}`}
                 >
@@ -590,12 +592,12 @@ export const Holidays: React.FC = () => {
                   <span
                     className={`text-xs font-semibold ${
                       isSelected
-                        ? 'text-blue-300 font-bold'
+                        ? 'text-primary font-bold'
                         : cell.isToday
-                        ? 'text-sky-300 font-bold'
+                        ? 'text-primary font-bold'
                         : cell.isCurrentMonth
-                        ? 'text-slate-200'
-                        : 'text-slate-600'
+                        ? 'text-foreground'
+                        : 'text-muted-foreground/50'
                     }`}
                   >
                     {cell.dayNumber}
@@ -625,7 +627,7 @@ export const Holidays: React.FC = () => {
                         )
                       })}
                       {cell.holidays.length > 2 && (
-                        <span className="text-[9px] text-slate-400 font-mono">
+                        <span className="text-[9px] text-muted-foreground font-mono">
                           +{cell.holidays.length - 2} more
                         </span>
                       )}

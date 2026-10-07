@@ -1,6 +1,14 @@
 import React, { useEffect, useState } from 'react'
 import apiClient from '../services/api'
 import { useAuth } from '../context/AuthContext'
+import {
+  OwnCard,
+  OwnButton,
+  OwnInput,
+  OwnBadge,
+  OwnPageHeader,
+} from '../design-system'
+import { RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react'
 
 interface ProfileData {
   user: {
@@ -152,45 +160,45 @@ export const Profile: React.FC = () => {
   }
 
   return (
-    <div className="p-6 md:p-10 max-w-4xl mx-auto w-full space-y-8">
+    <div className="p-4 sm:p-6 md:p-8 max-w-4xl mx-auto w-full space-y-6">
       {/* Header */}
-      <div>
-        <h1 className="text-2xl font-bold text-white tracking-tight">User Profile & Security</h1>
-        <p className="text-sm text-slate-400 mt-1">
-          Manage your account credentials, security preferences, and organizational assignment.
-        </p>
-      </div>
+      <OwnPageHeader
+        title="User Profile & Security"
+        description="Manage your account credentials, security preferences, and organizational assignment."
+      />
 
       {success && (
-        <div className="p-4 rounded-xl bg-emerald-950/60 border border-emerald-800 text-emerald-300 text-sm">
-          {success}
+        <div className="p-4 rounded-xl bg-success/10 border border-success/30 text-success text-sm flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          <span>{success}</span>
         </div>
       )}
 
       {error && (
-        <div className="p-4 rounded-xl bg-rose-950/60 border border-rose-800 text-rose-300 text-sm">
-          {error}
+        <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{error}</span>
         </div>
       )}
 
       {loading ? (
-        <div className="p-12 text-center text-slate-400">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-500 mb-3" />
-          <p className="text-sm">Loading user profile...</p>
+        <div className="p-16 text-center text-muted-foreground flex flex-col items-center justify-center gap-3">
+          <RefreshCw className="w-8 h-8 animate-spin text-primary" />
+          <p className="text-sm font-medium">Loading user profile...</p>
         </div>
       ) : profile ? (
-        <div className="space-y-8">
+        <div className="space-y-6">
           {/* Identity & Role Badge Card */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+          <OwnCard className="p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
             <div className="flex items-center space-x-4">
-              <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center font-bold text-slate-950 text-2xl shadow-lg">
+              <div className="h-16 w-16 rounded-2xl bg-primary/15 border border-primary/25 text-primary flex items-center justify-center font-bold text-2xl shadow-xs">
                 {profile.user.first_name?.[0] || profile.user.email[0].toUpperCase()}
               </div>
               <div>
-                <h2 className="text-xl font-bold text-white">{profile.user.full_name || profile.user.email}</h2>
-                <p className="text-sm text-slate-400">{profile.user.email}</p>
+                <h2 className="text-xl font-bold text-foreground">{profile.user.full_name || profile.user.email}</h2>
+                <p className="text-sm text-muted-foreground">{profile.user.email}</p>
                 {profile.employee?.designation && (
-                  <p className="text-xs text-emerald-400 font-medium mt-0.5">
+                  <p className="text-xs text-primary font-medium mt-0.5">
                     {profile.employee.designation}
                   </p>
                 )}
@@ -198,304 +206,288 @@ export const Profile: React.FC = () => {
             </div>
 
             <div className="flex flex-col items-start sm:items-end">
-              <span className="text-[11px] uppercase tracking-wider text-slate-500 font-semibold mb-1">
+              <span className="text-[11px] uppercase tracking-wider text-muted-foreground font-semibold mb-1">
                 Platform Role
               </span>
-              <span className="px-3 py-1 rounded-xl bg-slate-800 border border-slate-700 text-emerald-400 font-mono text-xs font-bold">
+              <OwnBadge variant="primary" size="md">
                 {profile.role}
-              </span>
+              </OwnBadge>
             </div>
-          </div>
+          </OwnCard>
 
           {/* Organizational Employment Data (Read-Only) */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-            <div className="border-b border-slate-800 pb-3 flex items-center justify-between">
+          <OwnCard className="p-6 space-y-4">
+            <div className="border-b border-border pb-3 flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold text-white">Employment & System Identity</h3>
-                <p className="text-xs text-slate-400">Fixed institutional properties assigned by administration.</p>
+                <h3 className="text-base font-bold text-foreground">Employment & System Identity</h3>
+                <p className="text-xs text-muted-foreground">Fixed institutional properties assigned by administration.</p>
               </div>
-              <span className="text-[10px] text-slate-500 uppercase font-mono px-2 py-0.5 bg-slate-950 rounded border border-slate-800">
+              <OwnBadge variant="outline" size="sm">
                 🔒 Protected
-              </span>
+              </OwnBadge>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
-              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80">
-                <span className="text-slate-500 block mb-1">Organization</span>
-                <span className="text-white font-medium text-sm">
+              <div className="p-3.5 rounded-xl bg-muted/40 border border-border">
+                <span className="text-muted-foreground block mb-1">Organization</span>
+                <span className="text-foreground font-medium text-sm">
                   {profile.business?.name || 'Platform Administration'}
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80">
-                <span className="text-slate-500 block mb-1">Immutable User UUID</span>
-                <span className="text-emerald-400 font-mono text-xs font-bold break-all">
+              <div className="p-3.5 rounded-xl bg-muted/40 border border-border">
+                <span className="text-muted-foreground block mb-1">Immutable User UUID</span>
+                <span className="text-primary font-mono text-xs font-bold break-all">
                   {profile.user.id}
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80">
-                <span className="text-slate-500 block mb-1">Employee Badge ID</span>
-                <span className="text-white font-mono font-bold text-sm">
+              <div className="p-3.5 rounded-xl bg-muted/40 border border-border">
+                <span className="text-muted-foreground block mb-1">Employee Badge ID</span>
+                <span className="text-foreground font-mono font-bold text-sm">
                   {profile.employee?.employee_id || 'Not Assigned'}
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80">
-                <span className="text-slate-500 block mb-1">Department</span>
-                <span className="text-white font-medium text-sm">
+              <div className="p-3.5 rounded-xl bg-muted/40 border border-border">
+                <span className="text-muted-foreground block mb-1">Department</span>
+                <span className="text-foreground font-medium text-sm">
                   {profile.employee?.department || 'General'}
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80">
-                <span className="text-slate-500 block mb-1">Branch / Centre</span>
-                <span className="text-white font-medium text-sm">
+              <div className="p-3.5 rounded-xl bg-muted/40 border border-border">
+                <span className="text-muted-foreground block mb-1">Branch / Centre</span>
+                <span className="text-foreground font-medium text-sm">
                   {profile.employee?.branch || 'Headquarters'}
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80">
-                <span className="text-slate-500 block mb-1">Reporting Manager</span>
-                <span className="text-white font-medium text-sm">
+              <div className="p-3.5 rounded-xl bg-muted/40 border border-border">
+                <span className="text-muted-foreground block mb-1">Reporting Manager</span>
+                <span className="text-foreground font-medium text-sm">
                   {profile.employee?.manager || 'None (Direct Report / Admin)'}
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80">
-                <span className="text-slate-500 block mb-1">Joining Date</span>
-                <span className="text-white font-medium text-sm">
+              <div className="p-3.5 rounded-xl bg-muted/40 border border-border">
+                <span className="text-muted-foreground block mb-1">Joining Date</span>
+                <span className="text-foreground font-medium text-sm">
                   {profile.employee?.joining_date || '—'}
                 </span>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800/80">
-                <span className="text-slate-500 block mb-1">Employment Status</span>
-                <span className="text-emerald-400 font-semibold text-sm">
-                  {profile.employee?.status || 'ACTIVE'}
-                </span>
+              <div className="p-3.5 rounded-xl bg-muted/40 border border-border">
+                <span className="text-muted-foreground block mb-1">Employment Status</span>
+                <div>
+                  <OwnBadge variant="success" size="sm">
+                    {profile.employee?.status || 'ACTIVE'}
+                  </OwnBadge>
+                </div>
               </div>
             </div>
-          </div>
+          </OwnCard>
 
           {/* Editable Personal Details Form */}
-          <form onSubmit={handleSubmit} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
-            <div className="border-b border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-white">Editable Personal Profile</h3>
-              <p className="text-xs text-slate-400">
-                Update your display name, contact phone number, and authenticated login email.
-              </p>
-            </div>
+          <OwnCard className="p-6">
+            <form onSubmit={handleSubmit} className="space-y-6">
+              <div className="border-b border-border pb-3">
+                <h3 className="text-base font-bold text-foreground">Editable Personal Profile</h3>
+                <p className="text-xs text-muted-foreground">
+                  Update your display name, contact phone number, and authenticated login email.
+                </p>
+              </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">First Name</label>
-                <input
-                  type="text"
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <OwnInput
+                  label="First Name"
                   required
                   value={formData.first_name}
                   onChange={(e) => setFormData({ ...formData, first_name: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
                 />
-              </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Last Name</label>
-                <input
-                  type="text"
+                <OwnInput
+                  label="Last Name"
                   required
                   value={formData.last_name}
                   onChange={(e) => setFormData({ ...formData, last_name: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
                 />
-              </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Email Address</label>
-                <input
+                <OwnInput
+                  label="Email Address"
                   type="email"
                   required
                   value={formData.email}
                   onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+                  helperText="Editable login credential. Internal platform identity is anchored to your immutable UUID."
                 />
-                <span className="text-[10px] text-slate-500 mt-1 block">
-                  Editable login credential. Internal platform identity is anchored to your immutable UUID.
-                </span>
-              </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Contact Phone</label>
-                <input
+                <OwnInput
+                  label="Contact Phone"
                   type="text"
                   value={formData.phone}
                   onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500"
                 />
               </div>
-            </div>
 
-            <div className="flex justify-end pt-2">
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-6 py-2.5 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-semibold text-sm transition shadow-lg shadow-emerald-900/30 disabled:opacity-50"
-              >
-                {saving ? 'Saving Changes...' : 'Update Profile'}
-              </button>
-            </div>
-          </form>
+              <div className="flex justify-end pt-2">
+                <OwnButton
+                  type="submit"
+                  variant="primary"
+                  loading={saving}
+                >
+                  Update Profile
+                </OwnButton>
+              </div>
+            </form>
+          </OwnCard>
 
           {/* Change Password & Security Form */}
-          <form onSubmit={handlePasswordChange} className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
-            <div className="border-b border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-white">Change Account Password</h3>
-              <p className="text-xs text-slate-400">
-                Update your account password with enterprise security complexity requirements.
-              </p>
-            </div>
-
-            {passwordSuccess && (
-              <div className="p-3.5 rounded-xl bg-emerald-950/60 border border-emerald-800 text-emerald-300 text-xs">
-                {passwordSuccess}
-              </div>
-            )}
-
-            {passwordError && (
-              <div className="p-3.5 rounded-xl bg-rose-950/60 border border-rose-800 text-rose-300 text-xs">
-                {passwordError}
-              </div>
-            )}
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Current Password</label>
-                <div className="relative">
-                  <input
-                    type={showCurrentPassword ? 'text' : 'password'}
-                    required
-                    value={currentPassword}
-                    onChange={(e) => setCurrentPassword(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                    className="absolute right-3 top-2.5 text-xs text-slate-500 hover:text-slate-300"
-                  >
-                    {showCurrentPassword ? 'Hide' : 'Show'}
-                  </button>
-                </div>
+          <OwnCard className="p-6">
+            <form onSubmit={handlePasswordChange} className="space-y-6">
+              <div className="border-b border-border pb-3">
+                <h3 className="text-base font-bold text-foreground">Change Account Password</h3>
+                <p className="text-xs text-muted-foreground">
+                  Update your account password with enterprise security complexity requirements.
+                </p>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">New Password</label>
-                <div className="relative">
-                  <input
-                    type={showNewPassword ? 'text' : 'password'}
-                    required
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowNewPassword(!showNewPassword)}
-                    className="absolute right-3 top-2.5 text-xs text-slate-500 hover:text-slate-300"
-                  >
-                    {showNewPassword ? 'Hide' : 'Show'}
-                  </button>
+              {passwordSuccess && (
+                <div className="p-3.5 rounded-xl bg-success/10 border border-success/30 text-success text-xs flex items-center gap-2">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  <span>{passwordSuccess}</span>
+                </div>
+              )}
+
+              {passwordError && (
+                <div className="p-3.5 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs flex items-center gap-2">
+                  <AlertCircle className="w-4 h-4 shrink-0" />
+                  <span>{passwordError}</span>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <OwnInput
+                  label="Current Password"
+                  type={showCurrentPassword ? 'text' : 'password'}
+                  required
+                  value={currentPassword}
+                  onChange={(e) => setCurrentPassword(e.target.value)}
+                  rightIcon={
+                    <button
+                      type="button"
+                      onClick={() => setShowCurrentPassword(!showCurrentPassword)}
+                      className="text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
+                    >
+                      {showCurrentPassword ? 'Hide' : 'Show'}
+                    </button>
+                  }
+                />
+
+                <OwnInput
+                  label="New Password"
+                  type={showNewPassword ? 'text' : 'password'}
+                  required
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  rightIcon={
+                    <button
+                      type="button"
+                      onClick={() => setShowNewPassword(!showNewPassword)}
+                      className="text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
+                    >
+                      {showNewPassword ? 'Hide' : 'Show'}
+                    </button>
+                  }
+                />
+
+                <OwnInput
+                  label="Confirm New Password"
+                  type={showConfirmPassword ? 'text' : 'password'}
+                  required
+                  value={confirmPassword}
+                  onChange={(e) => setConfirmPassword(e.target.value)}
+                  rightIcon={
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="text-xs font-semibold text-muted-foreground hover:text-foreground cursor-pointer"
+                    >
+                      {showConfirmPassword ? 'Hide' : 'Show'}
+                    </button>
+                  }
+                />
+              </div>
+
+              {/* Password Complexity Checklist */}
+              <div className="p-3.5 rounded-xl bg-muted/40 border border-border text-xs space-y-1.5">
+                <span className="font-semibold text-foreground block mb-1">Password Requirements:</span>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                  <div className={`flex items-center space-x-1.5 ${hasMinLength ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                    <span>{hasMinLength ? '✓' : '○'}</span>
+                    <span>8+ Characters</span>
+                  </div>
+                  <div className={`flex items-center space-x-1.5 ${hasUpperCase ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                    <span>{hasUpperCase ? '✓' : '○'}</span>
+                    <span>Uppercase (A-Z)</span>
+                  </div>
+                  <div className={`flex items-center space-x-1.5 ${hasLowerCase ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                    <span>{hasLowerCase ? '✓' : '○'}</span>
+                    <span>Lowercase (a-z)</span>
+                  </div>
+                  <div className={`flex items-center space-x-1.5 ${hasDigit ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                    <span>{hasDigit ? '✓' : '○'}</span>
+                    <span>Number (0-9)</span>
+                  </div>
+                  <div className={`flex items-center space-x-1.5 ${hasSpecial ? 'text-primary font-medium' : 'text-muted-foreground'}`}>
+                    <span>{hasSpecial ? '✓' : '○'}</span>
+                    <span>Special (!@#$...)</span>
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <label className="block text-xs font-medium text-slate-400 mb-1">Confirm New Password</label>
-                <div className="relative">
-                  <input
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    required
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-sm text-white focus:outline-none focus:border-emerald-500 pr-10"
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-2.5 text-xs text-slate-500 hover:text-slate-300"
-                  >
-                    {showConfirmPassword ? 'Hide' : 'Show'}
-                  </button>
-                </div>
+              <div className="flex justify-end pt-2">
+                <OwnButton
+                  type="submit"
+                  variant="primary"
+                  loading={passwordSaving}
+                  disabled={!isPasswordValid || newPassword !== confirmPassword}
+                >
+                  Change Password
+                </OwnButton>
               </div>
-            </div>
-
-            {/* Password Complexity Checklist */}
-            <div className="p-3.5 rounded-xl bg-slate-950/60 border border-slate-800 text-xs space-y-1.5">
-              <span className="font-semibold text-slate-300 block mb-1">Password Requirements:</span>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                <div className={`flex items-center space-x-1.5 ${hasMinLength ? 'text-emerald-400' : 'text-slate-500'}`}>
-                  <span>{hasMinLength ? '✓' : '○'}</span>
-                  <span>8+ Characters</span>
-                </div>
-                <div className={`flex items-center space-x-1.5 ${hasUpperCase ? 'text-emerald-400' : 'text-slate-500'}`}>
-                  <span>{hasUpperCase ? '✓' : '○'}</span>
-                  <span>Uppercase (A-Z)</span>
-                </div>
-                <div className={`flex items-center space-x-1.5 ${hasLowerCase ? 'text-emerald-400' : 'text-slate-500'}`}>
-                  <span>{hasLowerCase ? '✓' : '○'}</span>
-                  <span>Lowercase (a-z)</span>
-                </div>
-                <div className={`flex items-center space-x-1.5 ${hasDigit ? 'text-emerald-400' : 'text-slate-500'}`}>
-                  <span>{hasDigit ? '✓' : '○'}</span>
-                  <span>Number (0-9)</span>
-                </div>
-                <div className={`flex items-center space-x-1.5 ${hasSpecial ? 'text-emerald-400' : 'text-slate-500'}`}>
-                  <span>{hasSpecial ? '✓' : '○'}</span>
-                  <span>Special (!@#$...)</span>
-                </div>
-              </div>
-            </div>
-
-            <div className="flex justify-end pt-2">
-              <button
-                type="submit"
-                disabled={passwordSaving || !isPasswordValid || newPassword !== confirmPassword}
-                className="px-6 py-2.5 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-semibold text-sm transition shadow-lg shadow-purple-900/30 disabled:opacity-50"
-              >
-                {passwordSaving ? 'Updating Password...' : 'Change Password'}
-              </button>
-            </div>
-          </form>
+            </form>
+          </OwnCard>
 
           {/* Security & Active Session Metadata Card */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-            <div className="border-b border-slate-800 pb-3 flex items-center justify-between">
+          <OwnCard className="p-6 space-y-4">
+            <div className="border-b border-border pb-3 flex items-center justify-between">
               <div>
-                <h3 className="text-base font-bold text-white">Active Session & Security Status</h3>
-                <p className="text-xs text-slate-400">Current authentication guard and session properties.</p>
+                <h3 className="text-base font-bold text-foreground">Active Session & Security Status</h3>
+                <p className="text-xs text-muted-foreground">Current authentication guard and session properties.</p>
               </div>
-              <span className="px-2.5 py-1 rounded-full text-[10px] font-bold bg-emerald-950/60 border border-emerald-800 text-emerald-400">
+              <OwnBadge variant="success" size="sm">
                 ACTIVE
-              </span>
+              </OwnBadge>
             </div>
 
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
-                <span className="text-slate-500 block mb-1">Authentication Method</span>
-                <span className="text-white font-medium">JWT Bearer Token Guard</span>
+              <div className="p-3.5 rounded-xl bg-muted/40 border border-border">
+                <span className="text-muted-foreground block mb-1">Authentication Method</span>
+                <span className="text-foreground font-medium">JWT Bearer Token Guard</span>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
-                <span className="text-slate-500 block mb-1">Two-Factor Authentication</span>
-                <span className="text-amber-400 font-medium">Standard (Password Based)</span>
+              <div className="p-3.5 rounded-xl bg-muted/40 border border-border">
+                <span className="text-muted-foreground block mb-1">Two-Factor Authentication</span>
+                <span className="text-warning font-medium">Standard (Password Based)</span>
               </div>
 
-              <div className="p-3.5 rounded-xl bg-slate-950 border border-slate-800">
-                <span className="text-slate-500 block mb-1">Gateway Timezone</span>
-                <span className="text-slate-300 font-mono">Asia/Kolkata (IST)</span>
+              <div className="p-3.5 rounded-xl bg-muted/40 border border-border">
+                <span className="text-muted-foreground block mb-1">Gateway Timezone</span>
+                <span className="text-foreground font-mono">Asia/Kolkata (IST)</span>
               </div>
             </div>
-          </div>
+          </OwnCard>
         </div>
       ) : null}
     </div>

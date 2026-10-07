@@ -2,6 +2,12 @@ import React, { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import apiClient from '../../services/api'
 import type { Broker } from '../../types'
+import {
+  OwnCard,
+  OwnBadge,
+  OwnButton,
+  OwnPageHeader,
+} from '../../design-system'
 
 interface ReferredBusinessItem {
   id: string
@@ -179,52 +185,46 @@ export const Brokers: React.FC = () => {
   }
 
   return (
-    <div className="space-y-6 p-6 lg:p-8 max-w-7xl mx-auto">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <div className="flex items-center space-x-2 mb-1">
-            <span className="h-2 w-2 rounded-full bg-amber-500 animate-pulse" />
-            <span className="text-xs uppercase font-mono tracking-wider text-amber-400 font-bold">
-              PARTNER NETWORK & COMMISSION BILLING
-            </span>
-          </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white lg:text-3xl">
-            Broker & Referral Partners
-          </h1>
-          <p className="text-sm text-slate-400">
-            Channel partners driving enterprise client onboarding with automatic revenue-share commissions.
-          </p>
-        </div>
-
-        <button
-          onClick={() => setShowModal(true)}
-          className="flex items-center space-x-2 rounded-xl bg-amber-500 hover:bg-amber-400 px-4 py-2.5 text-sm font-bold text-slate-950 transition shadow-lg shadow-amber-500/20"
-        >
-          <span>+ Add Partner Broker</span>
-        </button>
-      </div>
+      <OwnPageHeader
+        title="Broker & Referral Partners"
+        description="Channel partners driving enterprise client onboarding with automatic revenue-share commissions."
+        badge={
+          <OwnBadge variant="warning" size="sm">
+            Partner Network & Commission Billing
+          </OwnBadge>
+        }
+        action={
+          <OwnButton
+            onClick={() => setShowModal(true)}
+            variant="primary"
+          >
+            + Add Partner Broker
+          </OwnButton>
+        }
+      />
 
       {error && (
-        <div className="rounded-xl border border-rose-800 bg-rose-950/40 p-4 text-sm text-rose-300">
+        <div className="rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
           {error}
         </div>
       )}
 
       {/* Main Table */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/50 overflow-hidden shadow-xl">
+      <OwnCard className="overflow-hidden border-border bg-card shadow-xs">
         <div className="overflow-x-auto">
           {loading ? (
             <div className="flex h-64 items-center justify-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-500 border-t-transparent" />
+              <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
             </div>
           ) : brokers.length === 0 ? (
-            <div className="p-12 text-center text-sm text-slate-500">
+            <div className="p-12 text-center text-sm text-muted-foreground">
               No broker partners created yet. Add one to expand enterprise referrals.
             </div>
           ) : (
             <table className="w-full min-w-[760px] text-left text-sm">
-              <thead className="bg-slate-950/80 text-slate-400 font-mono uppercase text-xs">
+              <thead className="bg-muted/50 text-muted-foreground font-mono uppercase text-xs">
                 <tr>
                   <th className="p-4">Partner Entity</th>
                   <th className="p-4">Account Email</th>
@@ -235,49 +235,47 @@ export const Brokers: React.FC = () => {
                   <th className="p-4 text-right">Portfolio</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60 text-slate-300">
+              <tbody className="divide-y divide-border text-foreground">
                 {brokers.map((b) => (
                   <tr
                     key={b.id}
                     onClick={() => fetchBrokerDetail(b.id)}
-                    className="hover:bg-slate-800/40 cursor-pointer transition"
+                    className="hover:bg-muted/30 cursor-pointer transition"
                   >
-                    <td className="p-4 font-semibold text-white">
+                    <td className="p-4 font-semibold text-foreground">
                       <div className="flex items-center space-x-2">
                         <span>{b.name}</span>
                       </div>
                     </td>
-                    <td className="p-4 text-slate-400 font-mono text-xs">{b.user_email || '—'}</td>
+                    <td className="p-4 text-muted-foreground font-mono text-xs">{b.user_email || '—'}</td>
                     <td className="p-4">
-                      <span className="rounded-md bg-amber-950/60 border border-amber-800/80 px-2.5 py-1 text-xs font-mono font-bold text-amber-400">
+                      <span className="rounded-md bg-primary/10 border border-primary/20 px-2.5 py-1 text-xs font-mono font-bold text-primary">
                         {b.referral_code}
                       </span>
                     </td>
-                    <td className="p-4 font-mono font-bold text-emerald-400">{b.commission_rate}%</td>
-                    <td className="p-4 font-mono text-slate-200">
+                    <td className="p-4 font-mono font-bold text-emerald-600 dark:text-emerald-400">{b.commission_rate}%</td>
+                    <td className="p-4 font-mono text-muted-foreground">
                       {b.referrals_count ?? 0} Enterprises
                     </td>
                     <td className="p-4">
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
-                          b.is_active
-                            ? 'bg-emerald-900/40 text-emerald-400 border border-emerald-700/50'
-                            : 'bg-slate-800 text-slate-400'
-                        }`}
+                      <OwnBadge
+                        variant={b.is_active ? 'success' : 'outline'}
+                        size="sm"
                       >
                         {b.is_active ? 'Active' : 'Inactive'}
-                      </span>
+                      </OwnBadge>
                     </td>
                     <td className="p-4 text-right">
-                      <button
+                      <OwnButton
                         onClick={(e) => {
                           e.stopPropagation()
                           fetchBrokerDetail(b.id)
                         }}
-                        className="text-xs px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-amber-400 font-semibold transition"
+                        size="xs"
+                        variant="secondary"
                       >
                         View Details →
-                      </button>
+                      </OwnButton>
                     </td>
                   </tr>
                 ))}
@@ -285,29 +283,29 @@ export const Brokers: React.FC = () => {
             </table>
           )}
         </div>
-      </div>
+      </OwnCard>
 
       {/* Broker Details Drawer / Modal */}
       {selectedBrokerId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-end bg-slate-950/80 backdrop-blur-sm">
-          <div className="h-full w-full max-w-2xl bg-slate-900 border-l border-slate-800 p-6 overflow-y-auto shadow-2xl flex flex-col justify-between">
+        <div className="fixed inset-0 z-50 flex items-center justify-end bg-background/80 backdrop-blur-sm">
+          <div className="h-full w-full max-w-2xl bg-card border-l border-border p-6 overflow-y-auto shadow-2xl flex flex-col justify-between">
             <div className="space-y-6">
               {/* Drawer Header */}
-              <div className="flex items-center justify-between border-b border-slate-800 pb-4">
+              <div className="flex items-center justify-between border-b border-border pb-4">
                 <div>
-                  <span className="text-[10px] uppercase font-mono tracking-wider text-amber-400 font-bold">
+                  <span className="text-[10px] uppercase font-mono tracking-wider text-primary font-bold">
                     PARTNER PORTFOLIO & AUDIT
                   </span>
-                  <h2 className="text-xl font-bold text-white mt-0.5">
+                  <h2 className="text-xl font-bold text-foreground mt-0.5">
                     {brokerDetail?.name || 'Loading Partner...'}
                   </h2>
-                  <span className="text-xs text-slate-400 font-mono">
+                  <span className="text-xs text-muted-foreground font-mono">
                     Account: {brokerDetail?.user_email || '—'}
                   </span>
                 </div>
                 <button
                   onClick={() => setSelectedBrokerId(null)}
-                  className="rounded-lg p-2 text-slate-400 hover:bg-slate-800 hover:text-white transition"
+                  className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition cursor-pointer"
                 >
                   ✕
                 </button>
@@ -315,29 +313,29 @@ export const Brokers: React.FC = () => {
 
               {loadingDetail ? (
                 <div className="flex h-64 items-center justify-center">
-                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-500 border-t-transparent" />
+                  <div className="h-8 w-8 animate-spin rounded-full border-4 border-primary border-t-transparent" />
                 </div>
               ) : brokerDetail ? (
                 <>
                   {/* Partner Overview & Referral Link Card */}
-                  <div className="rounded-xl border border-slate-800 bg-slate-950/80 p-5 space-y-4">
+                  <div className="rounded-xl border border-border bg-muted/30 p-5 space-y-4">
                     <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                       <div>
-                        <span className="text-xs text-slate-400 block">Referral Code</span>
-                        <span className="font-mono text-lg font-bold text-amber-400">
+                        <span className="text-xs text-muted-foreground block">Referral Code</span>
+                        <span className="font-mono text-lg font-bold text-primary">
                           {brokerDetail.referral_code}
                         </span>
                       </div>
 
                       <div>
-                        <span className="text-xs text-slate-400 block">Commission Rate</span>
+                        <span className="text-xs text-muted-foreground block">Commission Rate</span>
                         <div className="flex items-center space-x-2">
-                          <span className="font-mono text-lg font-bold text-emerald-400">
+                          <span className="font-mono text-lg font-bold text-emerald-600 dark:text-emerald-400">
                             {brokerDetail.commission_rate}%
                           </span>
                           <button
                             onClick={() => setShowEditRateModal(true)}
-                            className="text-[11px] px-2 py-0.5 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 transition"
+                            className="text-[11px] px-2 py-0.5 rounded bg-muted hover:bg-muted/80 text-foreground transition cursor-pointer"
                           >
                             Edit %
                           </button>
@@ -345,22 +343,19 @@ export const Brokers: React.FC = () => {
                       </div>
 
                       <div>
-                        <span className="text-xs text-slate-400 block">Partner Status</span>
-                        <span
-                          className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-semibold ${
-                            brokerDetail.is_active
-                              ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800'
-                              : 'bg-slate-800 text-slate-400'
-                          }`}
+                        <span className="text-xs text-muted-foreground block">Partner Status</span>
+                        <OwnBadge
+                          variant={brokerDetail.is_active ? 'success' : 'outline'}
+                          size="sm"
                         >
                           {brokerDetail.is_active ? 'Active' : 'Suspended'}
-                        </span>
+                        </OwnBadge>
                       </div>
                     </div>
 
                     {/* Referral Link Box */}
-                    <div className="pt-3 border-t border-slate-800/80">
-                      <span className="text-xs font-semibold text-slate-300 block mb-1">
+                    <div className="pt-3 border-t border-border">
+                      <span className="text-xs font-semibold text-foreground block mb-1">
                         Unique Tenant Registration Link
                       </span>
                       <div className="flex items-center space-x-2">
@@ -368,47 +363,44 @@ export const Brokers: React.FC = () => {
                           type="text"
                           readOnly
                           value={`${window.location.origin}/register?ref=${brokerDetail.referral_code}`}
-                          className="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs font-mono text-slate-300 focus:outline-none"
+                          className="w-full bg-background border border-border rounded-lg px-3 py-1.5 text-xs font-mono text-foreground focus:outline-none"
                         />
-                        <button
+                        <OwnButton
                           onClick={() => handleCopyReferralLink(brokerDetail.referral_code)}
-                          className={`px-3 py-1.5 rounded-lg text-xs font-bold transition flex items-center space-x-1 shrink-0 ${
-                            copiedLink
-                              ? 'bg-emerald-600 text-white'
-                              : 'bg-amber-500 hover:bg-amber-400 text-slate-950'
-                          }`}
+                          size="sm"
+                          variant={copiedLink ? 'secondary' : 'primary'}
                         >
                           <span>{copiedLink ? '✓ Copied!' : '📋 Copy Link'}</span>
-                        </button>
+                        </OwnButton>
                       </div>
                     </div>
                   </div>
 
                   {/* Financial Stats Grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                    <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                    <div className="p-4 rounded-xl bg-card border border-border">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">
                         Referred Clients
                       </span>
-                      <span className="text-xl font-bold text-white mt-1 block">
+                      <span className="text-xl font-bold text-foreground mt-1 block">
                         {brokerDetail.referrals_count ?? 0}
                       </span>
                     </div>
 
-                    <div className="p-4 rounded-xl bg-slate-950 border border-slate-800">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                    <div className="p-4 rounded-xl bg-card border border-border">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">
                         Paid Out
                       </span>
-                      <span className="text-xl font-bold text-emerald-400 mt-1 block">
+                      <span className="text-xl font-bold text-emerald-600 dark:text-emerald-400 mt-1 block">
                         ₹{Number(brokerDetail.commissions_paid ?? 0).toLocaleString('en-IN')}
                       </span>
                     </div>
 
-                    <div className="p-4 rounded-xl bg-slate-950 border border-slate-800 col-span-2 sm:col-span-1">
-                      <span className="text-[10px] uppercase font-bold text-slate-400 block">
+                    <div className="p-4 rounded-xl bg-card border border-border col-span-2 sm:col-span-1">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">
                         Pending Due
                       </span>
-                      <span className="text-xl font-bold text-amber-400 mt-1 block">
+                      <span className="text-xl font-bold text-amber-600 dark:text-amber-400 mt-1 block">
                         ₹{Number(brokerDetail.commissions_pending ?? 0).toLocaleString('en-IN')}
                       </span>
                     </div>
@@ -416,11 +408,11 @@ export const Brokers: React.FC = () => {
 
                   {/* Referred Businesses Table */}
                   <div className="space-y-2">
-                    <h3 className="text-sm font-bold text-white">Referred Enterprise Tenants</h3>
-                    <div className="rounded-xl border border-slate-800 bg-slate-950 overflow-x-auto">
+                    <h3 className="text-sm font-bold text-foreground">Referred Enterprise Tenants</h3>
+                    <div className="rounded-xl border border-border bg-card overflow-x-auto">
                       {brokerDetail.referred_businesses_list && brokerDetail.referred_businesses_list.length > 0 ? (
                         <table className="w-full min-w-[380px] text-left text-xs">
-                          <thead className="bg-slate-900 text-slate-400 font-mono uppercase text-[10px]">
+                          <thead className="bg-muted/50 text-muted-foreground font-mono uppercase text-[10px]">
                             <tr>
                               <th className="p-2.5">Business</th>
                               <th className="p-2.5">Plan</th>
@@ -428,25 +420,25 @@ export const Brokers: React.FC = () => {
                               <th className="p-2.5 text-right">Action</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-800 text-slate-300">
+                          <tbody className="divide-y divide-border text-foreground">
                             {brokerDetail.referred_businesses_list.map((biz) => (
-                              <tr key={biz.id} className="hover:bg-slate-900/50">
-                                <td className="p-2.5 font-semibold text-white">
+                              <tr key={biz.id} className="hover:bg-muted/30">
+                                <td className="p-2.5 font-semibold text-foreground">
                                   <div>{biz.name}</div>
-                                  <div className="text-[10px] text-slate-500 font-mono">{biz.contact_email}</div>
+                                  <div className="text-[10px] text-muted-foreground font-mono">{biz.contact_email}</div>
                                 </td>
-                                <td className="p-2.5 text-slate-300">
+                                <td className="p-2.5 text-muted-foreground">
                                   {biz.current_plan_name || 'Standard'}
                                 </td>
                                 <td className="p-2.5">
-                                  <span className="px-2 py-0.5 rounded-full text-[10px] bg-slate-800 text-slate-300">
+                                  <OwnBadge variant="outline" size="sm">
                                     {biz.subscription_status || (biz.is_active ? 'ACTIVE' : 'INACTIVE')}
-                                  </span>
+                                  </OwnBadge>
                                 </td>
                                 <td className="p-2.5 text-right">
                                   <Link
                                     to={`/businesses/${biz.id}`}
-                                    className="text-amber-400 hover:text-amber-300 font-semibold"
+                                    className="text-primary hover:underline font-semibold"
                                   >
                                     View →
                                   </Link>
@@ -456,7 +448,7 @@ export const Brokers: React.FC = () => {
                           </tbody>
                         </table>
                       ) : (
-                        <div className="p-4 text-center text-xs text-slate-500">
+                        <div className="p-4 text-center text-xs text-muted-foreground">
                           No businesses registered through this referral code yet.
                         </div>
                       )}
@@ -466,12 +458,12 @@ export const Brokers: React.FC = () => {
                   {/* Commissions History & Payout Section */}
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
-                      <h3 className="text-sm font-bold text-white">Commission Accruals & Payouts</h3>
+                      <h3 className="text-sm font-bold text-foreground">Commission Accruals & Payouts</h3>
                     </div>
-                    <div className="rounded-xl border border-slate-800 bg-slate-950 overflow-x-auto">
+                    <div className="rounded-xl border border-border bg-card overflow-x-auto">
                       {brokerDetail.commissions_list && brokerDetail.commissions_list.length > 0 ? (
                         <table className="w-full min-w-[420px] text-left text-xs">
-                          <thead className="bg-slate-900 text-slate-400 font-mono uppercase text-[10px]">
+                          <thead className="bg-muted/50 text-muted-foreground font-mono uppercase text-[10px]">
                             <tr>
                               <th className="p-2.5">Billing Period</th>
                               <th className="p-2.5">Amount</th>
@@ -479,36 +471,33 @@ export const Brokers: React.FC = () => {
                               <th className="p-2.5 text-right">Action</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-800 text-slate-300">
+                          <tbody className="divide-y divide-border text-foreground">
                             {brokerDetail.commissions_list.map((c) => (
-                              <tr key={c.id} className="hover:bg-slate-900/50">
-                                <td className="p-2.5 font-mono text-[11px] text-slate-300">
+                              <tr key={c.id} className="hover:bg-muted/30">
+                                <td className="p-2.5 font-mono text-[11px] text-muted-foreground">
                                   {c.period_start} to {c.period_end}
                                 </td>
-                                <td className="p-2.5 font-mono font-bold text-white">
+                                <td className="p-2.5 font-mono font-bold text-foreground">
                                   ₹{Number(c.amount).toLocaleString('en-IN')}
                                 </td>
                                 <td className="p-2.5">
-                                  <span
-                                    className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                                      c.status === 'PAID'
-                                        ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800'
-                                        : 'bg-amber-950/60 text-amber-400 border border-amber-800'
-                                    }`}
+                                  <OwnBadge
+                                    variant={c.status === 'PAID' ? 'success' : 'warning'}
+                                    size="sm"
                                   >
                                     {c.status}
-                                  </span>
+                                  </OwnBadge>
                                 </td>
                                 <td className="p-2.5 text-right">
                                   {c.status === 'PENDING' ? (
                                     <button
                                       onClick={() => setSelectedCommission(c)}
-                                      className="px-2.5 py-1 rounded bg-amber-500 hover:bg-amber-400 text-slate-950 text-[11px] font-bold transition"
+                                      className="px-2.5 py-1 rounded bg-primary hover:bg-primary/90 text-primary-foreground text-[11px] font-bold transition cursor-pointer"
                                     >
                                       Mark Paid
                                     </button>
                                   ) : (
-                                    <span className="text-[10px] font-mono text-slate-500">
+                                    <span className="text-[10px] font-mono text-muted-foreground">
                                       Ref: {c.payment_reference || 'N/A'}
                                     </span>
                                   )}
@@ -518,7 +507,7 @@ export const Brokers: React.FC = () => {
                           </tbody>
                         </table>
                       ) : (
-                        <div className="p-4 text-center text-xs text-slate-500">
+                        <div className="p-4 text-center text-xs text-muted-foreground">
                           No commission ledger entries generated yet.
                         </div>
                       )}
@@ -528,13 +517,13 @@ export const Brokers: React.FC = () => {
               ) : null}
             </div>
 
-            <div className="pt-6 border-t border-slate-800 mt-6 flex justify-end">
-              <button
+            <div className="pt-6 border-t border-border mt-6 flex justify-end">
+              <OwnButton
+                variant="outline"
                 onClick={() => setSelectedBrokerId(null)}
-                className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-semibold text-slate-300 transition"
               >
                 Close Drawer
-              </button>
+              </OwnButton>
             </div>
           </div>
         </div>
@@ -542,22 +531,22 @@ export const Brokers: React.FC = () => {
 
       {/* Edit Commission Rate Modal */}
       {showEditRateModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-sm rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-white mb-2">Update Commission Percentage</h3>
-            <p className="text-xs text-slate-400 mb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-sm rounded-2xl border border-border bg-card p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-foreground mb-2">Update Commission Percentage</h3>
+            <p className="text-xs text-muted-foreground mb-4">
               Enter the new percentage for this broker partner. Future renewals will calculate against this rate.
             </p>
 
             {rateError && (
-              <div className="mb-4 rounded-xl border border-rose-800 bg-rose-950/40 p-3 text-xs text-rose-300">
+              <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
                 {rateError}
               </div>
             )}
 
             <form onSubmit={handleUpdateCommissionRate} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
+                <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1">
                   Commission Rate (%)
                 </label>
                 <input
@@ -568,25 +557,25 @@ export const Brokers: React.FC = () => {
                   required
                   value={newCommissionRate}
                   onChange={(e) => setNewCommissionRate(e.target.value)}
-                  className="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-white font-mono focus:border-amber-500 focus:outline-none"
+                  className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground font-mono focus:border-primary focus:outline-none"
                 />
               </div>
 
-              <div className="flex justify-end space-x-3 pt-3 border-t border-slate-800">
-                <button
+              <div className="flex justify-end space-x-3 pt-3 border-t border-border">
+                <OwnButton
                   type="button"
+                  variant="outline"
                   onClick={() => setShowEditRateModal(false)}
-                  className="rounded-xl border border-slate-800 bg-slate-950 px-4 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800"
                 >
                   Cancel
-                </button>
-                <button
+                </OwnButton>
+                <OwnButton
                   type="submit"
+                  variant="primary"
                   disabled={rateSubmitting}
-                  className="rounded-xl bg-amber-500 hover:bg-amber-400 px-4 py-2 text-xs font-bold text-slate-950 transition disabled:opacity-50"
                 >
                   {rateSubmitting ? 'Updating...' : 'Save Rate'}
-                </button>
+                </OwnButton>
               </div>
             </form>
           </div>
@@ -595,29 +584,29 @@ export const Brokers: React.FC = () => {
 
       {/* Pay Commission Modal */}
       {selectedCommission && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
-            <h3 className="text-lg font-bold text-white mb-1">Execute Commission Payout</h3>
-            <p className="text-xs text-slate-400 mb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
+            <h3 className="text-lg font-bold text-foreground mb-1">Execute Commission Payout</h3>
+            <p className="text-xs text-muted-foreground mb-4">
               Record bank transfer or UPI payout for this partner commission ledger item.
             </p>
 
-            <div className="mb-4 p-3 rounded-xl bg-slate-950 border border-slate-800 flex items-center justify-between">
-              <span className="text-xs text-slate-400">Payable Amount:</span>
-              <span className="text-base font-bold font-mono text-emerald-400">
+            <div className="mb-4 p-3 rounded-xl bg-muted/40 border border-border flex items-center justify-between">
+              <span className="text-xs text-muted-foreground">Payable Amount:</span>
+              <span className="text-base font-bold font-mono text-emerald-600 dark:text-emerald-400">
                 ₹{Number(selectedCommission.amount).toLocaleString('en-IN')}
               </span>
             </div>
 
             {payError && (
-              <div className="mb-4 rounded-xl border border-rose-800 bg-rose-950/40 p-3 text-xs text-rose-300">
+              <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
                 {payError}
               </div>
             )}
 
             <form onSubmit={handleExecutePayout} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
+                <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1">
                   Payment / Bank Ref ID *
                 </label>
                 <input
@@ -626,38 +615,38 @@ export const Brokers: React.FC = () => {
                   placeholder="e.g. UTR / NEFT / IMPS 2026100912"
                   value={paymentRef}
                   onChange={(e) => setPaymentRef(e.target.value)}
-                  className="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-white font-mono focus:border-amber-500 focus:outline-none"
+                  className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground font-mono focus:border-primary focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
+                <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1">
                   Notes (Optional)
                 </label>
                 <textarea
                   rows={2}
-                  placeholder="e.g. Cleared via HDFC Corporate Banking"
+                  placeholder="e.g. Cleared via Corporate Banking"
                   value={paymentNotes}
                   onChange={(e) => setPaymentNotes(e.target.value)}
-                  className="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2 text-xs text-white focus:border-amber-500 focus:outline-none"
+                  className="w-full rounded-xl border border-border bg-background px-4 py-2 text-xs text-foreground focus:border-primary focus:outline-none"
                 />
               </div>
 
-              <div className="flex justify-end space-x-3 pt-3 border-t border-slate-800">
-                <button
+              <div className="flex justify-end space-x-3 pt-3 border-t border-border">
+                <OwnButton
                   type="button"
+                  variant="outline"
                   onClick={() => setSelectedCommission(null)}
-                  className="rounded-xl border border-slate-800 bg-slate-950 px-4 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800"
                 >
                   Cancel
-                </button>
-                <button
+                </OwnButton>
+                <OwnButton
                   type="submit"
+                  variant="primary"
                   disabled={paySubmitting}
-                  className="rounded-xl bg-emerald-500 hover:bg-emerald-400 px-4 py-2 text-xs font-bold text-slate-950 transition disabled:opacity-50"
                 >
                   {paySubmitting ? 'Recording...' : 'Confirm Payout'}
-                </button>
+                </OwnButton>
               </div>
             </form>
           </div>
@@ -666,22 +655,22 @@ export const Brokers: React.FC = () => {
 
       {/* Add Partner Broker Modal */}
       {showModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md rounded-2xl border border-slate-800 bg-slate-900 p-6 shadow-2xl">
-            <h2 className="text-xl font-bold text-white mb-2">Register Broker Partner</h2>
-            <p className="text-xs text-slate-400 mb-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-background/80 p-4 backdrop-blur-sm">
+          <div className="w-full max-w-md rounded-2xl border border-border bg-card p-6 shadow-2xl">
+            <h2 className="text-xl font-bold text-foreground mb-2">Register Broker Partner</h2>
+            <p className="text-xs text-muted-foreground mb-4">
               Enter partner entity details. A referral code will be tied permanently to their account.
             </p>
 
             {formError && (
-              <div className="mb-4 rounded-xl border border-rose-800 bg-rose-950/40 p-3 text-xs text-rose-300">
+              <div className="mb-4 rounded-xl border border-destructive/30 bg-destructive/10 p-3 text-xs text-destructive">
                 {formError}
               </div>
             )}
 
             <form onSubmit={handleCreateBroker} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
+                <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1">
                   Agency / Partner Name
                 </label>
                 <input
@@ -690,12 +679,12 @@ export const Brokers: React.FC = () => {
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                   placeholder="e.g. Nexus Corporate Partners"
-                  className="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-white focus:border-amber-500 focus:outline-none"
+                  className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
+                <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1">
                   User Email (Login Account)
                 </label>
                 <input
@@ -704,13 +693,13 @@ export const Brokers: React.FC = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="partner@nexus.com"
-                  className="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-white focus:border-amber-500 focus:outline-none"
+                  className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground focus:border-primary focus:outline-none"
                 />
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1">
                     Referral Code
                   </label>
                   <input
@@ -719,12 +708,12 @@ export const Brokers: React.FC = () => {
                     value={referralCode}
                     onChange={(e) => setReferralCode(e.target.value.toUpperCase())}
                     placeholder="NEXUS2026"
-                    className="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-white font-mono uppercase focus:border-amber-500 focus:outline-none"
+                    className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground font-mono uppercase focus:border-primary focus:outline-none"
                   />
                 </div>
 
                 <div>
-                  <label className="block text-xs font-semibold text-slate-300 uppercase mb-1">
+                  <label className="block text-xs font-semibold text-foreground uppercase tracking-wider mb-1">
                     Commission (%)
                   </label>
                   <input
@@ -735,26 +724,26 @@ export const Brokers: React.FC = () => {
                     max="100"
                     value={commissionRate}
                     onChange={(e) => setCommissionRate(e.target.value)}
-                    className="w-full rounded-xl border border-slate-800 bg-slate-950 px-4 py-2.5 text-sm text-white font-mono focus:border-amber-500 focus:outline-none"
+                    className="w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm text-foreground font-mono focus:border-primary focus:outline-none"
                   />
                 </div>
               </div>
 
-              <div className="mt-6 flex justify-end space-x-3 pt-4 border-t border-slate-800">
-                <button
+              <div className="mt-6 flex justify-end space-x-3 pt-4 border-t border-border">
+                <OwnButton
                   type="button"
+                  variant="outline"
                   onClick={() => setShowModal(false)}
-                  className="rounded-xl border border-slate-800 bg-slate-950 px-4 py-2 text-xs font-semibold text-slate-300 hover:bg-slate-800"
                 >
                   Cancel
-                </button>
-                <button
+                </OwnButton>
+                <OwnButton
                   type="submit"
+                  variant="primary"
                   disabled={formSubmitting}
-                  className="rounded-xl bg-amber-500 hover:bg-amber-400 px-4 py-2 text-xs font-bold text-slate-950 transition disabled:opacity-50"
                 >
                   {formSubmitting ? 'Registering...' : 'Register Partner'}
-                </button>
+                </OwnButton>
               </div>
             </form>
           </div>

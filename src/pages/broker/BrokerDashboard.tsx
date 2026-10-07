@@ -1,6 +1,14 @@
 import React, { useState, useEffect } from 'react'
 import apiClient from '../../services/api'
 import { useAuth } from '../../context/AuthContext'
+import {
+  OwnCard,
+  OwnKpiCard,
+  OwnBadge,
+  OwnButton,
+  OwnPageHeader,
+} from '../../design-system'
+import { Building2, Users, DollarSign, Clock, Copy, Check, RefreshCw, AlertTriangle } from 'lucide-react'
 
 interface BrokerDashboardData {
   broker: {
@@ -78,7 +86,7 @@ export const BrokerDashboard: React.FC = () => {
   if (loading) {
     return (
       <div className="flex h-96 items-center justify-center">
-        <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-500 border-t-transparent" />
+        <RefreshCw className="h-8 w-8 animate-spin text-primary" />
       </div>
     )
   }
@@ -86,8 +94,9 @@ export const BrokerDashboard: React.FC = () => {
   if (error || !data) {
     return (
       <div className="p-6">
-        <div className="rounded-xl border border-rose-800 bg-rose-950/40 p-4 text-sm text-rose-300">
-          {error || 'Unable to retrieve broker dashboard data.'}
+        <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span>{error || 'Unable to retrieve broker dashboard data.'}</span>
         </div>
       </div>
     )
@@ -96,140 +105,111 @@ export const BrokerDashboard: React.FC = () => {
   const { broker, metrics, referrals, recent_commissions } = data
 
   return (
-    <div className="space-y-8 p-6 lg:p-8">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
       {/* Header */}
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
+      <OwnPageHeader
+        title={broker.name || user?.full_name || 'Partner Dashboard'}
+        badge={
           <div className="flex items-center space-x-2">
-            <span className="rounded-md bg-amber-500/10 px-2 py-0.5 text-xs font-semibold text-amber-400 border border-amber-500/20">
+            <OwnBadge variant="warning" size="sm">
               Platform Partner
-            </span>
-            <span className="text-xs text-slate-500">Commission Rate: {broker.commission_rate}%</span>
+            </OwnBadge>
+            <span className="text-xs text-muted-foreground font-mono">Commission Rate: {broker.commission_rate}%</span>
           </div>
-          <h1 className="mt-1 text-2xl font-bold tracking-tight text-white lg:text-3xl">
-            {broker.name || user?.full_name}
-          </h1>
-          <p className="text-sm text-slate-400">
-            Referral revenue, client subscriptions, and commission settlements.
-          </p>
-        </div>
-
-        {/* Referral Code Share Box */}
-        <div className="flex items-center space-x-3 rounded-2xl border border-slate-800 bg-slate-900/80 p-3 shadow-lg">
-          <div>
-            <span className="block text-[10px] font-mono uppercase tracking-wider text-slate-400">
-              Your Referral Code
-            </span>
-            <span className="font-mono text-base font-bold text-amber-400">{broker.referral_code}</span>
+        }
+        description="Referral revenue, client subscriptions, and commission settlements."
+        actions={
+          <div className="flex items-center space-x-3 rounded-2xl border border-border bg-card p-3 shadow-xs">
+            <div>
+              <span className="block text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                Your Referral Code
+              </span>
+              <span className="font-mono text-base font-bold text-primary">{broker.referral_code}</span>
+            </div>
+            <OwnButton
+              onClick={copyReferralCode}
+              size="sm"
+              variant={copied ? 'secondary' : 'primary'}
+              leftIcon={copied ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
+            >
+              {copied ? 'Copied' : 'Copy Code'}
+            </OwnButton>
           </div>
-          <button
-            onClick={copyReferralCode}
-            className="flex items-center space-x-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 px-3.5 py-2 text-xs font-bold text-slate-950 transition shadow-md shadow-amber-500/10"
-          >
-            <span>{copied ? '✓ Copied' : 'Copy Code'}</span>
-          </button>
-        </div>
-      </div>
+        }
+      />
 
       {/* Metrics Grid */}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 backdrop-blur-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium uppercase tracking-wider text-slate-400">
-              Referred Enterprises
-            </span>
-            <span className="text-lg">🏢</span>
-          </div>
-          <div className="mt-3 flex items-baseline space-x-2">
-            <span className="text-3xl font-extrabold text-white">{metrics.total_referred_businesses}</span>
-            <span className="text-xs text-emerald-400 font-medium">
-              {metrics.active_businesses} active
-            </span>
-          </div>
-          <p className="mt-1 text-xs text-slate-500">Total client businesses registered</p>
-        </div>
+        <OwnKpiCard
+          title="Referred Enterprises"
+          value={metrics.total_referred_businesses}
+          subtitle={`${metrics.active_businesses} active client enterprises`}
+          icon={<Building2 className="w-4 h-4" />}
+          variant="default"
+        />
 
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 backdrop-blur-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium uppercase tracking-wider text-slate-400">
-              Total Client Employees
-            </span>
-            <span className="text-lg">👥</span>
-          </div>
-          <div className="mt-3">
-            <span className="text-3xl font-extrabold text-white">{metrics.total_referred_employees}</span>
-          </div>
-          <p className="mt-1 text-xs text-slate-500">Active users across all referred centres</p>
-        </div>
+        <OwnKpiCard
+          title="Total Client Employees"
+          value={metrics.total_referred_employees}
+          subtitle="Active users across referred centres"
+          icon={<Users className="w-4 h-4" />}
+          variant="info"
+        />
 
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 backdrop-blur-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium uppercase tracking-wider text-slate-400">
-              Total Commission Earned
-            </span>
-            <span className="text-lg">💰</span>
-          </div>
-          <div className="mt-3">
-            <span className="text-3xl font-extrabold text-emerald-400">
-              ₹{metrics.commission.total_earned.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            </span>
-          </div>
-          <p className="mt-1 text-xs text-slate-500">Cumulative revenue from referrals</p>
-        </div>
+        <OwnKpiCard
+          title="Total Commission Earned"
+          value={`₹${metrics.commission.total_earned.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+          subtitle="Cumulative revenue from referrals"
+          icon={<DollarSign className="w-4 h-4" />}
+          variant="success"
+        />
 
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5 backdrop-blur-sm">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-medium uppercase tracking-wider text-slate-400">
-              Pending / In Review
-            </span>
-            <span className="text-lg">⏳</span>
-          </div>
-          <div className="mt-3">
-            <span className="text-3xl font-extrabold text-amber-400">
-              ₹{metrics.commission.pending.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-            </span>
-          </div>
-          <p className="mt-1 text-xs text-slate-500">Approved: ₹{metrics.commission.approved.toLocaleString('en-IN', { minimumFractionDigits: 2 })}</p>
-        </div>
+        <OwnKpiCard
+          title="Pending / In Review"
+          value={`₹${metrics.commission.pending.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+          subtitle={`Approved: ₹${metrics.commission.approved.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+          icon={<Clock className="w-4 h-4" />}
+          variant="warning"
+        />
       </div>
 
       {/* Plan Breakdown & Distribution */}
       {Object.keys(metrics.plan_breakdown || {}).length > 0 && (
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/40 p-6">
-          <h2 className="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-4">
+        <OwnCard className="p-5 sm:p-6 space-y-4">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
             Referred Enterprises by Subscription Tier
           </h2>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {Object.entries(metrics.plan_breakdown).map(([tier, count]) => (
-              <div key={tier} className="rounded-xl border border-slate-800/80 bg-slate-950 p-4">
-                <span className="text-xs text-slate-400 block font-mono">{tier}</span>
-                <span className="text-2xl font-bold text-white mt-1 block">{count}</span>
-                <span className="text-[11px] text-slate-500">Enterprises</span>
+              <div key={tier} className="rounded-xl border border-border bg-muted/40 p-4">
+                <span className="text-xs text-muted-foreground block font-mono">{tier}</span>
+                <span className="text-2xl font-bold text-foreground mt-1 block">{count}</span>
+                <span className="text-[11px] text-muted-foreground">Enterprises</span>
               </div>
             ))}
           </div>
-        </div>
+        </OwnCard>
       )}
 
       {/* Two Column Tables: Recent Referrals & Recent Commissions */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Referred Enterprises */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 overflow-hidden">
-          <div className="p-5 border-b border-slate-800 flex items-center justify-between">
-            <h2 className="text-base font-bold text-white flex items-center space-x-2">
-              <span>🏢</span>
+        <OwnCard className="overflow-hidden border-border bg-card">
+          <div className="p-4 sm:p-5 border-b border-border flex items-center justify-between">
+            <h2 className="text-sm sm:text-base font-bold text-foreground flex items-center space-x-2">
+              <Building2 className="w-4 h-4 text-primary" />
               <span>Referred Enterprises</span>
             </h2>
-            <span className="text-xs text-slate-500">{referrals.length} Total</span>
+            <span className="text-xs text-muted-foreground font-mono">{referrals.length} Total</span>
           </div>
           <div className="overflow-x-auto">
             {referrals.length === 0 ? (
-              <div className="p-8 text-center text-sm text-slate-500">
-                No enterprises referred yet. Share your code <span className="font-mono text-amber-400">{broker.referral_code}</span> to start earning!
+              <div className="p-8 text-center text-sm text-muted-foreground">
+                No enterprises referred yet. Share your code <span className="font-mono text-primary font-bold">{broker.referral_code}</span> to start earning!
               </div>
             ) : (
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-950/60 text-slate-400 font-mono uppercase text-[10px]">
+                <thead className="bg-muted/50 text-muted-foreground font-mono uppercase text-[10px]">
                   <tr>
                     <th className="p-3.5">Enterprise</th>
                     <th className="p-3.5">Plan</th>
@@ -237,52 +217,49 @@ export const BrokerDashboard: React.FC = () => {
                     <th className="p-3.5">Employees</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                <tbody className="divide-y divide-border text-foreground">
                   {referrals.map((ref) => (
-                    <tr key={ref.id} className="hover:bg-slate-800/30 transition">
-                      <td className="p-3.5 font-medium text-white">{ref.business_name}</td>
+                    <tr key={ref.id} className="hover:bg-muted/30 transition">
+                      <td className="p-3.5 font-medium">{ref.business_name}</td>
                       <td className="p-3.5">
-                        <span className="rounded bg-slate-800 px-2 py-0.5 text-[11px] font-mono text-slate-300">
+                        <OwnBadge variant="outline" size="sm">
                           {ref.plan_name}
-                        </span>
+                        </OwnBadge>
                       </td>
                       <td className="p-3.5">
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
-                            ref.subscription_status === 'ACTIVE'
-                              ? 'bg-emerald-900/40 text-emerald-400'
-                              : 'bg-amber-900/40 text-amber-400'
-                          }`}
+                        <OwnBadge
+                          variant={ref.subscription_status === 'ACTIVE' ? 'success' : 'warning'}
+                          size="sm"
                         >
                           {ref.subscription_status}
-                        </span>
+                        </OwnBadge>
                       </td>
-                      <td className="p-3.5 font-mono">{ref.active_employees_count}</td>
+                      <td className="p-3.5 font-mono text-muted-foreground">{ref.active_employees_count}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
             )}
           </div>
-        </div>
+        </OwnCard>
 
         {/* Commission Records */}
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 overflow-hidden">
-          <div className="p-5 border-b border-slate-800 flex items-center justify-between">
-            <h2 className="text-base font-bold text-white flex items-center space-x-2">
-              <span>💳</span>
+        <OwnCard className="overflow-hidden border-border bg-card">
+          <div className="p-4 sm:p-5 border-b border-border flex items-center justify-between">
+            <h2 className="text-sm sm:text-base font-bold text-foreground flex items-center space-x-2">
+              <DollarSign className="w-4 h-4 text-primary" />
               <span>Recent Commission Statements</span>
             </h2>
-            <span className="text-xs text-slate-500">{recent_commissions.length} Statements</span>
+            <span className="text-xs text-muted-foreground font-mono">{recent_commissions.length} Statements</span>
           </div>
           <div className="overflow-x-auto">
             {recent_commissions.length === 0 ? (
-              <div className="p-8 text-center text-sm text-slate-500">
+              <div className="p-8 text-center text-sm text-muted-foreground">
                 No commission cycles generated yet.
               </div>
             ) : (
               <table className="w-full text-left text-xs">
-                <thead className="bg-slate-950/60 text-slate-400 font-mono uppercase text-[10px]">
+                <thead className="bg-muted/50 text-muted-foreground font-mono uppercase text-[10px]">
                   <tr>
                     <th className="p-3.5">Enterprise</th>
                     <th className="p-3.5">Period</th>
@@ -290,28 +267,29 @@ export const BrokerDashboard: React.FC = () => {
                     <th className="p-3.5">Status</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-800/60 text-slate-300">
+                <tbody className="divide-y divide-border text-foreground">
                   {recent_commissions.map((c) => (
-                    <tr key={c.id} className="hover:bg-slate-800/30 transition">
-                      <td className="p-3.5 font-medium text-white">{c.business_name}</td>
-                      <td className="p-3.5 text-slate-400 font-mono text-[11px]">
+                    <tr key={c.id} className="hover:bg-muted/30 transition">
+                      <td className="p-3.5 font-medium">{c.business_name}</td>
+                      <td className="p-3.5 text-muted-foreground font-mono text-[11px]">
                         {c.period_start} – {c.period_end}
                       </td>
-                      <td className="p-3.5 font-bold text-emerald-400 font-mono">
+                      <td className="p-3.5 font-bold text-primary font-mono">
                         ₹{parseFloat(c.commission_amount).toFixed(2)}
                       </td>
                       <td className="p-3.5">
-                        <span
-                          className={`rounded-full px-2 py-0.5 text-[10px] font-semibold ${
+                        <OwnBadge
+                          variant={
                             c.status === 'PAID'
-                              ? 'bg-emerald-900/40 text-emerald-400 border border-emerald-700/50'
+                              ? 'success'
                               : c.status === 'APPROVED'
-                              ? 'bg-blue-900/40 text-blue-400 border border-blue-700/50'
-                              : 'bg-amber-900/40 text-amber-400 border border-amber-700/50'
-                          }`}
+                              ? 'primary'
+                              : 'warning'
+                          }
+                          size="sm"
                         >
                           {c.status}
-                        </span>
+                        </OwnBadge>
                       </td>
                     </tr>
                   ))}
@@ -319,8 +297,10 @@ export const BrokerDashboard: React.FC = () => {
               </table>
             )}
           </div>
-        </div>
+        </OwnCard>
       </div>
     </div>
   )
 }
+
+export default BrokerDashboard

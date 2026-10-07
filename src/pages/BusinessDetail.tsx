@@ -2,6 +2,25 @@ import React, { useEffect, useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import apiClient from '../services/api'
 import type { Business, Plan, Subscription } from '../types'
+import {
+  OwnCard,
+  OwnKpiCard,
+  OwnBadge,
+  OwnButton,
+  OwnPageHeader,
+} from '../design-system'
+import {
+  Building2,
+  Users,
+  CheckCircle2,
+  Clock,
+  CreditCard,
+  ArrowLeft,
+  X,
+  AlertTriangle,
+  UserPlus,
+  FileText,
+} from 'lucide-react'
 
 interface CentreAllocationItem {
   id: string
@@ -45,6 +64,7 @@ export const BusinessDetail: React.FC = () => {
   const [selectedPlanId, setSelectedPlanId] = useState('')
   const [planReason, setPlanReason] = useState('')
   const [savingPlan, setSavingPlan] = useState(false)
+  const [renewingSub, setRenewingSub] = useState(false)
 
   const [showStatusModal, setShowStatusModal] = useState(false)
   const [updatingStatus, setUpdatingStatus] = useState(false)
@@ -70,8 +90,13 @@ export const BusinessDetail: React.FC = () => {
       try {
         const subRes = await apiClient.get('/subscriptions/', { params: { business_id: id } })
         setSubscription(subRes.data)
-        if (subRes.data?.plan?.id) {
-          setSelectedPlanId(subRes.data.plan.id)
+        const activePlanId =
+          subRes.data?.plan?.id ||
+          (typeof subRes.data?.plan === 'string' ? subRes.data.plan : '') ||
+          subRes.data?.plan_id ||
+          ''
+        if (activePlanId) {
+          setSelectedPlanId(activePlanId)
         }
       } catch {
         setSubscription(null)
@@ -173,203 +198,254 @@ export const BusinessDetail: React.FC = () => {
     }
   }
 
+  const handleRenewSubscription = async () => {
+    if (!subscription) return
+    setRenewingSub(true)
+    try {
+      await apiClient.post('/subscriptions/', {
+        business_id: id,
+        action: 'renew',
+        reason: 'SuperAdmin administrative 30-day renewal',
+      })
+      await loadData()
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to renew subscription.')
+    } finally {
+      setRenewingSub(false)
+    }
+  }
+
   if (loading) {
     return (
-      <div className="p-8 text-center text-slate-400">
-        <div className="h-8 w-8 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin mx-auto mb-2" />
-        Loading tenant management console...
+      <div className="flex h-96 items-center justify-center">
+        <div className="h-8 w-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     )
   }
 
   if (error || !business) {
     return (
-      <div className="p-8 max-w-2xl mx-auto">
-        <div className="bg-rose-950/40 border border-rose-900 text-rose-300 p-4 rounded-xl">{error}</div>
-        <Link to="/businesses" className="mt-4 inline-block text-xs text-emerald-400">← Back to Directory</Link>
+      <div className="p-8 max-w-2xl mx-auto space-y-4">
+        <div className="bg-destructive/10 border border-destructive/30 text-destructive p-4 rounded-2xl flex items-center gap-2 text-sm">
+          <AlertTriangle className="w-5 h-5 shrink-0" />
+          <span>{error || 'Business not found'}</span>
+        </div>
+        <Link to="/businesses" className="inline-flex items-center gap-1.5 text-xs text-primary font-semibold hover:underline">
+          <ArrowLeft className="w-4 h-4" /> Back to Directory
+        </Link>
       </div>
     )
   }
 
-  const currentPlan = subscription?.plan
+  const currentPlan = (typeof subscription?.plan === 'object' && subscription?.plan) ? subscription.plan : null
+  const planName = currentPlan?.name || (subscription as any)?.plan_name || 'No Plan'
+  const planMonthlyCharge = currentPlan?.monthly_charge ?? (subscription as any)?.monthly_charge ?? '0'
+  const planTotalCapacity = currentPlan?.total_employee_capacity ?? (subscription as any)?.total_employee_capacity ?? 0
   const daysLeft = subscription?.days_remaining ?? business.days_remaining ?? 0
-  const daysBadge =
-    daysLeft <= 3
-      ? 'bg-rose-950/80 text-rose-300 border-rose-800'
-      : daysLeft <= 7
-      ? 'bg-amber-950/80 text-amber-300 border-amber-800'
-      : 'bg-slate-800 text-slate-300 border-slate-700'
+  const daysBadgeVariant: 'danger' | 'warning' | 'default' =
+    daysLeft <= 3 ? 'danger' : daysLeft <= 7 ? 'warning' : 'default'
 
   return (
-    <div className="p-6 lg:p-10 max-w-7xl w-full mx-auto space-y-8">
+    <div className="p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto space-y-6">
       {/* 1. Header with Name & Primary Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <Link to="/businesses" className="text-xs text-slate-400 hover:text-white transition">
-            ← Back to Directory
-          </Link>
-          <div className="flex items-center space-x-3 mt-1">
-            <h1 className="text-3xl font-extrabold text-white tracking-tight">{business.name}</h1>
-            <span
-              className={`text-[10px] font-bold uppercase px-2.5 py-0.5 rounded-full border ${
-                business.is_active
-                  ? 'bg-emerald-950/60 border-emerald-800 text-emerald-400'
-                  : 'bg-rose-950/60 border-rose-800 text-rose-400'
-              }`}
-            >
-              {business.is_active ? 'Active Tenant' : 'Deactivated'}
-            </span>
-          </div>
-          <p className="text-xs text-slate-500 font-mono mt-0.5">Tenant UUID: {business.id}</p>
-        </div>
+      <div className="space-y-2">
+        <Link
+          to="/businesses"
+          className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors font-medium"
+        >
+          <ArrowLeft className="w-3.5 h-3.5" /> Back to Directory
+        </Link>
 
-        <div className="flex items-center space-x-3">
-          <button
-            onClick={() => setShowChangePlanModal(true)}
-            className="bg-purple-600 hover:bg-purple-500 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-lg shadow-purple-600/20"
-          >
-            Change Plan
-          </button>
-          <button
-            onClick={() => setShowStatusModal(true)}
-            className={`px-4 py-2.5 rounded-xl text-xs font-semibold border transition ${
-              business.is_active
-                ? 'bg-rose-950/50 hover:bg-rose-900/50 text-rose-300 border-rose-800'
-                : 'bg-emerald-950/50 hover:bg-emerald-900/50 text-emerald-300 border-emerald-800'
-            }`}
-          >
-            {business.is_active ? 'Deactivate Business' : 'Reactivate Business'}
-          </button>
-          <button
-            onClick={() => setShowAdminModal(true)}
-            className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 px-4 py-2.5 rounded-xl text-xs font-bold transition shadow-lg shadow-emerald-500/20"
-          >
-            + Add Admin
-          </button>
-        </div>
+        <OwnPageHeader
+          title={business.name}
+          badge={
+            <OwnBadge variant={business.is_active ? 'success' : 'danger'} size="sm">
+              {business.is_active ? 'Active Tenant' : 'Deactivated'}
+            </OwnBadge>
+          }
+          description={`Tenant UUID: ${business.id}`}
+          actions={
+            <div className="flex items-center gap-2 flex-wrap">
+              <OwnButton
+                onClick={() => setShowChangePlanModal(true)}
+                variant="outline"
+                size="sm"
+              >
+                Change Plan
+              </OwnButton>
+              <OwnButton
+                onClick={() => setShowStatusModal(true)}
+                variant={business.is_active ? 'destructive' : 'primary'}
+                size="sm"
+              >
+                {business.is_active ? 'Deactivate' : 'Reactivate'}
+              </OwnButton>
+              <OwnButton
+                onClick={() => setShowAdminModal(true)}
+                variant="primary"
+                size="sm"
+                leftIcon={<UserPlus className="w-3.5 h-3.5" />}
+              >
+                + Add Admin
+              </OwnButton>
+            </div>
+          }
+        />
       </div>
 
       {/* 2. Operational KPIs */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-lg">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Staff</span>
-          <div className="text-3xl font-extrabold text-white mt-1.5">{stats?.total_employees ?? 0}</div>
-          <span className="text-[11px] text-slate-500 mt-1 block">Registered profiles</span>
-        </div>
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-lg">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Present Today</span>
-          <div className="text-3xl font-extrabold text-emerald-400 mt-1.5">{stats?.present_today ?? 0}</div>
-          <span className="text-[11px] text-slate-500 mt-1 block">Checked in today</span>
-        </div>
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-lg">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Absent Today</span>
-          <div className="text-3xl font-extrabold text-amber-400 mt-1.5">{stats?.absent_today ?? 0}</div>
-          <span className="text-[11px] text-slate-500 mt-1 block">Unrecorded</span>
-        </div>
-        <div className="bg-slate-900 border border-slate-800 p-5 rounded-2xl shadow-lg">
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">On Leave</span>
-          <div className="text-3xl font-extrabold text-rose-400 mt-1.5">{stats?.on_leave ?? 0}</div>
-          <span className="text-[11px] text-slate-500 mt-1 block">Approved leaves</span>
-        </div>
+        <OwnKpiCard
+          title="Total Staff"
+          value={stats?.total_employees ?? 0}
+          subtitle="Registered profiles"
+          icon={<Users className="w-4 h-4" />}
+          variant="default"
+        />
+        <OwnKpiCard
+          title="Present Today"
+          value={stats?.present_today ?? 0}
+          subtitle="Checked in today"
+          icon={<CheckCircle2 className="w-4 h-4" />}
+          variant="success"
+        />
+        <OwnKpiCard
+          title="Absent Today"
+          value={stats?.absent_today ?? 0}
+          subtitle="Unrecorded"
+          icon={<Clock className="w-4 h-4" />}
+          variant="warning"
+        />
+        <OwnKpiCard
+          title="On Leave"
+          value={stats?.on_leave ?? 0}
+          subtitle="Approved leaves"
+          icon={<Clock className="w-4 h-4" />}
+          variant="info"
+        />
       </div>
 
-      {/* 3. Subscription & Billing Section (Section 12) */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-6">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-800 pb-4 gap-2">
+      {/* 3. Subscription & Billing Status */}
+      <OwnCard className="p-5 sm:p-6 space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-border pb-4 gap-2">
           <div>
             <div className="flex items-center space-x-2">
-              <span className="text-base">💳</span>
-              <h2 className="text-base font-bold text-white">Subscription & Billing Status</h2>
+              <CreditCard className="w-4 h-4 text-primary" />
+              <h2 className="text-sm sm:text-base font-bold text-foreground">
+                Subscription & Billing Status
+              </h2>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">Authoritative commercial entitlement and billing provenance.</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Authoritative commercial entitlement and billing provenance.
+            </p>
           </div>
-          <button
-            onClick={() => setShowChangePlanModal(true)}
-            className="text-xs text-purple-400 hover:text-purple-300 font-semibold"
-          >
-            Upgrade / Downgrade Plan →
-          </button>
+          <div className="flex items-center gap-2 flex-wrap">
+            {subscription && (daysLeft <= 7 || subscription.status !== 'ACTIVE') && (
+              <OwnButton
+                size="xs"
+                variant="secondary"
+                disabled={renewingSub}
+                onClick={handleRenewSubscription}
+              >
+                {renewingSub ? 'Renewing...' : '⚡ Renew (+30d)'}
+              </OwnButton>
+            )}
+            <button
+              onClick={() => setShowChangePlanModal(true)}
+              className="text-xs text-primary hover:underline font-semibold text-left sm:text-right cursor-pointer"
+            >
+              Upgrade / Downgrade Plan →
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 text-xs">
-          <div className="p-3.5 bg-slate-950 rounded-xl border border-slate-800">
-            <span className="text-slate-500 block mb-1">Current Plan</span>
-            <span className="text-base font-bold text-purple-300">{currentPlan?.name || 'No Plan'}</span>
-            <span className="text-[11px] text-slate-400 block font-mono mt-0.5">
-              ₹{currentPlan ? parseFloat(currentPlan.monthly_charge).toFixed(0) : '0'} / month
+          <div className="p-3.5 bg-muted/40 rounded-xl border border-border">
+            <span className="text-muted-foreground block mb-1 text-[11px] font-medium">Current Plan</span>
+            <span className="text-sm sm:text-base font-bold text-foreground">{planName}</span>
+            <span className="text-[11px] text-muted-foreground block font-mono mt-0.5">
+              ₹{parseFloat(planMonthlyCharge || '0').toFixed(0)} / month
             </span>
           </div>
 
-          <div className="p-3.5 bg-slate-950 rounded-xl border border-slate-800">
-            <span className="text-slate-500 block mb-1">Subscription Status</span>
-            <span className="text-sm font-bold text-emerald-400 block mt-0.5">
-              {subscription?.status || 'INACTIVE'}
-            </span>
-            <span className="text-[10px] text-slate-500 block font-mono">
+          <div className="p-3.5 bg-muted/40 rounded-xl border border-border">
+            <span className="text-muted-foreground block mb-1 text-[11px] font-medium">Subscription Status</span>
+            <div className="mt-1">
+              <OwnBadge variant={subscription?.status === 'ACTIVE' ? 'success' : 'warning'} size="sm">
+                {subscription?.status || 'INACTIVE'}
+              </OwnBadge>
+            </div>
+            <span className="text-[10px] text-muted-foreground block font-mono mt-1">
               Started {subscription?.start_date || '—'}
             </span>
           </div>
 
-          <div className="p-3.5 bg-slate-950 rounded-xl border border-slate-800">
-            <span className="text-slate-500 block mb-1">Current Period Expiry</span>
-            <span className="text-sm font-bold text-white block mt-0.5 font-mono">
+          <div className="p-3.5 bg-muted/40 rounded-xl border border-border">
+            <span className="text-muted-foreground block mb-1 text-[11px] font-medium">Current Period Expiry</span>
+            <span className="text-xs sm:text-sm font-bold text-foreground block font-mono">
               {subscription?.current_period_end || '—'}
             </span>
-            <span className={`inline-block mt-1 px-2 py-0.5 rounded text-[10px] font-mono font-bold border ${daysBadge}`}>
-              {daysLeft < 0
-                ? `EXPIRED • Expired ${Math.abs(daysLeft)} days ago`
-                : daysLeft <= 7
-                ? `EXPIRING SOON • Expires in ${daysLeft} days`
-                : `ACTIVE • Expires in ${daysLeft} days`}
-            </span>
+            <div className="mt-1">
+              <OwnBadge variant={daysBadgeVariant} size="sm">
+                {daysLeft < 0
+                  ? `Expired ${Math.abs(daysLeft)}d ago`
+                  : daysLeft <= 7
+                  ? `Expires in ${daysLeft}d`
+                  : `Active • ${daysLeft}d left`}
+              </OwnBadge>
+            </div>
           </div>
 
-          <div className="p-3.5 bg-slate-950 rounded-xl border border-slate-800">
-            <span className="text-slate-500 block mb-1">Payment Status</span>
-            <span className="text-sm font-bold text-emerald-400 block mt-0.5">
-              {subscription?.payment_status || 'PAID'}
-            </span>
-            <span className="text-[10px] text-slate-500 block font-mono">
+          <div className="p-3.5 bg-muted/40 rounded-xl border border-border">
+            <span className="text-muted-foreground block mb-1 text-[11px] font-medium">Payment Status</span>
+            <div className="mt-1">
+              <OwnBadge variant={subscription?.payment_status === 'PAID' ? 'success' : 'warning'} size="sm">
+                {subscription?.payment_status || 'PAID'}
+              </OwnBadge>
+            </div>
+            <span className="text-[10px] text-muted-foreground block font-mono mt-1">
               Last: ₹{subscription?.last_payment?.amount ? subscription.last_payment.amount.toLocaleString() : '—'}
             </span>
           </div>
 
-          <div className="p-3.5 bg-slate-950 rounded-xl border border-slate-800">
-            <span className="text-slate-500 block mb-1">Assigned Partner Broker</span>
-            <span className="text-sm font-bold text-amber-400 block mt-0.5">
+          <div className="p-3.5 bg-muted/40 rounded-xl border border-border">
+            <span className="text-muted-foreground block mb-1 text-[11px] font-medium">Assigned Partner Broker</span>
+            <span className="text-xs sm:text-sm font-bold text-foreground block truncate">
               {subscription?.broker?.name || business.broker_name || 'Direct / Organic'}
             </span>
-            <span className="text-[10px] text-slate-400 block font-mono">
+            <span className="text-[10px] text-muted-foreground block font-mono truncate">
               Code: {subscription?.broker?.referral_code || business.broker_code || 'None'}
             </span>
           </div>
         </div>
-      </div>
+      </OwnCard>
 
-      {/* 4. Flexible Centre Allocation (Section 14 & 15) */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-slate-800 pb-3 gap-2">
+      {/* 4. Flexible Centre Allocation */}
+      <OwnCard className="p-5 sm:p-6 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between border-b border-border pb-3 gap-2">
           <div>
             <div className="flex items-center space-x-2">
-              <span className="text-base">🏢</span>
-              <h2 className="text-base font-bold text-white">Dynamic Centre Capacity Allocation</h2>
+              <Building2 className="w-4 h-4 text-primary" />
+              <h2 className="text-sm sm:text-base font-bold text-foreground">
+                Dynamic Centre Capacity Allocation
+              </h2>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Distribute total plan capacity ({currentPlan?.total_employee_capacity ?? 0} seats) across centres.
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Distribute total plan capacity ({planTotalCapacity} seats) across centres.
               Sum of centre allocations must not exceed plan limit.
             </p>
           </div>
-          <div className="text-xs font-mono text-slate-300">
+          <div className="text-xs font-mono text-muted-foreground">
             Total Allocated:{' '}
-            <strong className="text-emerald-400 font-bold">
+            <strong className="text-primary font-bold">
               {centres.reduce((sum, c) => sum + (c.allocated_capacity || 0), 0)}
             </strong>{' '}
-            / {currentPlan?.total_employee_capacity ?? 0} seats
+            / {planTotalCapacity} seats
           </div>
         </div>
 
         {centres.length === 0 ? (
-          <div className="p-6 bg-slate-950 rounded-xl border border-slate-800 text-center text-xs text-slate-500">
+          <div className="p-6 bg-muted/30 rounded-xl border border-border text-center text-xs text-muted-foreground">
             No centres registered yet for this tenant.
           </div>
         ) : (
@@ -380,34 +456,35 @@ export const BusinessDetail: React.FC = () => {
               const pct = allocated > 0 ? Math.min(100, Math.round((active / allocated) * 100)) : 0
 
               return (
-                <div key={c.id} className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-3">
+                <div key={c.id} className="p-4 bg-muted/30 rounded-xl border border-border space-y-3">
                   <div className="flex items-center justify-between">
                     <div>
-                      <h4 className="font-bold text-white text-sm">{c.name}</h4>
-                      <span className="text-[10px] font-mono text-slate-500">Code: {c.code}</span>
+                      <h4 className="font-bold text-foreground text-sm">{c.name}</h4>
+                      <span className="text-[10px] font-mono text-muted-foreground">Code: {c.code}</span>
                     </div>
-                    <button
+                    <OwnButton
                       onClick={() => {
                         setSelectedCentreForAlloc(c)
                         setNewAllocCapacity(allocated)
                       }}
-                      className="px-2.5 py-1 bg-slate-900 hover:bg-slate-800 text-purple-300 border border-purple-800/50 rounded-lg text-xs font-medium transition"
+                      size="xs"
+                      variant="outline"
                     >
                       Adjust Capacity
-                    </button>
+                    </OwnButton>
                   </div>
 
                   <div className="space-y-1.5 text-xs">
-                    <div className="flex justify-between text-slate-400">
+                    <div className="flex justify-between text-muted-foreground">
                       <span>Staff Usage:</span>
-                      <span className="font-mono text-white">
-                        <strong className="text-emerald-400">{active}</strong> / {allocated} seats ({pct}%)
+                      <span className="font-mono text-foreground">
+                        <strong className="text-primary">{active}</strong> / {allocated} seats ({pct}%)
                       </span>
                     </div>
-                    <div className="w-full bg-slate-900 rounded-full h-2 overflow-hidden">
+                    <div className="w-full bg-muted rounded-full h-2 overflow-hidden">
                       <div
                         className={`h-full rounded-full transition-all ${
-                          pct >= 90 ? 'bg-rose-500' : pct >= 75 ? 'bg-amber-400' : 'bg-emerald-500'
+                          pct >= 90 ? 'bg-destructive' : pct >= 75 ? 'bg-warning' : 'bg-primary'
                         }`}
                         style={{ width: `${pct}%` }}
                       />
@@ -418,122 +495,145 @@ export const BusinessDetail: React.FC = () => {
             })}
           </div>
         )}
-      </div>
+      </OwnCard>
 
       {/* 5. Tenant Configuration */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-        <h3 className="text-base font-bold text-white border-b border-slate-800 pb-3">Tenant Configuration</h3>
+      <OwnCard className="p-5 sm:p-6 space-y-4">
+        <h3 className="text-sm sm:text-base font-bold text-foreground border-b border-border pb-3">
+          Tenant Configuration
+        </h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 text-xs">
           <div>
-            <span className="text-slate-500 block mb-1">Official Legal Name</span>
-            <span className="text-white font-medium">{business.legal_name || 'Not provided'}</span>
+            <span className="text-muted-foreground block mb-1">Official Legal Name</span>
+            <span className="text-foreground font-medium">{business.legal_name || 'Not provided'}</span>
           </div>
           <div>
-            <span className="text-slate-500 block mb-1">Contact Email / Phone</span>
-            <span className="text-white font-medium">{business.email || '—'} / {business.phone || '—'}</span>
-          </div>
-          <div>
-            <span className="text-slate-500 block mb-1">Location</span>
-            <span className="text-white font-medium">{business.city || '—'}, {business.state || '—'}, {business.country}</span>
-          </div>
-          <div>
-            <span className="text-slate-500 block mb-1">Timezone & Currency</span>
-            <span className="text-white font-mono">{business.timezone} / {business.currency}</span>
-          </div>
-          <div>
-            <span className="text-slate-500 block mb-1">Employee ID Sequence</span>
-            <span className="text-emerald-400 font-mono">
-              {business.employee_id_enabled ? `Prefix: ${business.employee_id_prefix}, Next: #${business.employee_id_next_number}` : 'Disabled'}
+            <span className="text-muted-foreground block mb-1">Contact Email / Phone</span>
+            <span className="text-foreground font-medium">
+              {business.email || '—'} / {business.phone || '—'}
             </span>
           </div>
           <div>
-            <span className="text-slate-500 block mb-1">Registration Date</span>
-            <span className="text-slate-400 font-mono">{new Date(business.created_at).toLocaleDateString()}</span>
+            <span className="text-muted-foreground block mb-1">Location</span>
+            <span className="text-foreground font-medium">
+              {business.city || '—'}, {business.state || '—'}, {business.country}
+            </span>
+          </div>
+          <div>
+            <span className="text-muted-foreground block mb-1">Timezone & Currency</span>
+            <span className="text-foreground font-mono">
+              {business.timezone} / {business.currency}
+            </span>
+          </div>
+          <div>
+            <span className="text-muted-foreground block mb-1">Employee ID Sequence</span>
+            <span className="text-primary font-mono font-medium">
+              {business.employee_id_enabled
+                ? `Prefix: ${business.employee_id_prefix}, Next: #${business.employee_id_next_number}`
+                : 'Disabled'}
+            </span>
+          </div>
+          <div>
+            <span className="text-muted-foreground block mb-1">Registration Date</span>
+            <span className="text-muted-foreground font-mono">
+              {new Date(business.created_at).toLocaleDateString()}
+            </span>
           </div>
         </div>
-      </div>
+      </OwnCard>
 
-      {/* 6. Subscription History Section (Section 21) */}
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 shadow-xl space-y-4">
-        <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+      {/* 6. Subscription History Section */}
+      <OwnCard className="overflow-hidden border-border bg-card">
+        <div className="p-4 sm:p-5 border-b border-border flex items-center justify-between">
           <div>
             <div className="flex items-center space-x-2">
-              <span className="text-base">📜</span>
-              <h3 className="text-base font-bold text-white">Subscription & Plan Change History</h3>
+              <FileText className="w-4 h-4 text-primary" />
+              <h3 className="text-sm sm:text-base font-bold text-foreground">
+                Subscription & Plan Change History
+              </h3>
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">Permanent immutable audit log of tier upgrades, renewals, and capacity changes.</p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Permanent immutable audit log of tier upgrades, renewals, and capacity changes.
+            </p>
           </div>
         </div>
 
         {history.length === 0 ? (
-          <div className="p-6 bg-slate-950 rounded-xl border border-slate-800 text-center text-xs text-slate-500">
+          <div className="p-8 text-center text-xs text-muted-foreground">
             No historical plan modifications recorded yet.
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs text-slate-300">
-              <thead className="bg-slate-950 text-[10px] uppercase font-bold text-slate-400 border-b border-slate-800">
+            <table className="w-full text-left text-xs">
+              <thead className="bg-muted/50 text-muted-foreground font-mono uppercase text-[10px]">
                 <tr>
-                  <th className="py-2.5 px-3">Effective Date</th>
-                  <th className="py-2.5 px-3">Action</th>
-                  <th className="py-2.5 px-3">Plan</th>
-                  <th className="py-2.5 px-3">Monthly Charge</th>
-                  <th className="py-2.5 px-3">Capacity</th>
-                  <th className="py-2.5 px-3">Centres Cap</th>
-                  <th className="py-2.5 px-3">Reason</th>
+                  <th className="p-3.5">Effective Date</th>
+                  <th className="p-3.5">Action</th>
+                  <th className="p-3.5">Plan</th>
+                  <th className="p-3.5">Monthly Charge</th>
+                  <th className="p-3.5">Capacity</th>
+                  <th className="p-3.5">Centres Cap</th>
+                  <th className="p-3.5">Reason</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-border text-foreground">
                 {history.map((h) => (
-                  <tr key={h.id} className="hover:bg-slate-800/30">
-                    <td className="py-2.5 px-3 font-mono text-slate-400">{h.effective_from}</td>
-                    <td className="py-2.5 px-3">
-                      <span className="px-2 py-0.5 rounded-full text-[10px] font-bold uppercase bg-purple-950/80 border border-purple-800/60 text-purple-300">
+                  <tr key={h.id} className="hover:bg-muted/30 transition">
+                    <td className="p-3.5 font-mono text-muted-foreground">{h.effective_from}</td>
+                    <td className="p-3.5">
+                      <OwnBadge variant="primary" size="sm">
                         {h.action}
-                      </span>
+                      </OwnBadge>
                     </td>
-                    <td className="py-2.5 px-3 font-semibold text-white">{h.plan_name}</td>
-                    <td className="py-2.5 px-3 font-mono">₹{parseFloat(h.monthly_charge).toFixed(0)}</td>
-                    <td className="py-2.5 px-3 font-mono text-emerald-400">{h.total_employee_capacity} seats</td>
-                    <td className="py-2.5 px-3 font-mono text-slate-300">{h.max_centres} branches</td>
-                    <td className="py-2.5 px-3 text-slate-400 max-w-xs truncate">{h.reason || 'Administrative change'}</td>
+                    <td className="p-3.5 font-semibold">{h.plan_name}</td>
+                    <td className="p-3.5 font-mono">₹{parseFloat(h.monthly_charge).toFixed(0)}</td>
+                    <td className="p-3.5 font-mono text-primary font-medium">{h.total_employee_capacity} seats</td>
+                    <td className="p-3.5 font-mono text-muted-foreground">{h.max_centres} branches</td>
+                    <td className="p-3.5 text-muted-foreground max-w-xs truncate">
+                      {h.reason || 'Administrative change'}
+                    </td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
         )}
-      </div>
+      </OwnCard>
 
       {/* Adjust Capacity Modal */}
       {selectedCentreForAlloc && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-white">Adjust Centre Capacity</h3>
-              <button onClick={() => setSelectedCentreForAlloc(null)} className="text-slate-400 hover:text-white">✕</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+          <div className="bg-card border border-border rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex justify-between items-center border-b border-border pb-3">
+              <h3 className="text-base font-bold text-foreground">Adjust Centre Capacity</h3>
+              <button
+                onClick={() => setSelectedCentreForAlloc(null)}
+                className="text-muted-foreground hover:text-foreground p-1 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             <form onSubmit={handleSaveAllocation} className="space-y-4 text-xs">
-              <div className="bg-slate-950 p-3 rounded-xl border border-slate-800 space-y-1.5">
+              <div className="bg-muted/40 p-3 rounded-xl border border-border space-y-1.5">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Centre:</span>
-                  <strong className="text-white">{selectedCentreForAlloc.name}</strong>
+                  <span className="text-muted-foreground">Centre:</span>
+                  <strong className="text-foreground">{selectedCentreForAlloc.name}</strong>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Active Staff:</span>
-                  <strong className="text-emerald-400">{selectedCentreForAlloc.active_employees_count} employees</strong>
+                  <span className="text-muted-foreground">Active Staff:</span>
+                  <strong className="text-primary">{selectedCentreForAlloc.active_employees_count} employees</strong>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Available Pool in Plan:</span>
-                  <strong className="text-purple-400">
+                  <span className="text-muted-foreground">Available Pool in Plan:</span>
+                  <strong className="text-foreground">
                     {subscription?.unallocated_capacity ?? 0} seats unallocated
                   </strong>
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">
+                <label className="block text-foreground font-semibold mb-1">
                   Allocated Capacity (seats) *
                 </label>
                 <input
@@ -542,28 +642,28 @@ export const BusinessDetail: React.FC = () => {
                   min={selectedCentreForAlloc.active_employees_count}
                   value={newAllocCapacity}
                   onChange={(e) => setNewAllocCapacity(Number(e.target.value))}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white font-mono focus:outline-none focus:border-purple-500"
+                  className="w-full bg-input border border-border rounded-xl px-3.5 py-2.5 text-foreground font-mono focus:outline-none focus:ring-1 focus:ring-ring"
                 />
-                <span className="text-[10px] text-slate-500 mt-1 block">
+                <span className="text-[10px] text-muted-foreground mt-1 block">
                   Cannot be lower than currently active employees ({selectedCentreForAlloc.active_employees_count}).
                 </span>
               </div>
 
-              <div className="flex justify-end space-x-3 pt-3 border-t border-slate-800">
-                <button
+              <div className="flex justify-end space-x-3 pt-3 border-t border-border">
+                <OwnButton
                   type="button"
+                  variant="outline"
                   onClick={() => setSelectedCentreForAlloc(null)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold"
                 >
                   Cancel
-                </button>
-                <button
+                </OwnButton>
+                <OwnButton
                   type="submit"
                   disabled={savingAlloc}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold transition disabled:opacity-50"
+                  variant="primary"
                 >
                   {savingAlloc ? 'Saving...' : 'Update Capacity'}
-                </button>
+                </OwnButton>
               </div>
             </form>
           </div>
@@ -572,36 +672,45 @@ export const BusinessDetail: React.FC = () => {
 
       {/* Change Plan Modal */}
       {showChangePlanModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <h3 className="text-lg font-bold text-white">Change Subscription Plan</h3>
-              <button onClick={() => setShowChangePlanModal(false)} className="text-slate-400 hover:text-white">✕</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+          <div className="bg-card border border-border rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div className="flex justify-between items-center border-b border-border pb-3">
+              <h3 className="text-lg font-bold text-foreground">Change Subscription Plan</h3>
+              <button
+                onClick={() => setShowChangePlanModal(false)}
+                className="text-muted-foreground hover:text-foreground p-1 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             <form onSubmit={handleChangePlan} className="space-y-4 text-xs">
-              <div className="bg-slate-950 p-3.5 rounded-xl border border-slate-800 space-y-2">
+              <div className="bg-muted/40 p-3.5 rounded-xl border border-border space-y-2">
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Current Plan:</span>
-                  <strong className="text-purple-400">{currentPlan?.name || 'No Plan'}</strong>
+                  <span className="text-muted-foreground">Current Plan:</span>
+                  <strong className="text-primary">{planName}</strong>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Current Monthly Charge:</span>
-                  <span className="font-mono text-white">₹{currentPlan ? parseFloat(currentPlan.monthly_charge).toFixed(0) : '0'}</span>
+                  <span className="text-muted-foreground">Current Monthly Charge:</span>
+                  <span className="font-mono text-foreground">
+                    ₹{parseFloat(planMonthlyCharge || '0').toFixed(0)}
+                  </span>
                 </div>
                 <div className="flex justify-between">
-                  <span className="text-slate-400">Current Seat Capacity:</span>
-                  <span className="font-mono text-white">{currentPlan?.total_employee_capacity ?? 0} seats</span>
+                  <span className="text-muted-foreground">Current Seat Capacity:</span>
+                  <span className="font-mono text-foreground">
+                    {planTotalCapacity} seats
+                  </span>
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">Select New Plan *</label>
+                <label className="block text-foreground font-semibold mb-1">Select New Plan *</label>
                 <select
                   required
                   value={selectedPlanId}
                   onChange={(e) => setSelectedPlanId(e.target.value)}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2.5 text-white focus:outline-none focus:border-purple-500"
+                  className="w-full bg-input border border-border rounded-xl px-3.5 py-2.5 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 >
                   <option value="">-- Choose Plan --</option>
                   {plans.filter((p) => p.is_active).map((p) => (
@@ -613,31 +722,31 @@ export const BusinessDetail: React.FC = () => {
               </div>
 
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">Reason for Plan Change</label>
+                <label className="block text-foreground font-semibold mb-1">Reason for Plan Change</label>
                 <input
                   type="text"
                   value={planReason}
                   onChange={(e) => setPlanReason(e.target.value)}
                   placeholder="e.g. Enterprise expansion upgrade"
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3.5 py-2 text-white placeholder-slate-500 focus:outline-none focus:border-purple-500"
+                  className="w-full bg-input border border-border rounded-xl px-3.5 py-2 text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 />
               </div>
 
-              <div className="flex justify-end space-x-3 pt-3 border-t border-slate-800">
-                <button
+              <div className="flex justify-end space-x-3 pt-3 border-t border-border">
+                <OwnButton
                   type="button"
+                  variant="outline"
                   onClick={() => setShowChangePlanModal(false)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold"
                 >
                   Cancel
-                </button>
-                <button
+                </OwnButton>
+                <OwnButton
                   type="submit"
                   disabled={savingPlan || !selectedPlanId}
-                  className="px-4 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-xl text-xs font-bold transition disabled:opacity-50"
+                  variant="primary"
                 >
                   {savingPlan ? 'Applying Plan...' : 'Confirm Plan Change'}
-                </button>
+                </OwnButton>
               </div>
             </form>
           </div>
@@ -646,48 +755,51 @@ export const BusinessDetail: React.FC = () => {
 
       {/* Deactivate / Reactivate Modal */}
       {showStatusModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-white">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+          <div className="bg-card border border-border rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex justify-between items-center border-b border-border pb-3">
+              <h3 className="text-base font-bold text-foreground">
                 {business.is_active ? '⚠️ Deactivate Business Tenant' : '✅ Reactivate Business Tenant'}
               </h3>
-              <button onClick={() => setShowStatusModal(false)} className="text-slate-400 hover:text-white">✕</button>
+              <button
+                onClick={() => setShowStatusModal(false)}
+                className="text-muted-foreground hover:text-foreground p-1 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
-            <div className="text-xs text-slate-300 space-y-2">
+            <div className="text-xs text-foreground space-y-2">
               <p>
                 <strong>Business:</strong> {business.name}
               </p>
               {business.is_active ? (
-                <div className="p-3 rounded-xl bg-rose-950/60 border border-rose-800/80 text-rose-300">
+                <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive">
                   <strong>Warning:</strong> Deactivating this business prevents all administrators, managers, and employees from accessing the portal. Existing data and payroll history remain preserved.
                 </div>
               ) : (
-                <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-800/80 text-emerald-300">
+                <div className="p-3 rounded-xl bg-success/10 border border-success/30 text-success">
                   Reactivating this business will restore system access for all its users.
                 </div>
               )}
             </div>
 
-            <div className="flex justify-end space-x-3 pt-3 border-t border-slate-800">
-              <button
+            <div className="flex justify-end space-x-3 pt-3 border-t border-border">
+              <OwnButton
                 type="button"
+                variant="outline"
                 onClick={() => setShowStatusModal(false)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold"
               >
                 Cancel
-              </button>
-              <button
+              </OwnButton>
+              <OwnButton
                 type="button"
                 onClick={handleToggleStatus}
                 disabled={updatingStatus}
-                className={`px-4 py-2 rounded-xl text-xs font-bold transition disabled:opacity-50 ${
-                  business.is_active ? 'bg-rose-600 hover:bg-rose-500 text-white' : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'
-                }`}
+                variant={business.is_active ? 'destructive' : 'primary'}
               >
                 {updatingStatus ? 'Updating...' : business.is_active ? 'Yes, Deactivate' : 'Yes, Reactivate'}
-              </button>
+              </OwnButton>
             </div>
           </div>
         </div>
@@ -695,15 +807,20 @@ export const BusinessDetail: React.FC = () => {
 
       {/* Create Admin Modal */}
       {showAdminModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-sm">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
-            <div className="flex justify-between items-center border-b border-slate-800 pb-3">
-              <h3 className="text-base font-bold text-white">Create Business Administrator</h3>
-              <button onClick={() => setShowAdminModal(false)} className="text-slate-400 hover:text-white">✕</button>
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
+          <div className="bg-card border border-border rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex justify-between items-center border-b border-border pb-3">
+              <h3 className="text-base font-bold text-foreground">Create Business Administrator</h3>
+              <button
+                onClick={() => setShowAdminModal(false)}
+                className="text-muted-foreground hover:text-foreground p-1 rounded-lg"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             {adminSuccess && (
-              <div className="bg-emerald-950/60 border border-emerald-800 text-emerald-300 text-xs p-3 rounded-xl">
+              <div className="bg-success/10 border border-success/30 text-success text-xs p-3 rounded-xl">
                 {adminSuccess}
               </div>
             )}
@@ -711,73 +828,73 @@ export const BusinessDetail: React.FC = () => {
             <form onSubmit={handleCreateAdmin} className="space-y-3.5 text-xs">
               <div className="grid grid-cols-2 gap-2">
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">First Name *</label>
+                  <label className="block text-foreground font-semibold mb-1">First Name *</label>
                   <input
                     type="text"
                     required
                     value={adminData.first_name}
                     onChange={(e) => setAdminData({ ...adminData, first_name: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-input border border-border rounded-xl px-3 py-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-300 font-semibold mb-1">Last Name</label>
+                  <label className="block text-foreground font-semibold mb-1">Last Name</label>
                   <input
                     type="text"
                     value={adminData.last_name}
                     onChange={(e) => setAdminData({ ...adminData, last_name: e.target.value })}
-                    className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
+                    className="w-full bg-input border border-border rounded-xl px-3 py-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">Work Email (Login Identifier) *</label>
+                <label className="block text-foreground font-semibold mb-1">Work Email (Login Identifier) *</label>
                 <input
                   type="email"
                   required
                   value={adminData.email}
                   onChange={(e) => setAdminData({ ...adminData, email: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-input border border-border rounded-xl px-3 py-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">Contact Phone</label>
+                <label className="block text-foreground font-semibold mb-1">Contact Phone</label>
                 <input
                   type="text"
                   value={adminData.phone}
                   onChange={(e) => setAdminData({ ...adminData, phone: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-input border border-border rounded-xl px-3 py-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-300 font-semibold mb-1">Temporary Password *</label>
+                <label className="block text-foreground font-semibold mb-1">Temporary Password *</label>
                 <input
                   type="password"
                   required
                   value={adminData.password}
                   onChange={(e) => setAdminData({ ...adminData, password: e.target.value })}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-xl px-3 py-2 text-white focus:outline-none focus:border-emerald-500"
+                  className="w-full bg-input border border-border rounded-xl px-3 py-2 text-foreground focus:outline-none focus:ring-1 focus:ring-ring"
                 />
               </div>
 
-              <div className="flex justify-end space-x-3 pt-3 border-t border-slate-800">
-                <button
+              <div className="flex justify-end space-x-3 pt-3 border-t border-border">
+                <OwnButton
                   type="button"
+                  variant="outline"
                   onClick={() => setShowAdminModal(false)}
-                  className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-xl text-xs font-semibold"
                 >
                   Cancel
-                </button>
-                <button
+                </OwnButton>
+                <OwnButton
                   type="submit"
                   disabled={adminCreating}
-                  className="px-4 py-2 bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl text-xs font-bold transition disabled:opacity-50"
+                  variant="primary"
                 >
                   {adminCreating ? 'Creating...' : 'Create Administrator'}
-                </button>
+                </OwnButton>
               </div>
             </form>
           </div>
@@ -786,3 +903,5 @@ export const BusinessDetail: React.FC = () => {
     </div>
   )
 }
+
+export default BusinessDetail

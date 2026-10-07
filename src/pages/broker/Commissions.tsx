@@ -1,6 +1,13 @@
 import React, { useState, useEffect } from 'react'
 import apiClient from '../../services/api'
 import type { Commission } from '../../types'
+import {
+  OwnCard,
+  OwnKpiCard,
+  OwnBadge,
+  OwnPageHeader,
+} from '../../design-system'
+import { DollarSign, Clock, Layers, RefreshCw, AlertTriangle } from 'lucide-react'
 
 export const Commissions: React.FC = () => {
   const [commissions, setCommissions] = useState<Commission[]>([])
@@ -38,26 +45,22 @@ export const Commissions: React.FC = () => {
   )
 
   return (
-    <div className="space-y-6 p-6 lg:p-8">
+    <div className="space-y-6 p-4 sm:p-6 lg:p-8 max-w-7xl mx-auto w-full">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold tracking-tight text-white lg:text-3xl">
-            Commission Ledger
-          </h1>
-          <p className="text-sm text-slate-400">
-            Immutable settlement cycles and payout records per billing period.
-          </p>
-        </div>
+        <OwnPageHeader
+          title="Commission Ledger"
+          description="Immutable settlement cycles and payout records per billing period."
+        />
 
         <div className="flex space-x-2">
           {['ALL', 'PENDING', 'APPROVED', 'PAID'].map((st) => (
             <button
               key={st}
               onClick={() => setStatusFilter(st)}
-              className={`rounded-xl px-3.5 py-2 text-xs font-semibold transition ${
+              className={`rounded-xl px-3.5 py-2 text-xs font-semibold transition cursor-pointer ${
                 statusFilter === st
-                  ? 'bg-amber-500 text-slate-950 font-bold'
-                  : 'bg-slate-900 border border-slate-800 text-slate-400 hover:text-white'
+                  ? 'bg-primary text-primary-foreground font-bold shadow-xs'
+                  : 'bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted/40'
               }`}
             >
               {st}
@@ -68,87 +71,89 @@ export const Commissions: React.FC = () => {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
-          <span className="text-xs font-medium uppercase tracking-wider text-slate-400">Settled & Paid</span>
-          <div className="mt-2 text-3xl font-extrabold text-emerald-400">
-            ₹{totalEarned.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-          </div>
-          <span className="text-xs text-slate-500">Credited to partner bank account</span>
-        </div>
+        <OwnKpiCard
+          title="Settled & Paid"
+          value={`₹${totalEarned.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+          subtitle="Credited to partner bank account"
+          icon={<DollarSign className="w-4 h-4" />}
+          variant="success"
+        />
 
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
-          <span className="text-xs font-medium uppercase tracking-wider text-slate-400">Pending Settlement</span>
-          <div className="mt-2 text-3xl font-extrabold text-amber-400">
-            ₹{totalPending.toLocaleString('en-IN', { minimumFractionDigits: 2 })}
-          </div>
-          <span className="text-xs text-slate-500">Upcoming disbursement cycle</span>
-        </div>
+        <OwnKpiCard
+          title="Pending Settlement"
+          value={`₹${totalPending.toLocaleString('en-IN', { minimumFractionDigits: 2 })}`}
+          subtitle="Upcoming disbursement cycle"
+          icon={<Clock className="w-4 h-4" />}
+          variant="warning"
+        />
 
-        <div className="rounded-2xl border border-slate-800 bg-slate-900/50 p-5">
-          <span className="text-xs font-medium uppercase tracking-wider text-slate-400">Total Cycles</span>
-          <div className="mt-2 text-3xl font-extrabold text-white">
-            {commissions.length}
-          </div>
-          <span className="text-xs text-slate-500">Lifetime monthly billing periods</span>
-        </div>
+        <OwnKpiCard
+          title="Total Cycles"
+          value={commissions.length}
+          subtitle="Lifetime monthly billing periods"
+          icon={<Layers className="w-4 h-4" />}
+          variant="default"
+        />
       </div>
 
       {error && (
-        <div className="rounded-xl border border-rose-800 bg-rose-950/40 p-4 text-sm text-rose-300">
-          {error}
+        <div className="rounded-2xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive flex items-center gap-2">
+          <AlertTriangle className="w-4 h-4 shrink-0" />
+          <span>{error}</span>
         </div>
       )}
 
       {/* Table */}
-      <div className="rounded-2xl border border-slate-800 bg-slate-900/50 overflow-hidden shadow-xl">
+      <OwnCard className="overflow-hidden border-border bg-card">
         <div className="overflow-x-auto">
           {loading ? (
             <div className="flex h-64 items-center justify-center">
-              <div className="h-8 w-8 animate-spin rounded-full border-4 border-amber-500 border-t-transparent" />
+              <RefreshCw className="h-8 w-8 animate-spin text-primary" />
             </div>
           ) : filtered.length === 0 ? (
-            <div className="p-12 text-center text-sm text-slate-500">
+            <div className="p-12 text-center text-sm text-muted-foreground">
               No commission statements found matching current filter.
             </div>
           ) : (
-            <table className="w-full text-left text-sm">
-              <thead className="bg-slate-950/80 text-slate-400 font-mono uppercase text-xs">
+            <table className="w-full text-left text-xs sm:text-sm">
+              <thead className="bg-muted/50 text-muted-foreground font-mono uppercase text-[10px]">
                 <tr>
-                  <th className="p-4">Enterprise</th>
-                  <th className="p-4">Billing Period</th>
-                  <th className="p-4">Base Subscription</th>
-                  <th className="p-4">Commission Rate</th>
-                  <th className="p-4">Payout Amount</th>
-                  <th className="p-4">Status</th>
-                  <th className="p-4">Payout Date</th>
+                  <th className="p-3.5 sm:p-4">Enterprise</th>
+                  <th className="p-3.5 sm:p-4">Billing Period</th>
+                  <th className="p-3.5 sm:p-4">Base Subscription</th>
+                  <th className="p-3.5 sm:p-4">Commission Rate</th>
+                  <th className="p-3.5 sm:p-4">Payout Amount</th>
+                  <th className="p-3.5 sm:p-4">Status</th>
+                  <th className="p-3.5 sm:p-4">Payout Date</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60 text-slate-300">
+              <tbody className="divide-y divide-border text-foreground">
                 {filtered.map((c) => (
-                  <tr key={c.id} className="hover:bg-slate-800/40 transition">
-                    <td className="p-4 font-semibold text-white">{c.business_name || 'Enterprise'}</td>
-                    <td className="p-4 font-mono text-xs text-slate-400">
+                  <tr key={c.id} className="hover:bg-muted/30 transition">
+                    <td className="p-3.5 sm:p-4 font-semibold">{c.business_name || 'Enterprise'}</td>
+                    <td className="p-3.5 sm:p-4 font-mono text-xs text-muted-foreground">
                       {c.period_start} – {c.period_end}
                     </td>
-                    <td className="p-4 font-mono">₹{parseFloat(c.base_revenue).toFixed(2)}</td>
-                    <td className="p-4 font-mono text-amber-400">{c.commission_rate}%</td>
-                    <td className="p-4 font-mono font-bold text-emerald-400">
+                    <td className="p-3.5 sm:p-4 font-mono">₹{parseFloat(c.base_revenue).toFixed(2)}</td>
+                    <td className="p-3.5 sm:p-4 font-mono font-medium text-warning">{c.commission_rate}%</td>
+                    <td className="p-3.5 sm:p-4 font-mono font-bold text-primary">
                       ₹{parseFloat(c.commission_amount).toFixed(2)}
                     </td>
-                    <td className="p-4">
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-semibold ${
+                    <td className="p-3.5 sm:p-4">
+                      <OwnBadge
+                        variant={
                           c.status === 'PAID'
-                            ? 'bg-emerald-900/40 text-emerald-400 border border-emerald-700/50'
+                            ? 'success'
                             : c.status === 'APPROVED'
-                            ? 'bg-blue-900/40 text-blue-400 border border-blue-700/50'
-                            : 'bg-amber-900/40 text-amber-400 border border-amber-700/50'
-                        }`}
+                            ? 'primary'
+                            : 'warning'
+                        }
+                        size="sm"
                       >
                         {c.status}
-                      </span>
+                      </OwnBadge>
                     </td>
-                    <td className="p-4 font-mono text-xs text-slate-400">
+                    <td className="p-3.5 sm:p-4 font-mono text-xs text-muted-foreground">
                       {c.paid_at ? new Date(c.paid_at).toLocaleDateString() : '—'}
                     </td>
                   </tr>
@@ -157,7 +162,9 @@ export const Commissions: React.FC = () => {
             </table>
           )}
         </div>
-      </div>
+      </OwnCard>
     </div>
   )
 }
+
+export default Commissions

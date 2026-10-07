@@ -4,6 +4,13 @@ import apiClient from '../services/api'
 import { usePermission } from '../context/AuthContext'
 import { ToggleSwitch } from '../components/ToggleSwitch'
 import type { ManagerAccessControlData, PermissionItem } from '../types'
+import {
+  OwnCard,
+  OwnButton,
+  OwnBadge,
+  OwnPageHeader,
+} from '../design-system'
+import { ArrowLeft, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react'
 
 export const ManagerAccessControl: React.FC = () => {
   const { id } = useParams<{ id?: string }>()
@@ -36,6 +43,13 @@ export const ManagerAccessControl: React.FC = () => {
     fetchManagers()
   }, [])
 
+  // Synchronize with URL param if route id changes
+  useEffect(() => {
+    if (id && id !== selectedManagerId) {
+      setSelectedManagerId(id)
+    }
+  }, [id])
+
   // Load Access Control permissions for the selected manager
   const loadAccessControl = async (mgrId: string) => {
     if (!mgrId) return
@@ -48,11 +62,13 @@ export const ManagerAccessControl: React.FC = () => {
 
       // Initialize checkbox states from backend response
       const initialMap: Record<string, boolean> = {}
-      Object.values(res.data.modules as Record<string, { permissions: PermissionItem[] }>).forEach((mod) => {
-        mod.permissions.forEach((p) => {
-          initialMap[p.key] = !!p.is_granted
+      if (res.data.modules) {
+        Object.values(res.data.modules as Record<string, { permissions: PermissionItem[] }>).forEach((mod) => {
+          mod.permissions.forEach((p) => {
+            initialMap[p.key] = !!p.is_granted
+          })
         })
-      })
+      }
       setPermissionStates(initialMap)
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to load manager permissions.')
@@ -112,7 +128,7 @@ export const ManagerAccessControl: React.FC = () => {
 
   if (!isAdmin) {
     return (
-      <div className="p-8 text-center text-slate-400">
+      <div className="p-8 text-center text-muted-foreground">
         Only Enterprise Administrators can configure Manager Access Control.
       </div>
     )
@@ -123,30 +139,33 @@ export const ManagerAccessControl: React.FC = () => {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div>
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => navigate('/managers')}
-              className="text-slate-400 hover:text-white transition text-sm flex items-center gap-1"
-            >
-              ← Back to Managers
-            </button>
-          </div>
-          <h1 className="text-2xl font-bold text-white tracking-tight mt-1">Manager Access Control</h1>
-          <p className="text-sm text-slate-400 mt-0.5">
-            Configure granular operational permissions granted to Center Managers
-          </p>
+          <button
+            onClick={() => navigate('/managers')}
+            className="text-muted-foreground hover:text-foreground transition text-sm flex items-center gap-1.5 cursor-pointer mb-1"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            <span>Back to Managers</span>
+          </button>
+          <OwnPageHeader
+            title="Manager Access Control"
+            description="Configure granular operational permissions granted to Center Managers"
+          />
         </div>
 
         {/* Manager Selector */}
-        <div className="flex items-center gap-3 bg-slate-900 border border-slate-800 p-2 rounded-xl">
-          <label className="text-xs font-medium text-slate-400 pl-2">Manager:</label>
+        <div className="flex items-center gap-2.5 bg-card border border-border p-2 rounded-xl shadow-xs self-start md:self-auto">
+          <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground pl-2">Manager:</label>
           <select
             value={selectedManagerId}
-            onChange={(e) => setSelectedManagerId(e.target.value)}
-            className="bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-sm text-white focus:outline-none focus:border-emerald-500"
+            onChange={(e) => {
+              const newId = e.target.value
+              setSelectedManagerId(newId)
+              navigate(`/managers/${newId}/access-control`)
+            }}
+            className="bg-card border border-border hover:border-border-strong focus:border-ring rounded-lg px-3 py-1.5 text-xs sm:text-sm font-semibold text-foreground cursor-pointer shadow-xs"
           >
             {managers.map((m) => (
-              <option key={m.id} value={m.id}>
+              <option key={m.id} value={m.id} className="bg-card text-foreground">
                 {m.user?.full_name || m.user?.email} — {m.branch?.name || 'All Centers'}
               </option>
             ))}
@@ -156,57 +175,59 @@ export const ManagerAccessControl: React.FC = () => {
 
       {/* Manager Summary Banner */}
       {macData?.manager && (
-        <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <OwnCard className="p-5 flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl bg-blue-500/10 border border-blue-500/20 flex items-center justify-center text-xl font-bold text-blue-400">
+            <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center text-xl font-bold text-primary shadow-xs">
               {macData.manager.name.charAt(0)}
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h3 className="font-semibold text-white text-base">{macData.manager.name}</h3>
-                <span className="px-2 py-0.5 rounded text-[11px] font-medium bg-blue-900/40 text-blue-300 border border-blue-800">
+                <h3 className="font-semibold text-foreground text-base">{macData.manager.name}</h3>
+                <OwnBadge variant="primary" size="sm">
                   {macData.manager.branch_name}
-                </span>
+                </OwnBadge>
               </div>
-              <p className="text-xs text-slate-400">{macData.manager.email}</p>
+              <p className="text-xs text-muted-foreground">{macData.manager.email}</p>
             </div>
           </div>
 
           <div className="flex items-center gap-4">
             <div className="text-right">
-              <span className="text-xs text-slate-400 block">Active Grants</span>
-              <span className="text-sm font-semibold text-emerald-400">
+              <span className="text-xs text-muted-foreground block">Active Grants</span>
+              <span className="text-sm font-semibold text-primary">
                 {grantedCount} of {totalCount} permissions
               </span>
             </div>
 
-            <button
+            <OwnButton
               onClick={handleSave}
-              disabled={saving}
-              className="px-5 py-2.5 rounded-xl font-medium text-sm bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition shadow-lg shadow-emerald-500/20 disabled:opacity-50"
+              loading={saving}
+              variant="primary"
             >
-              {saving ? 'Saving...' : 'Save Permissions'}
-            </button>
+              Save Permissions
+            </OwnButton>
           </div>
-        </div>
+        </OwnCard>
       )}
 
       {/* Alerts */}
       {error && (
-        <div className="p-4 rounded-xl bg-red-950/50 border border-red-800 text-red-300 text-sm">
-          {error}
+        <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm flex items-center gap-2">
+          <AlertCircle className="w-4 h-4 shrink-0" />
+          <span>{error}</span>
         </div>
       )}
       {successMsg && (
-        <div className="p-4 rounded-xl bg-emerald-950/50 border border-emerald-800 text-emerald-300 text-sm">
-          {successMsg}
+        <div className="p-4 rounded-xl bg-success/10 border border-success/30 text-success text-sm flex items-center gap-2">
+          <CheckCircle2 className="w-4 h-4 shrink-0" />
+          <span>{successMsg}</span>
         </div>
       )}
 
       {/* Permissions Modules Grid */}
       {loading ? (
-        <div className="flex items-center justify-center p-12 bg-slate-900 rounded-2xl border border-slate-800">
-          <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-500"></div>
+        <div className="flex items-center justify-center p-16 bg-card rounded-2xl border border-border shadow-xs">
+          <RefreshCw className="w-8 h-8 animate-spin text-primary" />
         </div>
       ) : macData?.modules ? (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -215,15 +236,15 @@ export const ManagerAccessControl: React.FC = () => {
             const modGrantedCount = modPerms.filter((p) => permissionStates[p.key]).length
 
             return (
-              <div
+              <OwnCard
                 key={moduleKey}
-                className="bg-slate-900 border border-slate-800 rounded-2xl p-5 flex flex-col justify-between"
+                className="p-5 flex flex-col justify-between"
               >
                 <div>
-                  <div className="flex items-center justify-between pb-3 border-b border-slate-800 mb-4">
+                  <div className="flex items-center justify-between pb-3 border-b border-border mb-4">
                     <div>
-                      <h4 className="font-semibold text-white text-sm">{mod.module_display}</h4>
-                      <span className="text-[11px] text-slate-400">
+                      <h4 className="font-semibold text-foreground text-sm">{mod.module_display}</h4>
+                      <span className="text-[11px] text-muted-foreground">
                         {modGrantedCount} of {modPerms.length} granted
                       </span>
                     </div>
@@ -232,22 +253,22 @@ export const ManagerAccessControl: React.FC = () => {
                       <button
                         type="button"
                         onClick={() => handleToggleModule(moduleKey, true)}
-                        className="text-[11px] font-medium text-emerald-400 hover:underline"
+                        className="text-[11px] font-semibold text-primary hover:underline cursor-pointer"
                       >
                         All
                       </button>
-                      <span className="text-slate-600">|</span>
+                      <span className="text-muted-foreground">|</span>
                       <button
                         type="button"
                         onClick={() => handleToggleModule(moduleKey, false)}
-                        className="text-[11px] font-medium text-slate-400 hover:underline"
+                        className="text-[11px] font-semibold text-muted-foreground hover:underline cursor-pointer"
                       >
                         None
                       </button>
                     </div>
                   </div>
 
-                  <div className="space-y-3">
+                  <div className="space-y-2.5">
                     {modPerms.map((p) => {
                       const isChecked = !!permissionStates[p.key]
                       return (
@@ -255,18 +276,18 @@ export const ManagerAccessControl: React.FC = () => {
                           key={p.key}
                           className={`flex items-start justify-between gap-3 p-3 rounded-xl border transition ${
                             isChecked
-                              ? 'bg-emerald-950/20 border-emerald-900/60 shadow-xs'
-                              : 'bg-slate-950/40 border-slate-800/80 hover:border-slate-700'
+                              ? 'bg-primary/5 border-primary/30 shadow-xs'
+                              : 'bg-muted/30 border-border hover:bg-muted/50'
                           }`}
                         >
                           <div className="flex-1 min-w-0 pr-2">
                             <div className="flex items-center gap-2 flex-wrap">
-                              <span className="text-sm font-medium text-slate-200">{p.name}</span>
-                              <span className="text-[10px] font-mono text-slate-500 px-1.5 py-0.5 rounded bg-slate-800/60">
+                              <span className="text-xs sm:text-sm font-semibold text-foreground">{p.name}</span>
+                              <span className="text-[10px] font-mono text-muted-foreground px-1.5 py-0.5 rounded bg-muted border border-border">
                                 {p.scope}
                               </span>
                             </div>
-                            <p className="text-xs text-slate-400 mt-0.5 leading-relaxed">{p.description}</p>
+                            <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{p.description}</p>
                           </div>
                           <ToggleSwitch
                             id={`perm-${p.key}`}
@@ -279,7 +300,7 @@ export const ManagerAccessControl: React.FC = () => {
                     })}
                   </div>
                 </div>
-              </div>
+              </OwnCard>
             )
           })}
         </div>
@@ -287,16 +308,18 @@ export const ManagerAccessControl: React.FC = () => {
 
       {/* Bottom Save Button */}
       {!loading && macData && (
-        <div className="flex items-center justify-end gap-4 pt-4 border-t border-slate-800">
-          <button
+        <div className="flex items-center justify-end gap-4 pt-4 border-t border-border">
+          <OwnButton
             onClick={handleSave}
-            disabled={saving}
-            className="px-6 py-2.5 rounded-xl font-medium text-sm bg-emerald-500 hover:bg-emerald-400 text-slate-950 transition shadow-lg shadow-emerald-500/20 disabled:opacity-50"
+            loading={saving}
+            variant="primary"
           >
-            {saving ? 'Saving...' : 'Save All Changes'}
-          </button>
+            Save All Changes
+          </OwnButton>
         </div>
       )}
     </div>
   )
 }
+
+export default ManagerAccessControl
