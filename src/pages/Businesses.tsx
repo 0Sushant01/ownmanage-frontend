@@ -369,7 +369,85 @@ export const Businesses: React.FC = () => {
         </div>
       ) : (
         <OwnCard className="overflow-hidden border-border bg-card shadow-xs">
-          <div className="overflow-x-auto">
+          {/* Mobile View: Fluid Responsive Cards */}
+          <div className="md:hidden divide-y divide-border">
+            {filteredBusinesses.map((b) => {
+              const days = b.days_remaining ?? 0
+              return (
+                <div key={b.id} className="p-4 space-y-3 transition-colors hover:bg-muted/30">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <Link to={`/businesses/${b.id}`} className="hover:text-primary transition font-bold text-foreground text-sm truncate block">
+                        {b.name}
+                      </Link>
+                      <span className="text-[10px] font-mono text-muted-foreground block truncate">
+                        ID: {b.id.slice(0, 8)}... • {b.city || 'Bengaluru'}
+                      </span>
+                    </div>
+                    <OwnBadge variant={b.is_active ? 'success' : 'danger'} size="sm">
+                      {b.is_active ? 'Active' : 'Inactive'}
+                    </OwnBadge>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs bg-muted/40 p-2.5 rounded-xl border border-border">
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Current Plan</span>
+                      <span className="font-semibold text-primary block truncate">{b.current_plan_name || 'No Plan'}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Staff Capacity</span>
+                      <span className="font-mono text-foreground font-semibold block">
+                        {b.active_employees_count || 0} / {b.employee_capacity || '∞'}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Centres & Managers</span>
+                      <span className="text-foreground block text-[11px]">
+                        {b.total_centres || 0} centres • {b.managers_count || 0} mgrs
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Subscription</span>
+                      <span className="text-foreground block text-[11px] font-medium">
+                        {b.subscription_status || 'INACTIVE'} {days > 0 ? `(${days}d left)` : ''}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-2 pt-1">
+                    <Link
+                      to={`/businesses/${b.id}`}
+                      className="flex-1 text-center py-1.5 px-3 bg-muted hover:bg-muted/80 text-foreground rounded-lg border border-border text-xs font-semibold transition"
+                    >
+                      Workspace
+                    </Link>
+                    <button
+                      onClick={() => {
+                        setSelectedBizForPlan(b)
+                        setSelectedNewPlanId(b.current_plan_id || '')
+                      }}
+                      className="py-1.5 px-3 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg border border-primary/20 text-xs font-semibold transition cursor-pointer"
+                    >
+                      Plan
+                    </button>
+                    <button
+                      onClick={() => setSelectedBizForStatus(b)}
+                      className={`py-1.5 px-3 rounded-lg border text-xs font-semibold transition cursor-pointer ${
+                        b.is_active
+                          ? 'bg-destructive/10 hover:bg-destructive/20 text-destructive border-destructive/30'
+                          : 'bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/30'
+                      }`}
+                    >
+                      {b.is_active ? 'Deactivate' : 'Reactivate'}
+                    </button>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Desktop / Tablet View: Wide Table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-xs text-foreground">
               <thead className="bg-muted/50 text-[10px] uppercase font-mono text-muted-foreground border-b border-border tracking-wider">
                 <tr>

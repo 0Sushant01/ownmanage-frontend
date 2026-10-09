@@ -15,14 +15,13 @@ import {
   Users,
   Clock,
   Settings,
-  Palmtree,
   CalendarDays,
   DollarSign,
   FileText,
   Shield,
   ChevronDown,
 } from './Icons'
-import { Palette } from 'lucide-react'
+import { Palette, Video } from 'lucide-react'
 
 const navIcon = 'w-[18px] h-[18px] shrink-0'
 
@@ -53,6 +52,7 @@ export const Layout: React.FC = () => {
       { label: 'Businesses', path: '/businesses', icon: <Building2 className={navIcon} /> },
       { label: 'Plans & Pricing', path: '/plans', icon: <Tag className={navIcon} /> },
       { label: 'Broker Partners', path: '/brokers', icon: <Handshake className={navIcon} /> },
+      { label: 'Theme Audit', path: '/theme-audit', icon: <Palette className={navIcon} /> },
       { label: 'Profile', path: '/profile', icon: <User className={navIcon} /> },
     ]
   } else if (role === 'BROKER') {
@@ -84,9 +84,10 @@ export const Layout: React.FC = () => {
           { label: 'Daily Register', path: '/attendance' },
           { label: 'Monthly Grid', path: '/attendance?tab=monthly' },
           { label: 'Attendance Policy', path: '/attendance?tab=policy' },
+          { label: 'Leaves', path: '/leaves' },
         ],
       },
-      { label: 'Leaves', path: '/leaves', icon: <Palmtree className={navIcon} /> },
+      { label: 'Meetings', path: '/meetings', icon: <Video className={navIcon} /> },
       { label: 'Holidays', path: '/holidays', icon: <CalendarDays className={navIcon} /> },
       { label: 'Compensation', path: '/salary', icon: <DollarSign className={navIcon} /> },
       { label: 'Payroll Runs', path: '/payroll/runs', icon: <FileText className={navIcon} /> },
@@ -107,9 +108,10 @@ export const Layout: React.FC = () => {
           ...(can('attendance.manage_policy')
             ? [{ label: 'Attendance Policy', path: '/attendance?tab=policy' }]
             : []),
+          { label: 'Leaves', path: '/leaves' },
         ],
       },
-      { label: 'Leaves', path: '/leaves', icon: <Palmtree className={navIcon} /> },
+      { label: 'Meetings', path: '/meetings', icon: <Video className={navIcon} /> },
       { label: 'Holidays', path: '/holidays', icon: <CalendarDays className={navIcon} /> },
     ]
     if (can('salary.view')) {
@@ -121,9 +123,6 @@ export const Layout: React.FC = () => {
       { label: 'Profile', path: '/profile', icon: <User className={navIcon} /> },
     ]
   }
-
-  // Design system testbed
-  navItems.push({ label: 'Theme Audit', path: '/theme-audit', icon: <Palette className={navIcon} /> })
 
   const currentPath = location.pathname.replace(/\/+$/, '') || '/'
 
@@ -192,6 +191,20 @@ export const Layout: React.FC = () => {
     }
   }, [mobileMenuOpen])
 
+  // Collapsible menu state (expanded/minimized)
+  const [collapsedMenus, setCollapsedMenus] = useState<Record<string, boolean>>({})
+
+  const toggleMenu = (label: string, e?: React.MouseEvent) => {
+    if (e) {
+      e.preventDefault()
+      e.stopPropagation()
+    }
+    setCollapsedMenus((prev) => ({
+      ...prev,
+      [label]: !prev[label]
+    }))
+  }
+
   const navLinkClass = (isActive: boolean) =>
     `flex items-center space-x-3 min-h-10 px-3.5 py-2.5 rounded-xl text-xs font-semibold tracking-tight transition-all duration-150 select-none ${
       isActive
@@ -222,18 +235,33 @@ export const Layout: React.FC = () => {
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = isItemActive(item)
+            const isCollapsed = !!collapsedMenus[item.label]
             return (
               <div key={item.label} className="space-y-0.5">
-                <Link to={item.path} className={navLinkClass(isActive)}>
-                  <span className={`shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
-                    {item.icon}
-                  </span>
-                  <span className="truncate flex-1">{item.label}</span>
+                <div className="flex items-center">
+                  <Link to={item.path} className={`flex-1 ${navLinkClass(isActive)}`}>
+                    <span className={`shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
+                      {item.icon}
+                    </span>
+                    <span className="truncate flex-1">{item.label}</span>
+                  </Link>
                   {item.children && (
-                    <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${isActive ? 'text-primary' : 'text-muted-foreground/60'}`} />
+                    <button
+                      type="button"
+                      onClick={(e) => toggleMenu(item.label, e)}
+                      className="p-2 ml-1 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-lg transition-colors cursor-pointer"
+                      title={isCollapsed ? `Expand ${item.label}` : `Minimize ${item.label}`}
+                      aria-label={isCollapsed ? `Expand ${item.label}` : `Minimize ${item.label}`}
+                    >
+                      <ChevronDown
+                        className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                          isCollapsed ? '-rotate-90' : 'rotate-0'
+                        } ${isActive ? 'text-primary font-bold' : 'text-muted-foreground/70'}`}
+                      />
+                    </button>
                   )}
-                </Link>
-                {item.children && (
+                </div>
+                {item.children && !isCollapsed && (
                   <div className="ml-5 pl-3 border-l border-sidebar-border/70 my-1 space-y-0.5">
                     {item.children.map((child) => {
                       const isChildActive = isSubItemActive(child.path)
@@ -332,19 +360,37 @@ export const Layout: React.FC = () => {
             <nav className="flex-1 overflow-y-auto p-3 space-y-1">
               {navItems.map((item) => {
                 const isActive = isItemActive(item)
+                const isCollapsed = !!collapsedMenus[item.label]
                 return (
                   <div key={item.label} className="space-y-0.5">
-                    <Link
-                      to={item.path}
-                      onClick={() => setMobileMenuOpen(false)}
-                      className={navLinkClass(isActive)}
-                    >
-                      <span className={`shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
-                        {item.icon}
-                      </span>
-                      <span className="truncate flex-1">{item.label}</span>
-                    </Link>
-                    {item.children && (
+                    <div className="flex items-center">
+                      <Link
+                        to={item.path}
+                        onClick={() => setMobileMenuOpen(false)}
+                        className={`flex-1 ${navLinkClass(isActive)}`}
+                      >
+                        <span className={`shrink-0 ${isActive ? 'text-primary' : 'text-muted-foreground'}`}>
+                          {item.icon}
+                        </span>
+                        <span className="truncate flex-1">{item.label}</span>
+                      </Link>
+                      {item.children && (
+                        <button
+                          type="button"
+                          onClick={(e) => toggleMenu(item.label, e)}
+                          className="p-2 ml-1 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-lg transition-colors cursor-pointer"
+                          title={isCollapsed ? `Expand ${item.label}` : `Minimize ${item.label}`}
+                          aria-label={isCollapsed ? `Expand ${item.label}` : `Minimize ${item.label}`}
+                        >
+                          <ChevronDown
+                            className={`w-3.5 h-3.5 transition-transform duration-200 ${
+                              isCollapsed ? '-rotate-90' : 'rotate-0'
+                            } ${isActive ? 'text-primary font-bold' : 'text-muted-foreground/70'}`}
+                          />
+                        </button>
+                      )}
+                    </div>
+                    {item.children && !isCollapsed && (
                       <div className="ml-5 pl-3 border-l border-sidebar-border/70 my-1 space-y-0.5">
                         {item.children.map((child) => {
                           const isChildActive = isSubItemActive(child.path)

@@ -224,72 +224,139 @@ export const Leaves: React.FC = () => {
             }
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-foreground">
-              <thead className="bg-muted/60 text-xs uppercase font-semibold text-muted-foreground border-b border-border">
-                <tr>
-                  <th className="px-6 py-4">Employee</th>
-                  <th className="px-6 py-4">Type</th>
-                  <th className="px-6 py-4">Period</th>
-                  <th className="px-6 py-4">Reason</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {leaves.map((req) => (
-                  <tr key={req.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="font-semibold text-foreground">{req.employee_name}</div>
+          <>
+            {/* Mobile View: Fluid Responsive Cards */}
+            <div className="md:hidden divide-y divide-border">
+              {leaves.map((req) => (
+                <div key={req.id} className="p-4 space-y-3 transition-colors hover:bg-muted/30">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-semibold text-foreground text-sm truncate">{req.employee_name}</div>
                       {req.employee_id_code && (
                         <div className="text-xs text-muted-foreground font-mono">{req.employee_id_code}</div>
                       )}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-xs text-foreground">
-                      <span className="font-semibold text-foreground">{req.leave_type_name}</span>
-                      <span className="text-muted-foreground ml-1 font-mono">({req.leave_type_code})</span>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-xs font-mono text-muted-foreground">
-                      {req.start_date} → {req.end_date}
-                    </td>
-                    <td className="px-6 py-4 text-xs text-muted-foreground max-w-xs truncate" title={req.reason}>
-                      {req.reason}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <OwnStatusBadge status={req.status} size="sm" />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right text-xs">
-                      {req.status === 'PENDING' && canManageLeaves ? (
-                        <div className="flex items-center justify-end space-x-2">
-                          <OwnButton
-                            onClick={() => handleApprove(req.id)}
-                            variant="primary"
-                            size="sm"
-                          >
-                            Approve
-                          </OwnButton>
-                          <OwnButton
-                            onClick={() => {
-                              setRejectingReq(req)
-                              setRejectionReason('')
-                            }}
-                            variant="destructive"
-                            size="sm"
-                          >
-                            Reject
-                          </OwnButton>
-                        </div>
-                      ) : (
-                        <span className="text-muted-foreground italic">
-                          {req.approved_by_name ? `By ${req.approved_by_name}` : 'Completed'}
-                        </span>
-                      )}
-                    </td>
+                    </div>
+                    <OwnStatusBadge status={req.status} size="sm" />
+                  </div>
+
+                  <div className="space-y-2 text-xs bg-muted/40 p-3 rounded-xl border border-border">
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground font-semibold">Leave Type:</span>
+                      <span className="font-medium text-foreground">
+                        {req.leave_type_name} <span className="text-muted-foreground font-mono">({req.leave_type_code})</span>
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-muted-foreground font-semibold">Duration:</span>
+                      <span className="font-mono text-foreground font-medium">{req.start_date} → {req.end_date}</span>
+                    </div>
+                    {req.reason && (
+                      <div className="pt-1 border-t border-border/60">
+                        <span className="text-muted-foreground block text-[10px] uppercase font-semibold mb-0.5">Reason</span>
+                        <p className="text-foreground text-xs italic bg-card/60 p-2 rounded-lg border border-border/40">{req.reason}</p>
+                      </div>
+                    )}
+                  </div>
+
+                  {req.status === 'PENDING' && canManageLeaves ? (
+                    <div className="flex items-center gap-2 pt-1">
+                      <OwnButton
+                        onClick={() => handleApprove(req.id)}
+                        variant="primary"
+                        size="sm"
+                        className="flex-1 justify-center"
+                      >
+                        Approve
+                      </OwnButton>
+                      <OwnButton
+                        onClick={() => {
+                          setRejectingReq(req)
+                          setRejectionReason('')
+                        }}
+                        variant="destructive"
+                        size="sm"
+                        className="flex-1 justify-center"
+                      >
+                        Reject
+                      </OwnButton>
+                    </div>
+                  ) : (
+                    <div className="text-[11px] text-muted-foreground text-right italic pt-1">
+                      {req.approved_by_name ? `Reviewed by ${req.approved_by_name}` : 'Completed'}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop / Tablet View: Wide Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-sm text-foreground">
+                <thead className="bg-muted/60 text-xs uppercase font-semibold text-muted-foreground border-b border-border">
+                  <tr>
+                    <th className="px-6 py-4">Employee</th>
+                    <th className="px-6 py-4">Type</th>
+                    <th className="px-6 py-4">Period</th>
+                    <th className="px-6 py-4">Reason</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {leaves.map((req) => (
+                    <tr key={req.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="font-semibold text-foreground">{req.employee_name}</div>
+                        {req.employee_id_code && (
+                          <div className="text-xs text-muted-foreground font-mono">{req.employee_id_code}</div>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-xs text-foreground">
+                        <span className="font-semibold text-foreground">{req.leave_type_name}</span>
+                        <span className="text-muted-foreground ml-1 font-mono">({req.leave_type_code})</span>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-xs font-mono text-muted-foreground">
+                        {req.start_date} → {req.end_date}
+                      </td>
+                      <td className="px-6 py-4 text-xs text-muted-foreground max-w-xs truncate" title={req.reason}>
+                        {req.reason}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <OwnStatusBadge status={req.status} size="sm" />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right text-xs">
+                        {req.status === 'PENDING' && canManageLeaves ? (
+                          <div className="flex items-center justify-end space-x-2">
+                            <OwnButton
+                              onClick={() => handleApprove(req.id)}
+                              variant="primary"
+                              size="sm"
+                            >
+                              Approve
+                            </OwnButton>
+                            <OwnButton
+                              onClick={() => {
+                                setRejectingReq(req)
+                                setRejectionReason('')
+                              }}
+                              variant="destructive"
+                              size="sm"
+                            >
+                              Reject
+                            </OwnButton>
+                          </div>
+                        ) : (
+                          <span className="text-muted-foreground italic">
+                            {req.approved_by_name ? `By ${req.approved_by_name}` : 'Completed'}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </OwnCard>
 

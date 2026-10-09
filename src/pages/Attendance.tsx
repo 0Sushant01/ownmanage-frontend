@@ -758,65 +758,75 @@ export const Attendance: React.FC = () => {
         {/* TAB 1: DAILY ATTENDANCE REGISTER */}
         <OwnTabsContent value="register" className="space-y-6">
           {/* Main 10-Item KPI Metric Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-3">
+          <div className="flex md:grid overflow-x-auto md:overflow-x-visible pb-2 md:pb-0 gap-3 grid-cols-2 sm:grid-cols-3 md:grid-cols-5 snap-x no-scrollbar">
             <OwnKpiCard
               title="Total Employees"
               value={summary.total_employees}
               variant="default"
+              className="shrink-0 w-36 sm:w-auto snap-start"
             />
             <OwnKpiCard
               title="Present"
               value={summary.present}
               icon={<CheckCircle2 className="w-3.5 h-3.5" />}
               variant="success"
+              className="shrink-0 w-36 sm:w-auto snap-start"
             />
             <OwnKpiCard
               title="Late Arrivals"
               value={summary.late}
               icon={<Clock className="w-3.5 h-3.5" />}
               variant="warning"
+              className="shrink-0 w-36 sm:w-auto snap-start"
             />
             <OwnKpiCard
               title="Half Day"
               value={summary.half_day}
               icon={<Clock className="w-3.5 h-3.5" />}
               variant="warning"
+              className="shrink-0 w-36 sm:w-auto snap-start"
             />
             <OwnKpiCard
               title="Leave Early"
               value={summary.leave_early}
               icon={<Clock className="w-3.5 h-3.5" />}
               variant="warning"
+              className="shrink-0 w-36 sm:w-auto snap-start"
             />
             <OwnKpiCard
               title="On Leave"
               value={summary.on_leave}
               icon={<CalendarDays className="w-3.5 h-3.5" />}
               variant="primary"
+              className="shrink-0 w-36 sm:w-auto snap-start"
             />
             <OwnKpiCard
               title="Absent"
               value={summary.absent}
               icon={<AlertTriangle className="w-3.5 h-3.5" />}
               variant="danger"
+              className="shrink-0 w-36 sm:w-auto snap-start"
             />
             <OwnKpiCard
               title="Not Marked"
               value={summary.not_marked}
               icon={<HelpCircle className="w-3.5 h-3.5" />}
               variant="default"
+              className="shrink-0 w-36 sm:w-auto snap-start"
             />
             <OwnKpiCard
               title="Total Work Hours"
               value={`${summary.total_working_hours}h`}
               icon={<Clock className="w-3.5 h-3.5" />}
               variant="primary"
+              className="shrink-0 w-36 sm:w-auto snap-start"
             />
             <OwnKpiCard
               title="Total Overtime"
               value={`${summary.total_overtime_hours}h`}
               icon={<Clock className="w-3.5 h-3.5" />}
               variant="warning"
+              className="shrink-0 w-36 sm:w-auto snap-start"
             />
           </div>
 
@@ -922,8 +932,111 @@ export const Attendance: React.FC = () => {
                 description="Adjust centre, date, status, or search filters to display employee records."
               />
             ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full text-left text-sm text-foreground">
+              <>
+                {/* Mobile View: Fluid Responsive Cards */}
+                <div className="md:hidden divide-y divide-border">
+                  {records.map((row) => (
+                    <div key={row.employee_id} className="p-4 space-y-3 transition-colors hover:bg-muted/30">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <div className="font-semibold text-foreground text-sm truncate">{row.employee_name}</div>
+                          <div className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1.5 flex-wrap">
+                            <span className="font-mono">{row.employee_code}</span>
+                            <span>•</span>
+                            <span>{row.department_name}</span>
+                            <span>•</span>
+                            <span className="flex items-center gap-1">
+                              <Building2 className="w-3 h-3 text-muted-foreground shrink-0" />
+                              <span>{row.centre_name}</span>
+                            </span>
+                          </div>
+                        </div>
+                        <OwnStatusBadge status={row.status} size="sm" />
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-2 text-xs bg-muted/40 p-2.5 rounded-xl border border-border">
+                        <div>
+                          <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Check In</span>
+                          <div className="flex items-center gap-1">
+                            <span className="font-mono text-foreground font-semibold">{row.check_in !== '—' ? row.check_in : '—'}</span>
+                            {row.late_minutes > 0 && (
+                              <span className="text-[10px] text-amber-500 font-normal">({row.late_minutes}m late)</span>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Check Out</span>
+                          <div className="flex items-center gap-1">
+                            <span className="font-mono text-foreground font-semibold">{row.check_out !== '—' ? row.check_out : '—'}</span>
+                            {row.early_leave_minutes > 0 && (
+                              <span className="text-[10px] text-amber-500 font-normal">({row.early_leave_minutes}m early)</span>
+                            )}
+                          </div>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Work Hours</span>
+                          <span className="font-mono text-foreground font-semibold">{row.work_hours}</span>
+                        </div>
+                        <div>
+                          <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Overtime</span>
+                          <span className="font-mono text-primary font-semibold">{row.overtime_seconds > 0 ? row.overtime_hours : '—'}</span>
+                        </div>
+                      </div>
+
+                      <div className="flex items-center justify-between text-xs pt-0.5">
+                        <div className="flex items-center gap-1.5 flex-wrap">
+                          {row.attendance_method && row.attendance_method !== '—' && (
+                            <OwnBadge variant="outline" size="sm" className="font-mono text-[10px]">
+                              {row.attendance_method}
+                            </OwnBadge>
+                          )}
+                          {row.location_verified && (
+                            <OwnBadge variant="success" size="sm" className="flex items-center gap-1 text-[10px]">
+                              <Check className="w-2.5 h-2.5" />
+                              <span>GPS</span>
+                            </OwnBadge>
+                          )}
+                          {row.is_overridden && (
+                            <OwnBadge variant="warning" size="sm" className="text-[10px]">
+                              Overridden
+                            </OwnBadge>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-1.5">
+                          {row.id ? (
+                            <>
+                              <OwnButton
+                                onClick={() => openDetailModal(row.id!)}
+                                variant="secondary"
+                                size="sm"
+                                leftIcon={<Eye className="w-3.5 h-3.5" />}
+                              >
+                                Details
+                              </OwnButton>
+                              {canEditAttendance && (
+                                <OwnButton
+                                  onClick={() => openInlineOverride(row)}
+                                  variant="outline"
+                                  size="sm"
+                                  leftIcon={<Edit className="w-3.5 h-3.5" />}
+                                >
+                                  Edit
+                                </OwnButton>
+                              )}
+                            </>
+                          ) : (
+                            <span className="text-xs text-muted-foreground/60 italic">Unpunched</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Desktop / Tablet View: Wide Table */}
+                <div className="hidden md:block overflow-x-auto">
+                  <table className="w-full text-left text-sm text-foreground">
                   <thead className="bg-muted/60 text-xs uppercase font-semibold text-muted-foreground border-b border-border">
                     <tr>
                       <th className="px-5 py-3.5">Employee</th>
@@ -1147,7 +1260,8 @@ export const Attendance: React.FC = () => {
                   </tbody>
                 </table>
               </div>
-            )}
+            </>
+          )}
           </OwnCard>
         </OwnTabsContent>
 

@@ -145,8 +145,61 @@ export const Managers: React.FC = () => {
           }
         />
       ) : (
-        <OwnCard className="overflow-hidden">
-          <div className="overflow-x-auto">
+        <OwnCard className="overflow-hidden border-border bg-card shadow-xs">
+          {/* Mobile View: Fluid Responsive Cards */}
+          <div className="md:hidden divide-y divide-border">
+            {managers.map((m) => (
+              <div key={m.id} className="p-4 space-y-3 transition-colors hover:bg-muted/30">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-semibold text-foreground text-sm truncate">{m.full_name}</div>
+                    <div className="text-xs text-muted-foreground truncate">{m.email}</div>
+                  </div>
+                  <OwnStatusBadge status={m.employment_status || 'ACTIVE'} size="sm" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-2 text-xs bg-muted/40 p-2.5 rounded-xl border border-border">
+                  <div>
+                    <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Employee ID</span>
+                    <span className="font-mono text-primary font-bold">{m.employee_id || '—'}</span>
+                  </div>
+                  <div>
+                    <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Designation</span>
+                    <span className="text-foreground truncate block">{m.designation}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Department / Branch</span>
+                    <span className="text-foreground truncate block">{m.department_name || '—'} ({m.branch_name || 'Main'})</span>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 pt-1">
+                  <Link
+                    to={`/managers/${m.id}/access-control`}
+                    className="flex-1 inline-flex items-center justify-center gap-1.5 text-xs text-info hover:text-info/80 bg-muted px-3 py-2 rounded-xl border border-border font-medium transition"
+                  >
+                    <Shield className="w-3.5 h-3.5" />
+                    <span>Access Control</span>
+                  </Link>
+
+                  {m.employment_status === 'ACTIVE' && (
+                    <OwnButton
+                      variant="destructive"
+                      size="sm"
+                      onClick={() => handleDeactivate(m.id, m.full_name)}
+                      icon={<UserX className="w-3.5 h-3.5" />}
+                      className="shrink-0"
+                    >
+                      Deactivate
+                    </OwnButton>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop / Tablet View: Wide Table */}
+          <div className="hidden md:block overflow-x-auto">
             <table className="w-full text-left text-sm text-foreground">
               <thead className="bg-muted text-xs uppercase font-semibold text-muted-foreground border-b border-border">
                 <tr>
@@ -214,7 +267,7 @@ export const Managers: React.FC = () => {
         description="Provide account and role credentials to authorize a manager in this workspace."
       >
         <form onSubmit={handleCreateSubmit} className="space-y-4 text-sm mt-2">
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <OwnInput
               label="First Name *"
               required
@@ -239,7 +292,7 @@ export const Managers: React.FC = () => {
             placeholder="manager@company.com"
           />
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <OwnInput
               label="Phone"
               value={formData.phone}

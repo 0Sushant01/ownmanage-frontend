@@ -26,6 +26,7 @@ import {
 } from './Icons'
 import { ThemeToggle } from './ThemeToggle'
 import { ToggleSwitch } from './ToggleSwitch'
+import { PayrollScheduleSection } from './PayrollScheduleSection'
 import apiClient from '../services/api'
 
 import { useAuth } from '../context/AuthContext'
@@ -892,8 +893,8 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                       </div>
                     </div>
 
-                    {/* 8 Metric KPI Cards */}
-                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5 sm:gap-3">
+                    {/* 6 Metric KPI Cards */}
+                    <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2.5 sm:gap-3">
                       <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-950/60 shadow-xs flex flex-col justify-between min-w-0">
                         <div className="text-[10px] sm:text-[11px] font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider truncate">Present</div>
                         <div className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mt-1 truncate">{attendanceSummary?.present ?? 0}</div>
@@ -913,14 +914,6 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                       <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-rose-200 dark:border-rose-950/60 shadow-xs flex flex-col justify-between min-w-0">
                         <div className="text-[10px] sm:text-[11px] font-semibold text-rose-600 dark:text-rose-400 uppercase tracking-wider truncate">Absent</div>
                         <div className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mt-1 truncate">{attendanceSummary?.absent ?? 0}</div>
-                      </div>
-                      <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between min-w-0">
-                        <div className="text-[10px] sm:text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider truncate">Weekly Off</div>
-                        <div className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mt-1 truncate">{attendanceSummary?.week_off ?? attendanceSummary?.weekly_off ?? 0}</div>
-                      </div>
-                      <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-indigo-200 dark:border-indigo-950/60 shadow-xs flex flex-col justify-between min-w-0">
-                        <div className="text-[10px] sm:text-[11px] font-semibold text-indigo-600 dark:text-indigo-400 uppercase tracking-wider truncate">Holidays</div>
-                        <div className="text-lg sm:text-xl font-bold text-slate-900 dark:text-white mt-1 truncate">{attendanceSummary?.holiday ?? 0}</div>
                       </div>
                       <div className="p-3 rounded-xl bg-white dark:bg-slate-900 border border-emerald-300 dark:border-emerald-800 shadow-xs flex flex-col justify-between min-w-0">
                         <div className="text-[10px] sm:text-[11px] font-semibold text-emerald-700 dark:text-emerald-400 uppercase tracking-wider truncate">OT Hours</div>
@@ -1548,6 +1541,13 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                       </div>
                     </div>
                   )}
+
+                  {/* Section: Payroll Schedule & Salary Cycle */}
+                  <PayrollScheduleSection
+                    employeeId={employeeId}
+                    employeeName={employee?.full_name || 'Employee'}
+                    canManage={canManageSalary}
+                  />
 
                   {/* Itemized Compensation Components */}
                   <div className="space-y-3">

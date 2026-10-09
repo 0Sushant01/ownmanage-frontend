@@ -424,10 +424,13 @@ export interface PermissionModuleGroup {
 export interface ManagerAccessControlData {
   manager: {
     id: string
+    user_id?: string
     name: string
     email: string
     branch_name: string
   }
+  has_override?: boolean
+  manager_id?: string
   granted_count: number
   total_permissions: number
   modules: Record<string, {
@@ -543,6 +546,162 @@ export interface PayrollRun {
   total_net: string | number
   approved_by_name?: string
   finalized_at?: string
+  expected_payment_date?: string
+  generation_mode?: string
+  pay_frequency?: string
   created_at: string
 }
+
+export type CompensationType = 'MONTHLY_SALARY' | 'DAILY_WAGE' | 'HOURLY_WAGE' | 'FIXED_CONTRACT'
+export type PayFrequency = 'DAILY' | 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY_CALENDAR' | 'MONTHLY_CUSTOM' | 'CUSTOM_PERIOD'
+export type MonthEndRule = 'CLAMP_TO_LAST_DAY' | 'NEXT_AVAILABLE_DAY'
+export type PayrollGenerationMode = 'MANUAL' | 'AUTOMATIC_DRAFT_AFTER_PERIOD_END' | 'AUTOMATIC_DRAFT_ON_CONFIGURED_DATE' | 'AUTOMATIC_DRAFT_BEFORE_PERIOD_END'
+export type PaymentScheduleRule = 'SAME_DAY_AS_PERIOD_END' | 'DAYS_AFTER_PERIOD_END' | 'SPECIFIED_WEEKDAY' | 'DAY_OF_FOLLOWING_MONTH' | 'CUSTOM_RULE' | 'MANUAL'
+
+export interface PayrollScheduleConfig {
+  id?: string
+  scope: 'ENTERPRISE' | 'CENTRE' | 'EMPLOYEE'
+  has_override: boolean
+  is_active: boolean
+  effective_from: string
+  effective_to?: string | null
+  compensation_type: CompensationType
+  pay_frequency: PayFrequency
+  week_start_day: number
+  custom_cycle_start_day: number
+  anchor_date?: string | null
+  month_end_rule: MonthEndRule
+  generation_mode: PayrollGenerationMode
+  generation_delay_days: number
+  generation_day_of_month?: number | null
+  approval_required: boolean
+  approver_role: string
+  review_deadline_days: number
+  payment_rule: PaymentScheduleRule
+  payment_offset_days: number
+  payment_day_of_month: number
+  payment_weekday: number
+  change_reason?: string
+  changed_by_name?: string | null
+  updated_at?: string
+}
+
+export interface PayrollScheduleResolution {
+  effective_config: PayrollScheduleConfig
+  source: 'EMPLOYEE' | 'CENTRE' | 'ENTERPRISE'
+  source_display: string
+  has_override: boolean
+  effective_from: string
+  effective_to?: string | null
+  change_reason?: string
+  changed_by_name?: string | null
+  updated_at?: string
+  current_period: {
+    start: string
+    end: string
+    label: string
+  }
+  expected_payment_date: string
+  employee_override?: PayrollScheduleConfig | null
+  centre_override?: PayrollScheduleConfig | null
+  enterprise_default?: PayrollScheduleConfig | null
+  can_manage?: boolean
+}
+
+export type MeetingStatus = 'DRAFT' | 'SCHEDULED' | 'COMPLETED' | 'CANCELLED'
+export type MeetingLocationType = 'ONLINE' | 'IN_PERSON' | 'OTHER'
+export type ParticipantResponseStatus = 'PENDING' | 'ACCEPTED' | 'DECLINED' | 'TENTATIVE'
+
+export interface MeetingParticipant {
+  id: string
+  employee: string
+  employee_id_code?: string
+  full_name: string
+  email: string
+  designation?: string
+  branch_name?: string
+  response_status: ParticipantResponseStatus
+  response_note?: string
+  responded_at?: string | null
+  is_organizer: boolean
+  is_optional: boolean
+}
+
+export interface MeetingExternalGuest {
+  id: string
+  email: string
+  name?: string
+  response_status: ParticipantResponseStatus
+  responded_at?: string | null
+}
+
+export interface MeetingAuditEvent {
+  id: string
+  event_type: string
+  summary: string
+  diff_data: Record<string, any>
+  actor_name: string
+  created_at: string
+}
+
+export interface Meeting {
+  id: string
+  title: string
+  description?: string
+  meeting_date: string
+  start_time: string
+  end_time: string
+  timezone: string
+  location_type: MeetingLocationType
+  location_details?: string
+  meeting_url?: string | null
+  status: MeetingStatus
+  cancellation_reason?: string
+  cancelled_at?: string | null
+  branch?: string | null
+  branch_name?: string | null
+  organizer: string
+  organizer_name: string
+  participants?: MeetingParticipant[]
+  external_guests?: MeetingExternalGuest[]
+  audit_events?: MeetingAuditEvent[]
+  participant_count?: {
+    total: number
+    internal: number
+    external: number
+    accepted: number
+    declined: number
+    pending: number
+  }
+  my_response_status?: ParticipantResponseStatus | null
+  can_edit?: boolean
+  can_cancel?: boolean
+  created_at: string
+  updated_at?: string
+}
+
+export interface MeetingConflict {
+  entity_type: 'ORGANIZER' | 'PARTICIPANT'
+  employee_id?: string
+  user_id?: string
+  name: string
+  conflict_meeting_id: string
+  meeting_title: string
+  start_time: string
+  end_time: string
+  warning: string
+}
+
+export interface EligibleEmployee {
+  id: string
+  employee_id: string
+  full_name: string
+  email: string
+  designation: string
+  branch_id: string | null
+  branch_name: string
+  department_name: string
+  user_id: string | null
+}
+
 

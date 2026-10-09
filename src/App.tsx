@@ -27,6 +27,7 @@ import { ManagerAccessControl } from './pages/ManagerAccessControl'
 import { Holidays } from './pages/Holidays'
 import { PayrollRuns } from './pages/PayrollRuns'
 import { ThemeAudit } from './pages/ThemeAudit'
+import { Meetings } from './pages/Meetings'
 
 export default function App() {
   return (
@@ -42,9 +43,16 @@ export default function App() {
           {/* Protected Application Routes */}
           <Route element={<ProtectedRoute><Layout /></ProtectedRoute>}>
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/theme-audit" element={<ThemeAudit />} />
             
             {/* SuperAdmin Routes */}
+            <Route
+              path="/theme-audit"
+              element={
+                <ProtectedRoute allowedRoles={['SUPERADMIN']}>
+                  <ThemeAudit />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/businesses"
               element={
@@ -184,6 +192,7 @@ export default function App() {
             <Route path="/attendance" element={<Attendance />} />
             <Route path="/leaves" element={<Leaves />} />
             <Route path="/salary" element={<Salary />} />
+            <Route path="/meetings" element={<Meetings />} />
             <Route path="/profile" element={<Profile />} />
           </Route>
 

@@ -23,10 +23,21 @@ export const Salary: React.FC = () => {
   // Filters
   const [selectedCentre, setSelectedCentre] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState('')
-  const [periodStart, setPeriodStart] = useState('')
+  const [selectedMonth, setSelectedMonth] = useState('')
 
   // Payslip Modal
   const [selectedPayroll, setSelectedPayroll] = useState<Payroll | null>(null)
+
+  const formatPeriodMonth = (startStr: string) => {
+    if (!startStr) return '—'
+    try {
+      const [y, m] = startStr.split('-')
+      const date = new Date(parseInt(y, 10), parseInt(m, 10) - 1, 1)
+      return date.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+    } catch {
+      return startStr
+    }
+  }
 
   const handleExportPayrollRegister = async () => {
     try {
@@ -37,8 +48,8 @@ export const Salary: React.FC = () => {
       if (statusFilter) {
         params.append('status', statusFilter)
       }
-      if (periodStart) {
-        params.append('period_start', periodStart)
+      if (selectedMonth) {
+        params.append('month', selectedMonth)
       }
       const res = await apiClient.get(`/salary/reports/payroll-register/?${params.toString()}`, {
         responseType: 'blob'
@@ -46,7 +57,7 @@ export const Salary: React.FC = () => {
       const url = window.URL.createObjectURL(new Blob([res.data]))
       const link = document.createElement('a')
       link.href = url
-      link.setAttribute('download', `payroll_register_${new Date().toISOString().split('T')[0]}.csv`)
+      link.setAttribute('download', `payroll_register_${selectedMonth || new Date().toISOString().split('T')[0]}.csv`)
       document.body.appendChild(link)
       link.click()
       link.remove()
@@ -61,7 +72,7 @@ export const Salary: React.FC = () => {
       const params: Record<string, string> = {}
       if (selectedCentre && selectedCentre !== 'all') params.centre_id = selectedCentre
       if (statusFilter) params.status = statusFilter
-      if (periodStart) params.period_start = periodStart
+      if (selectedMonth) params.month = selectedMonth
 
       const res = await apiClient.get('/salary/payrolls/', { params })
       setPayrolls(res.data)
@@ -75,7 +86,7 @@ export const Salary: React.FC = () => {
 
   useEffect(() => {
     loadPayrolls()
-  }, [selectedCentre, statusFilter, periodStart])
+  }, [selectedCentre, statusFilter, selectedMonth])
 
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6">
@@ -109,45 +120,51 @@ export const Salary: React.FC = () => {
       {/* Filter Bar */}
       <OwnFilterBar
         filters={
-          <div className="flex flex-wrap items-center gap-3 w-full">
-            <CentreSelector
-              value={selectedCentre}
-              onChange={(val: string) => setSelectedCentre(val)}
-              showAllOption={true}
-              className="w-48"
-            />
+          <div className="flex flex-wrap items-center gap-3 sm:gap-4 w-full">
+            <div className="shrink-0">
+              <CentreSelector
+                value={selectedCentre}
+                onChange={(val: string) => setSelectedCentre(val)}
+                showAllOption={true}
+                size="sm"
+              />
+            </div>
 
-            <OwnSelect
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              options={[
-                { value: '', label: 'All Statuses' },
-                { value: 'PAID', label: 'Paid' },
-                { value: 'PROCESSED', label: 'Processed' },
-                { value: 'DRAFT', label: 'Draft' },
-                { value: 'CANCELLED', label: 'Cancelled' }
-              ]}
-              size="sm"
-              className="w-40"
-            />
+            <div className="w-36 sm:w-40 shrink-0">
+              <OwnSelect
+                value={statusFilter}
+                onChange={(e) => setStatusFilter(e.target.value)}
+                options={[
+                  { value: '', label: 'All Statuses' },
+                  { value: 'PAID', label: 'Paid' },
+                  { value: 'PROCESSED', label: 'Processed' },
+                  { value: 'DRAFT', label: 'Draft' },
+                  { value: 'CANCELLED', label: 'Cancelled' }
+                ]}
+                size="sm"
+              />
+            </div>
 
-            <OwnInput
-              type="date"
-              value={periodStart}
-              onChange={(e) => setPeriodStart(e.target.value)}
-              size="sm"
-              className="w-44"
-              placeholder="Period Start"
-            />
+            <div className="w-40 sm:w-44 shrink-0">
+              <OwnInput
+                type="month"
+                value={selectedMonth}
+                onChange={(e) => setSelectedMonth(e.target.value)}
+                size="sm"
+                title="Filter by Month & Year"
+              />
+            </div>
 
-            {(statusFilter || periodStart) && (
+            {(statusFilter || selectedMonth || (selectedCentre && selectedCentre !== 'all')) && (
               <OwnButton
                 variant="ghost"
                 size="sm"
                 onClick={() => {
                   setStatusFilter('')
-                  setPeriodStart('')
+                  setSelectedMonth('')
+                  setSelectedCentre('all')
                 }}
+                className="shrink-0"
               >
                 Reset Filters
               </OwnButton>
@@ -171,57 +188,113 @@ export const Salary: React.FC = () => {
             description="Generated payroll records and payslips will appear here."
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-foreground">
-              <thead className="bg-muted/60 text-xs uppercase font-semibold text-muted-foreground border-b border-border">
-                <tr>
-                  <th className="px-6 py-4">Employee</th>
-                  <th className="px-6 py-4">Period</th>
-                  <th className="px-6 py-4">Gross</th>
-                  <th className="px-6 py-4">Deductions</th>
-                  <th className="px-6 py-4">Net Salary</th>
-                  <th className="px-6 py-4">Status</th>
-                  <th className="px-6 py-4 text-right">Payslip</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border">
-                {payrolls.map((pay) => (
-                  <tr key={pay.id} className="hover:bg-muted/30 transition-colors">
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <div className="font-semibold text-foreground">{pay.employee_name}</div>
+          <>
+            {/* Mobile View: Fluid Responsive Cards */}
+            <div className="md:hidden divide-y divide-border">
+              {payrolls.map((pay) => (
+                <div key={pay.id} className="p-4 space-y-3 transition-colors hover:bg-muted/30">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0">
+                      <div className="font-semibold text-foreground text-sm truncate">{pay.employee_name}</div>
                       <div className="text-xs text-muted-foreground font-mono">
                         {pay.employee_id_code || 'ID: --'} {pay.department_name ? `• ${pay.department_name}` : ''}
                       </div>
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-muted-foreground">
-                      {pay.period_start} → {pay.period_end}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-foreground">
-                      {pay.currency} {Number(pay.gross_amount).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-destructive">
-                      -{pay.currency} {Number(pay.total_deductions).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap font-mono text-sm font-bold text-primary">
-                      {pay.currency} {Number(pay.net_amount).toLocaleString()}
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap">
-                      <OwnStatusBadge status={pay.status} size="sm" />
-                    </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-right">
-                      <OwnButton
-                        onClick={() => setSelectedPayroll(pay)}
-                        variant="ghost"
-                        size="sm"
-                      >
-                        View Payslip →
-                      </OwnButton>
-                    </td>
+                    </div>
+                    <OwnStatusBadge status={pay.status} size="sm" />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-2 text-xs bg-muted/40 p-2.5 rounded-xl border border-border">
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Pay Period</span>
+                      <span className="font-semibold text-foreground text-xs block">{formatPeriodMonth(pay.period_start)}</span>
+                      <span className="font-mono text-muted-foreground text-[10px] block">{pay.period_start} → {pay.period_end}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Gross Amount</span>
+                      <span className="font-mono text-foreground font-semibold">
+                        {pay.currency} {Number(pay.gross_amount).toLocaleString()}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Deductions</span>
+                      <span className="font-mono text-destructive font-semibold">
+                        -{pay.currency} {Number(pay.total_deductions).toLocaleString()}
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Net Salary</span>
+                      <span className="font-mono text-primary font-bold text-sm">
+                        {pay.currency} {Number(pay.net_amount).toLocaleString()}
+                      </span>
+                    </div>
+                  </div>
+
+                  <OwnButton
+                    onClick={() => setSelectedPayroll(pay)}
+                    variant="secondary"
+                    size="sm"
+                    className="w-full justify-center"
+                  >
+                    View Itemized Payslip →
+                  </OwnButton>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop / Tablet View: Wide Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-sm text-foreground">
+                <thead className="bg-muted/60 text-xs uppercase font-semibold text-muted-foreground border-b border-border">
+                  <tr>
+                    <th className="px-6 py-4">Employee</th>
+                    <th className="px-6 py-4">Period</th>
+                    <th className="px-6 py-4">Gross</th>
+                    <th className="px-6 py-4">Deductions</th>
+                    <th className="px-6 py-4">Net Salary</th>
+                    <th className="px-6 py-4">Status</th>
+                    <th className="px-6 py-4 text-right">Payslip</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {payrolls.map((pay) => (
+                    <tr key={pay.id} className="hover:bg-muted/30 transition-colors">
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="font-semibold text-foreground">{pay.employee_name}</div>
+                        <div className="text-xs text-muted-foreground font-mono">
+                          {pay.employee_id_code || 'ID: --'} {pay.department_name ? `• ${pay.department_name}` : ''}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="font-semibold text-foreground text-xs">{formatPeriodMonth(pay.period_start)}</div>
+                        <div className="font-mono text-[11px] text-muted-foreground">{pay.period_start} → {pay.period_end}</div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-foreground">
+                        {pay.currency} {Number(pay.gross_amount).toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-destructive">
+                        -{pay.currency} {Number(pay.total_deductions).toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap font-mono text-sm font-bold text-primary">
+                        {pay.currency} {Number(pay.net_amount).toLocaleString()}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <OwnStatusBadge status={pay.status} size="sm" />
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-right">
+                        <OwnButton
+                          onClick={() => setSelectedPayroll(pay)}
+                          variant="ghost"
+                          size="sm"
+                        >
+                          View Payslip →
+                        </OwnButton>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </OwnCard>
 

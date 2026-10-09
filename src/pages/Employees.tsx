@@ -302,105 +302,175 @@ export const Employees: React.FC<{ isStaffOnlyView?: boolean }> = ({ isStaffOnly
             }
           />
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-sm text-foreground">
-              <thead className="bg-muted/60 text-xs uppercase font-semibold text-muted-foreground border-b border-border">
-                <tr>
-                  <th className="px-5 py-3.5">Employee ID</th>
-                  <th className="px-5 py-3.5">Name</th>
-                  <th className="px-5 py-3.5">Centre</th>
-                  <th className="px-5 py-3.5">Department</th>
-                  <th className="px-5 py-3.5">Designation</th>
-                  <th className="px-5 py-3.5">Manager</th>
-                  <th className="px-5 py-3.5">Joining Date</th>
-                  <th className="px-5 py-3.5">Status</th>
-                  <th className="px-5 py-3.5">Current Salary</th>
-                  <th className="px-5 py-3.5 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-border font-medium">
-                {employees.map((e) => (
-                  <tr key={e.id} className="hover:bg-muted/30 transition-colors">
-                    {/* Employee ID */}
-                    <td className="px-5 py-3.5 font-mono text-xs text-primary font-semibold">
-                      {e.employee_id || '—'}
-                    </td>
-
-                    {/* Name */}
-                    <td className="px-5 py-3.5">
-                      <div className="font-semibold text-foreground">{e.full_name}</div>
-                      <div className="text-xs text-muted-foreground font-normal">{e.email}</div>
-                    </td>
-
-                    {/* Centre */}
-                    <td className="px-5 py-3.5 text-foreground">
-                      <div className="flex items-center gap-1.5">
-                        <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
-                        <span>{e.branch_name || '—'}</span>
+          <>
+            {/* Mobile View: Fluid Responsive Cards */}
+            <div className="md:hidden divide-y divide-border">
+              {employees.map((e) => (
+                <div key={e.id} className="p-4 space-y-3 transition-colors hover:bg-muted/30">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center space-x-3 min-w-0">
+                      <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 text-primary font-bold text-sm flex items-center justify-center shrink-0">
+                        {e.first_name?.[0] || 'E'}{e.last_name?.[0] || ''}
                       </div>
-                    </td>
+                      <div className="min-w-0">
+                        <div className="font-semibold text-foreground text-sm truncate">{e.full_name}</div>
+                        <div className="text-xs text-muted-foreground truncate">{e.email}</div>
+                      </div>
+                    </div>
+                    <OwnStatusBadge status={e.employment_status || 'ACTIVE'} size="sm" />
+                  </div>
 
-                    {/* Department */}
-                    <td className="px-5 py-3.5 text-muted-foreground text-xs">
-                      {e.department_name || '—'}
-                    </td>
+                  <div className="grid grid-cols-2 gap-2 text-xs bg-muted/40 p-2.5 rounded-xl border border-border">
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Employee ID</span>
+                      <span className="font-mono text-primary font-semibold">{e.employee_id || '—'}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Designation</span>
+                      <span className="text-foreground truncate block">{e.designation_name || e.designation || 'Staff'}</span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Centre</span>
+                      <span className="text-foreground truncate flex items-center gap-1">
+                        <Building2 className="w-3 h-3 text-muted-foreground shrink-0" />
+                        <span className="truncate">{e.branch_name || '—'}</span>
+                      </span>
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground block text-[10px] uppercase font-semibold">Current Salary</span>
+                      <span className="font-mono text-foreground font-semibold">{e.current_salary || '—'}</span>
+                    </div>
+                  </div>
 
-                    {/* Designation */}
-                    <td className="px-5 py-3.5 text-muted-foreground text-xs">
-                      {e.designation_name || e.designation || 'Staff'}
-                    </td>
+                  <div className="flex items-center gap-2 pt-1">
+                    <OwnButton
+                      onClick={() => setViewEmployeeId(e.id)}
+                      variant="secondary"
+                      size="sm"
+                      leftIcon={<Eye className="w-3.5 h-3.5" />}
+                      className="flex-1 justify-center"
+                    >
+                      View Profile
+                    </OwnButton>
 
-                    {/* Manager */}
-                    <td className="px-5 py-3.5 text-muted-foreground text-xs">
-                      {e.manager_name ? e.manager_name : '—'}
-                    </td>
-
-                    {/* Joining Date */}
-                    <td className="px-5 py-3.5 text-muted-foreground text-xs">
-                      {e.joining_date || '—'}
-                    </td>
-
-                    {/* Employment Status */}
-                    <td className="px-5 py-3.5">
-                      <OwnStatusBadge status={e.employment_status || 'ACTIVE'} size="sm" />
-                    </td>
-
-                    {/* Current Salary */}
-                    <td className="px-5 py-3.5 font-mono text-xs text-foreground">
-                      {e.current_salary || '—'}
-                    </td>
-
-                    {/* Actions: VIEW button */}
-                    <td className="px-5 py-3.5 text-right">
-                      <div className="flex items-center justify-end gap-2">
+                    <Can permission="employees.change_status">
+                      {e.employment_status === 'ACTIVE' && (
                         <OwnButton
-                          onClick={() => setViewEmployeeId(e.id)}
-                          variant="secondary"
+                          onClick={() => handleDeactivate(e.id, e.full_name)}
+                          variant="destructive"
                           size="sm"
-                          leftIcon={<Eye className="w-3.5 h-3.5" />}
-                          title="View complete 7-tab employee profile"
+                          className="shrink-0"
                         >
-                          View
+                          Deactivate
                         </OwnButton>
+                      )}
+                    </Can>
+                  </div>
+                </div>
+              ))}
+            </div>
 
-                        <Can permission="employees.change_status">
-                          {e.employment_status === 'ACTIVE' && (
-                            <OwnButton
-                              onClick={() => handleDeactivate(e.id, e.full_name)}
-                              variant="destructive"
-                              size="sm"
-                            >
-                              Deactivate
-                            </OwnButton>
-                          )}
-                        </Can>
-                      </div>
-                    </td>
+            {/* Desktop / Tablet View: Wide Table */}
+            <div className="hidden md:block overflow-x-auto">
+              <table className="w-full text-left text-sm text-foreground">
+                <thead className="bg-muted/60 text-xs uppercase font-semibold text-muted-foreground border-b border-border">
+                  <tr>
+                    <th className="px-5 py-3.5">Employee ID</th>
+                    <th className="px-5 py-3.5">Name</th>
+                    <th className="px-5 py-3.5">Centre</th>
+                    <th className="px-5 py-3.5">Department</th>
+                    <th className="px-5 py-3.5">Designation</th>
+                    <th className="px-5 py-3.5">Manager</th>
+                    <th className="px-5 py-3.5">Joining Date</th>
+                    <th className="px-5 py-3.5">Status</th>
+                    <th className="px-5 py-3.5">Current Salary</th>
+                    <th className="px-5 py-3.5 text-right">Actions</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody className="divide-y divide-border font-medium">
+                  {employees.map((e) => (
+                    <tr key={e.id} className="hover:bg-muted/30 transition-colors">
+                      {/* Employee ID */}
+                      <td className="px-5 py-3.5 font-mono text-xs text-primary font-semibold">
+                        {e.employee_id || '—'}
+                      </td>
+
+                      {/* Name */}
+                      <td className="px-5 py-3.5">
+                        <div className="font-semibold text-foreground">{e.full_name}</div>
+                        <div className="text-xs text-muted-foreground font-normal">{e.email}</div>
+                      </td>
+
+                      {/* Centre */}
+                      <td className="px-5 py-3.5 text-foreground">
+                        <div className="flex items-center gap-1.5">
+                          <Building2 className="w-3.5 h-3.5 text-muted-foreground" />
+                          <span>{e.branch_name || '—'}</span>
+                        </div>
+                      </td>
+
+                      {/* Department */}
+                      <td className="px-5 py-3.5 text-muted-foreground text-xs">
+                        {e.department_name || '—'}
+                      </td>
+
+                      {/* Designation */}
+                      <td className="px-5 py-3.5 text-muted-foreground text-xs">
+                        {e.designation_name || e.designation || 'Staff'}
+                      </td>
+
+                      {/* Manager */}
+                      <td className="px-5 py-3.5 text-muted-foreground text-xs">
+                        {e.manager_name ? e.manager_name : '—'}
+                      </td>
+
+                      {/* Joining Date */}
+                      <td className="px-5 py-3.5 text-muted-foreground text-xs">
+                        {e.joining_date || '—'}
+                      </td>
+
+                      {/* Employment Status */}
+                      <td className="px-5 py-3.5">
+                        <OwnStatusBadge status={e.employment_status || 'ACTIVE'} size="sm" />
+                      </td>
+
+                      {/* Current Salary */}
+                      <td className="px-5 py-3.5 font-mono text-xs text-foreground">
+                        {e.current_salary || '—'}
+                      </td>
+
+                      {/* Actions: VIEW button */}
+                      <td className="px-5 py-3.5 text-right">
+                        <div className="flex items-center justify-end gap-2">
+                          <OwnButton
+                            onClick={() => setViewEmployeeId(e.id)}
+                            variant="secondary"
+                            size="sm"
+                            leftIcon={<Eye className="w-3.5 h-3.5" />}
+                            title="View complete 7-tab employee profile"
+                          >
+                            View
+                          </OwnButton>
+
+                          <Can permission="employees.change_status">
+                            {e.employment_status === 'ACTIVE' && (
+                              <OwnButton
+                                onClick={() => handleDeactivate(e.id, e.full_name)}
+                                variant="destructive"
+                                size="sm"
+                              >
+                                Deactivate
+                              </OwnButton>
+                            )}
+                          </Can>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
       </OwnCard>
 

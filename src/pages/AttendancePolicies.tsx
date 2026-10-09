@@ -15,6 +15,7 @@ import {
   CalendarDays,
   Smartphone
 } from '../components/Icons'
+import { ShieldCheck, Lock, Unlock } from 'lucide-react'
 import apiClient from '../services/api'
 import { CentreSelector } from '../components/CentreSelector'
 import { ToggleSwitch } from '../components/ToggleSwitch'
@@ -52,6 +53,7 @@ export const AttendancePolicies: React.FC<AttendancePoliciesProps> = ({
   }, [initialCentreId])
 
   const [policyData, setPolicyData] = useState<any>(null)
+  const [overrideEnabled, setOverrideEnabled] = useState<boolean>(false)
   const [loading, setLoading] = useState<boolean>(true)
   const [saving, setSaving] = useState<boolean>(false)
   const [resetting, setResetting] = useState<string | null>(null)
@@ -109,6 +111,12 @@ export const AttendancePolicies: React.FC<AttendancePoliciesProps> = ({
       }
 
       setPolicyData(res.data)
+      if (scope === 'centre') {
+        setOverrideEnabled(Boolean(res.data.has_override))
+      } else {
+        setOverrideEnabled(true)
+      }
+
       const eff = res.data.effective || {}
 
       // Normalize weekly_off_days
@@ -159,6 +167,14 @@ export const AttendancePolicies: React.FC<AttendancePoliciesProps> = ({
     loadPolicy()
   }, [loadPolicy])
 
+  useEffect(() => {
+    if (scope === 'enterprise') {
+      setOverrideEnabled(true)
+    } else if (policyData) {
+      setOverrideEnabled(Boolean(policyData.has_override))
+    }
+  }, [scope, policyData])
+
   // Save changes
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -177,11 +193,12 @@ export const AttendancePolicies: React.FC<AttendancePoliciesProps> = ({
       if (scope === 'enterprise') {
         const res = await apiClient.put('/attendance/policies/enterprise/', payload)
         setPolicyData(res.data)
-        setSuccessMsg('Enterprise attendance defaults updated successfully.')
+        setSuccessMsg('Enterprise attendance defaults updated successfully. Centres following defaults are synchronized.')
       } else {
         const res = await apiClient.put(`/centres/${selectedCentreId}/attendance-policy/`, payload)
         setPolicyData(res.data)
-        setSuccessMsg(`Centre overrides saved for ${res.data.centre_name || 'selected centre'}.`)
+        setOverrideEnabled(true)
+        setSuccessMsg(`Centre overrides saved for ${res.data.centre_name || 'selected centre'}. Enterprise default updates will not overwrite this centre.`)
       }
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to save configuration.')
@@ -195,7 +212,7 @@ export const AttendancePolicies: React.FC<AttendancePoliciesProps> = ({
     if (!selectedCentreId || selectedCentreId === 'all') return
     const confirmText = field
       ? `Reset ${field} to Enterprise Default?`
-      : 'Reset all Centre overrides to Enterprise Defaults?'
+      : `Revert all rules for ${policyData?.centre_name || 'this centre'} to Enterprise Defaults?\n\nThis will remove centre-specific overrides. Future changes to Enterprise Defaults will automatically apply to this centre.`
     if (!window.confirm(confirmText)) return
 
     setResetting(field || 'all')
@@ -206,12 +223,25 @@ export const AttendancePolicies: React.FC<AttendancePoliciesProps> = ({
       const payload = field ? { field } : {}
       const res = await apiClient.post(`/centres/${selectedCentreId}/attendance-policy/reset/`, payload)
       setPolicyData(res.data)
+      if (!field) {
+        setOverrideEnabled(false)
+      }
       setSuccessMsg(res.data.detail || 'Reset to Enterprise Default successful.')
       loadPolicy()
     } catch (err: any) {
       setError(err.response?.data?.detail || 'Failed to reset override.')
     } finally {
       setResetting(null)
+    }
+  }
+
+  const handleToggleOverride = async () => {
+    if (scope !== 'centre') return
+    if (overrideEnabled) {
+      handleReset()
+    } else {
+      setOverrideEnabled(true)
+      setSuccessMsg(`Centre Override mode enabled for ${policyData?.centre_name || 'this centre'}! You can now customize rules. Enterprise default changes will not overwrite this centre.`)
     }
   }
 
@@ -317,28 +347,103 @@ export const AttendancePolicies: React.FC<AttendancePoliciesProps> = ({
         </div>
       </div>
 
-      {/* Centre Selector & Reset All Bar (when Centre Scope is active) */}
+      {/* Centre Selector & Scope Notice Bar (when Centre Scope is active) */}
       {scope === 'centre' && (
-        <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <CentreSelector
-              value={selectedCentreId}
-              onChange={(val) => setSelectedCentreId(val)}
-              showAllOption={false}
-              label="Configuring Centre:"
-            />
+        <div className="space-y-3">
+          <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div className="flex items-center gap-3">
+              <CentreSelector
+                value={selectedCentreId}
+                onChange={(val) => setSelectedCentreId(val)}
+                showAllOption={false}
+                label="Configuring Centre:"
+              />
+            </div>
+            {policyData?.has_override && (
+              <button
+                type="button"
+                onClick={() => handleReset()}
+                disabled={resetting === 'all'}
+                className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-950/70 border border-rose-200 dark:border-rose-800 rounded-xl transition-colors cursor-pointer self-start sm:self-auto"
+              >
+                <RotateCcw className={`w-3.5 h-3.5 ${resetting === 'all' ? 'animate-spin' : ''}`} />
+                Reset to Enterprise Default
+              </button>
+            )}
           </div>
 
-          {policyData?.has_override && (
-            <button
-              onClick={() => handleReset()}
-              disabled={resetting === 'all'}
-              className="flex items-center gap-2 px-3 py-1.5 text-xs font-semibold text-rose-600 dark:text-rose-400 hover:text-rose-700 dark:hover:text-rose-300 bg-rose-50 dark:bg-rose-950/40 hover:bg-rose-100 dark:hover:bg-rose-950/70 border border-rose-200 dark:border-rose-800 rounded-xl transition-colors cursor-pointer self-start sm:self-auto"
-            >
-              <RotateCcw className={`w-3.5 h-3.5 ${resetting === 'all' ? 'animate-spin' : ''}`} />
-              Reset All to Enterprise Default
-            </button>
-          )}
+          {/* Centre Override Status Card */}
+          <div className={`border rounded-2xl p-4 shadow-xs transition-all ${overrideEnabled ? 'bg-amber-500/5 border-amber-500/30 dark:bg-amber-950/20' : 'bg-blue-500/5 border-blue-500/20 dark:bg-blue-950/20'}`}>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div className="flex items-start gap-3">
+                <div className={`p-2 rounded-xl mt-0.5 shrink-0 ${overrideEnabled ? 'bg-amber-500/10 text-amber-600 dark:text-amber-400' : 'bg-blue-500/10 text-blue-600 dark:text-blue-400'}`}>
+                  {overrideEnabled ? <ShieldAlert className="w-5 h-5" /> : <ShieldCheck className="w-5 h-5" />}
+                </div>
+                <div>
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                      {overrideEnabled ? 'Centre Policy Override: ACTIVE' : 'Enterprise Defaults Mode: INHERITED'}
+                    </h4>
+                    <span className={`text-[10px] font-semibold px-2 py-0.5 rounded ${overrideEnabled ? 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-700' : 'bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border border-blue-300 dark:border-blue-700'}`}>
+                      {overrideEnabled ? 'Decoupled Override' : 'Following Enterprise Defaults'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
+                    {overrideEnabled
+                      ? 'Custom attendance rules are active for this centre. Changes made to Enterprise Defaults or other centres will NOT affect or overwrite this centre\'s configuration.'
+                      : 'This centre is synchronized with Enterprise Defaults. Any future changes made at the enterprise level will automatically apply here. Decoupled overrides are not active.'}
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 self-start sm:self-auto shrink-0">
+                {!overrideEnabled ? (
+                  <button
+                    type="button"
+                    onClick={handleToggleOverride}
+                    className="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-blue-600 hover:bg-blue-500 text-white shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <Unlock className="w-3.5 h-3.5" />
+                    Customize for this Centre (Enable Override)
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleToggleOverride}
+                    disabled={resetting === 'all'}
+                    className="px-3.5 py-1.5 text-xs font-semibold rounded-xl bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400 hover:bg-rose-100 dark:hover:bg-rose-950/70 border border-rose-200 dark:border-rose-800 shadow-xs transition-colors cursor-pointer flex items-center gap-1.5"
+                  >
+                    <RotateCcw className={`w-3.5 h-3.5 ${resetting === 'all' ? 'animate-spin' : ''}`} />
+                    Revert to Enterprise Defaults
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Enterprise Defaults Scope Card */}
+      {scope === 'enterprise' && (
+        <div className="bg-blue-500/5 border border-blue-500/20 rounded-2xl p-4 shadow-xs">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 shrink-0">
+              <Layers className="w-5 h-5" />
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h4 className="text-sm font-bold text-slate-900 dark:text-white">
+                  Enterprise Master Defaults Configuration
+                </h4>
+                <span className="text-[10px] font-semibold px-2 py-0.5 rounded bg-blue-100 text-blue-700 dark:bg-blue-950 dark:text-blue-300 border border-blue-300 dark:border-blue-700">
+                  Master Policy
+                </span>
+              </div>
+              <p className="text-xs text-slate-600 dark:text-slate-400 mt-1 max-w-2xl leading-relaxed">
+                Rules configured here automatically apply to all centres that do not have active overrides enabled. Centres with custom overrides active remain protected and unaffected.
+              </p>
+            </div>
+          </div>
         </div>
       )}
 
@@ -402,6 +507,25 @@ export const AttendancePolicies: React.FC<AttendancePoliciesProps> = ({
         </div>
       ) : (
         <form onSubmit={handleSave} className="space-y-6">
+          {scope === 'centre' && !overrideEnabled && (
+            <div className="flex items-center justify-between gap-3 px-4 py-3 rounded-2xl bg-slate-100 dark:bg-slate-800/80 border border-slate-200 dark:border-slate-700 text-xs text-slate-600 dark:text-slate-400">
+              <div className="flex items-center gap-2">
+                <Lock className="w-4 h-4 text-slate-500 shrink-0" />
+                <span>
+                  Inputs are locked because this centre is synchronized with Enterprise Defaults. Click <strong>"Customize (Enable Override)"</strong> to unlock editing.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleToggleOverride}
+                className="px-3 py-1 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold text-xs transition cursor-pointer shrink-0"
+              >
+                Enable Override
+              </button>
+            </div>
+          )}
+
+          <fieldset disabled={scope === 'centre' && !overrideEnabled} className={`space-y-6 border-0 p-0 m-0 ${scope === 'centre' && !overrideEnabled ? 'opacity-85' : ''}`}>
           {/* TAB 1: Attendance Rules */}
           {activeTab === 'policy' && (
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5 sm:gap-6">
@@ -936,16 +1060,46 @@ export const AttendancePolicies: React.FC<AttendancePoliciesProps> = ({
             </div>
           )}
 
+          </fieldset>
+
           {/* Submit Actions */}
-          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-end gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
-            <button
-              type="submit"
-              disabled={saving}
-              className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-md transition-all disabled:opacity-60 cursor-pointer"
-            >
-              <Save className={`w-4 h-4 ${saving ? 'animate-spin' : ''}`} />
-              <span>{saving ? 'Saving...' : scope === 'enterprise' ? 'Save Enterprise Defaults' : 'Save Centre Overrides'}</span>
-            </button>
+          <div className="flex flex-col-reverse sm:flex-row sm:items-center sm:justify-between gap-3 pt-4 border-t border-slate-200 dark:border-slate-800">
+            <div className="text-xs text-slate-500">
+              {scope === 'enterprise'
+                ? 'Enterprise defaults automatically apply to all centres following defaults.'
+                : overrideEnabled
+                ? 'Custom overrides are active. Changes to enterprise defaults will not affect this centre.'
+                : 'Centre is following Enterprise Defaults. Enable Override above to customize.'}
+            </div>
+            <div className="flex items-center gap-2">
+              {scope === 'centre' && overrideEnabled && (
+                <button
+                  type="button"
+                  onClick={handleToggleOverride}
+                  disabled={resetting === 'all'}
+                  className="px-4 py-2.5 rounded-xl border border-rose-200 dark:border-rose-800 text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 text-xs font-semibold transition cursor-pointer flex items-center gap-1.5"
+                >
+                  <RotateCcw className={`w-3.5 h-3.5 ${resetting === 'all' ? 'animate-spin' : ''}`} />
+                  Revert to Defaults
+                </button>
+              )}
+              <button
+                type="submit"
+                disabled={saving || (scope === 'centre' && !overrideEnabled)}
+                className="w-full sm:w-auto flex items-center justify-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-500 text-white font-bold text-xs rounded-xl shadow-md transition-all disabled:opacity-50 cursor-pointer"
+              >
+                <Save className={`w-4 h-4 ${saving ? 'animate-spin' : ''}`} />
+                <span>
+                  {saving
+                    ? 'Saving...'
+                    : scope === 'enterprise'
+                    ? 'Save Enterprise Defaults'
+                    : (scope === 'centre' && !overrideEnabled)
+                    ? 'Override Inactive (Locked)'
+                    : 'Save Centre Overrides'}
+                </span>
+              </button>
+            </div>
           </div>
         </form>
       )}

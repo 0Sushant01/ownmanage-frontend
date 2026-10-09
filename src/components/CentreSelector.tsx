@@ -110,12 +110,12 @@ export const CentreSelector: React.FC<CentreSelectorProps> = ({
   return (
     <div className={`flex items-center gap-2 ${className}`}>
       {label && (
-        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 whitespace-nowrap">
+        <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5 whitespace-nowrap shrink-0">
           <Building2 className="w-3.5 h-3.5 text-primary" />
           {label}
         </span>
       )}
-      <div className="relative inline-block min-w-[170px]">
+      <div className="relative inline-block min-w-[160px]">
         <select
           value={value}
           onChange={handleSelect}
