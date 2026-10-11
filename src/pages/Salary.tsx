@@ -137,6 +137,8 @@ export const Salary: React.FC = () => {
                 options={[
                   { value: '', label: 'All Statuses' },
                   { value: 'PAID', label: 'Paid' },
+                  { value: 'RELEASED', label: 'Released' },
+                  { value: 'FINALIZED', label: 'Finalized' },
                   { value: 'PROCESSED', label: 'Processed' },
                   { value: 'DRAFT', label: 'Draft' },
                   { value: 'CANCELLED', label: 'Cancelled' }

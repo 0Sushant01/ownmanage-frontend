@@ -257,23 +257,23 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
       <div
-        className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[92vh] overflow-hidden"
+        className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[92vh] overflow-hidden"
         role="dialog"
         aria-modal="true"
       >
         {/* Modal Header */}
-        <div className="px-5 py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/40">
-          <div className="flex items-center space-x-2.5">
-            <div className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold">
-              <Video className="w-5 h-5" />
+        <div className="px-3.5 sm:px-5 py-3 sm:py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/40">
+          <div className="flex items-center space-x-2 sm:space-x-2.5">
+            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
+              <Video className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div>
-              <h3 className="text-base font-bold text-slate-900 dark:text-white">
+              <h3 className="text-[clamp(0.9rem,2.4vw,1.1rem)] font-bold text-slate-900 dark:text-white leading-tight">
                 {editMeeting ? 'Edit / Reschedule Meeting' : 'Schedule New Meeting'}
               </h3>
-              <p className="text-xs text-slate-500">
+              <p className="text-[clamp(0.65rem,1.7vw,0.75rem)] text-slate-500 mt-0.5">
                 {editMeeting ? 'Update details, change timing, or manage invitees.' : 'Configure timing, internal staff, and external guests.'}
               </p>
             </div>
@@ -287,9 +287,9 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({
         </div>
 
         {/* Modal Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-5 space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-3.5 sm:p-5 space-y-3 sm:space-y-4">
           {error && (
-            <div className="p-3 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-semibold flex items-center gap-2">
+            <div className="p-2.5 sm:p-3 rounded-xl bg-danger/10 border border-danger/20 text-danger text-[clamp(0.68rem,1.8vw,0.75rem)] font-semibold flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0" />
               <span>{error}</span>
             </div>
@@ -297,7 +297,7 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({
 
           {/* Meeting Title */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+            <label className="block text-[clamp(0.68rem,1.8vw,0.75rem)] font-semibold text-slate-700 dark:text-slate-300 mb-1">
               Meeting Title <span className="text-danger">*</span>
             </label>
             <input
@@ -306,7 +306,7 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Q4 Strategy Review, Client Demo, Weekly Standup"
-              className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm focus:ring-2 focus:ring-primary focus:border-primary text-slate-900 dark:text-white"
+              className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-[clamp(0.75rem,2vw,0.875rem)] focus:ring-2 focus:ring-primary focus:border-primary text-slate-900 dark:text-white"
             />
           </div>
 
@@ -552,39 +552,39 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({
             )}
 
             {/* Add Guest Inputs */}
-            <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
               <input
                 type="email"
                 value={newGuestEmail}
                 onChange={(e) => setNewGuestEmail(e.target.value)}
                 placeholder="guest@company.com"
-                className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white"
+                className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-[clamp(0.72rem,1.9vw,0.85rem)] text-slate-900 dark:text-white"
               />
               <input
                 type="text"
                 value={newGuestName}
                 onChange={(e) => setNewGuestName(e.target.value)}
                 placeholder="Guest Name (Optional)"
-                className="w-40 px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white"
+                className="w-full sm:w-44 px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-[clamp(0.72rem,1.9vw,0.85rem)] text-slate-900 dark:text-white"
               />
               <button
                 type="button"
                 onClick={addExternalGuest}
-                className="px-3 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-xs font-bold text-slate-800 dark:text-slate-200 transition-colors cursor-pointer"
+                className="px-3.5 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-[clamp(0.72rem,1.9vw,0.82rem)] font-bold text-slate-800 dark:text-slate-200 transition-colors cursor-pointer shrink-0"
               >
-                + Add
+                + Add Guest
               </button>
             </div>
           </div>
         </form>
 
         {/* Modal Footer */}
-        <div className="px-5 py-3.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 flex items-center justify-end gap-2.5">
+        <div className="px-4 sm:px-5 py-3 sm:py-3.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 flex items-center justify-end gap-2 sm:gap-2.5">
           <button
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="px-4 py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-xs font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-[clamp(0.72rem,1.8vw,0.82rem)] font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
           >
             Cancel
           </button>
@@ -592,7 +592,7 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({
             variant="primary"
             onClick={handleSubmit}
             disabled={saving}
-            className="text-xs font-bold"
+            className="text-[clamp(0.72rem,1.8vw,0.82rem)] font-bold px-3.5 sm:px-4 py-1.5 sm:py-2"
           >
             {saving ? 'Scheduling...' : editMeeting ? 'Update Meeting' : 'Schedule Meeting'}
           </OwnButton>

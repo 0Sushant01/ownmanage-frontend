@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import {
   Calendar,
+  CalendarDays,
   ChevronLeft,
   ChevronRight,
   ChevronsLeft,
@@ -12,6 +14,7 @@ import {
   Sparkles,
   RefreshCw
 } from '../components/Icons'
+import { Video } from 'lucide-react'
 import apiClient from '../services/api'
 import { Can } from '../components/Can'
 import { CentreSelector } from '../components/CentreSelector'
@@ -334,6 +337,7 @@ export const Holidays: React.FC = () => {
         description="Enterprise global holidays & centre-specific operational calendars."
         breadcrumbs={[
           { label: 'Workspace', href: '/' },
+          { label: 'Calendar', href: '/meetings' },
           { label: 'Holidays' }
         ]}
         actions={
@@ -364,6 +368,24 @@ export const Holidays: React.FC = () => {
           </div>
         }
       />
+
+      {/* Calendar Section Switcher */}
+      <div className="flex items-center space-x-2 border-b border-border pb-3">
+        <Link
+          to="/meetings"
+          className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer transition-colors"
+        >
+          <Video className="w-3.5 h-3.5" />
+          <span>Meetings</span>
+        </Link>
+        <Link
+          to="/holidays"
+          className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow-xs cursor-pointer"
+        >
+          <CalendarDays className="w-3.5 h-3.5" />
+          <span>Holidays</span>
+        </Link>
+      </div>
 
       {/* Alerts */}
       {error && (

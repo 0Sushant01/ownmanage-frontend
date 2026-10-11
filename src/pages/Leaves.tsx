@@ -12,6 +12,7 @@ import { OwnCard } from '../design-system/components/OwnCard'
 import { OwnStatusBadge } from '../design-system/components/OwnBadge'
 import { OwnDialog } from '../design-system/components/OwnDialog'
 import { OwnEmptyState } from '../design-system/components/OwnEmptyState'
+import { ChevronDown } from '../components/Icons'
 
 export const Leaves: React.FC = () => {
   const { role, employee } = useAuth()
@@ -127,6 +128,21 @@ export const Leaves: React.FC = () => {
   }
 
   const canManageLeaves = role === 'SUPERADMIN' || role === 'BUSINESS_ADMIN' || role === 'MANAGER'
+
+  const [updatingStatusId, setUpdatingStatusId] = useState<string | null>(null)
+
+  const handleInlineStatusChange = async (id: string, newStatus: string) => {
+    try {
+      setUpdatingStatusId(id)
+      await apiClient.patch(`/leaves/requests/${id}/status/`, { status: newStatus })
+      setActionSuccess(`Leave request status updated to ${newStatus}.`)
+      loadLeaves()
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to update leave request status.')
+    } finally {
+      setUpdatingStatusId(null)
+    }
+  }
 
   return (
     <div className="p-4 sm:p-6 md:p-8 max-w-7xl mx-auto w-full space-y-6">
@@ -322,7 +338,36 @@ export const Leaves: React.FC = () => {
                         {req.reason}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <OwnStatusBadge status={req.status} size="sm" />
+                        {canManageLeaves ? (
+                          <div className="relative inline-flex items-center">
+                            <select
+                              value={req.status}
+                              disabled={updatingStatusId === req.id}
+                              onChange={(e) => handleInlineStatusChange(req.id, e.target.value)}
+                              className={`text-xs font-bold uppercase rounded-full pl-2.5 pr-6 py-1 border cursor-pointer appearance-none focus:outline-none focus:ring-2 focus:ring-primary/40 transition-all ${
+                                req.status === 'APPROVED'
+                                  ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800'
+                                  : req.status === 'REJECTED'
+                                  ? 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800'
+                                  : 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800'
+                              } ${updatingStatusId === req.id ? 'opacity-60 cursor-not-allowed' : ''}`}
+                              title="Click to update status inline"
+                            >
+                              <option value="PENDING" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">PENDING</option>
+                              <option value="APPROVED" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">APPROVED</option>
+                              <option value="REJECTED" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">REJECTED</option>
+                            </select>
+                            <div className="absolute right-1.5 pointer-events-none flex items-center">
+                              {updatingStatusId === req.id ? (
+                                <div className="w-2.5 h-2.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <ChevronDown className="w-3 h-3 opacity-60" />
+                              )}
+                            </div>
+                          </div>
+                        ) : (
+                          <OwnStatusBadge status={req.status} size="sm" />
+                        )}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-right text-xs">
                         {req.status === 'PENDING' && canManageLeaves ? (

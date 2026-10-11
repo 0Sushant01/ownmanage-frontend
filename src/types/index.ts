@@ -229,8 +229,16 @@ export interface Payroll {
   total_deductions: string
   net_amount: string
   currency: string
-  status: 'DRAFT' | 'PROCESSED' | 'PAID' | 'CANCELLED'
+  status: 'DRAFT' | 'PROCESSED' | 'REVIEW' | 'FINALIZED' | 'RELEASED' | 'PAID' | 'CANCELLED'
   generated_at: string
+  editing_deadline?: string | null
+  finalized_at?: string | null
+  released_at?: string | null
+  visibility_policy?: SalarySlipVisibilityPolicy
+  is_visible_to_employee?: boolean
+  compensation_type?: string
+  salary_unit?: string
+  base_salary_amount?: string | number
   line_items?: PayrollLineItem[]
 }
 
@@ -520,15 +528,39 @@ export interface Designation {
 export interface SalaryRevision {
   id: string
   basic_salary: string | number
-  hra: string | number
-  transport_allowance: string | number
-  special_allowance: string | number
-  other_allowances: string | number
+  salary_unit?: 'MONTHLY' | 'WEEKLY' | 'DAILY'
+  salary_unit_display?: string
+  hourly_rate?: string | number
+  ot_rate?: string | number
+  hra?: string | number
+  transport_allowance?: string | number
+  special_allowance?: string | number
+  other_allowances?: string | number
   currency: string
   effective_from: string
   effective_to?: string
   reason?: string
   revised_by_name?: string
+  is_current?: boolean
+  is_upcoming?: boolean
+  status?: string
+  created_at: string
+}
+
+export type SalarySlipVisibilityPolicy = 'ON_FINALIZATION' | 'ON_RELEASE' | 'ON_PAYMENT_DATE'
+export type EditingPeriodUnit = 'DAYS' | 'HOURS'
+export type PayrollAdjustmentType = 'ALLOWANCE' | 'BONUS' | 'DEDUCTION' | 'OVERTIME' | 'OTHER'
+
+export interface PayrollAdjustment {
+  id: string
+  payroll_id?: string
+  adjustment_type: PayrollAdjustmentType
+  adjustment_type_display?: string
+  name: string
+  amount: string | number
+  previous_amount?: string | number
+  reason: string
+  created_by_name?: string
   created_at: string
 }
 
@@ -538,7 +570,7 @@ export interface PayrollRun {
   period_end: string
   centre_id?: string
   centre_name?: string
-  status: 'DRAFT' | 'CALCULATED' | 'REVIEWED' | 'APPROVED' | 'FINALIZED'
+  status: 'DRAFT' | 'CALCULATED' | 'REVIEWED' | 'APPROVED' | 'FINALIZED' | 'RELEASED' | 'PAID' | 'CANCELLED'
   status_display?: string
   total_employees: number
   total_gross: string | number
@@ -546,12 +578,47 @@ export interface PayrollRun {
   total_net: string | number
   approved_by_name?: string
   finalized_at?: string
+  released_at?: string | null
   expected_payment_date?: string
+  editing_deadline?: string | null
+  is_editing_open?: boolean
+  visibility_policy?: SalarySlipVisibilityPolicy
+  generation_type?: GenerationType
+  schedule_config_snapshot?: Record<string, any>
   generation_mode?: string
   pay_frequency?: string
   created_at: string
 }
 
+export interface PayrollException {
+  id: string
+  payroll_run: string
+  payroll: string
+  employee: string
+  employee_name: string
+  employee_id_code?: string
+  centre_name?: string
+  attendance_date: string
+  attendance_status: string
+  scheduled_hours: number
+  actual_hours?: number | null
+  exception_type: 'ABSENT' | 'LATE' | 'HALF_DAY' | 'LEAVE_EARLY' | 'UNPAID_LEAVE' | 'HOLIDAY_WORK' | 'WEEK_OFF_WORK' | 'PENDING_LEAVE' | 'OTHER'
+  exception_type_display: string
+  exception_reason: string
+  proposed_amount: string | number
+  is_deduction: boolean
+  policy_applied: string
+  review_status: 'CALCULATED' | 'AWAITING_REVIEW' | 'APPROVED' | 'WAIVED' | 'REJECTED'
+  review_status_display: string
+  decision_amount?: string | number | null
+  decision_by_name?: string | null
+  decision_at?: string | null
+  decision_reason?: string
+  is_applied_to_payroll: boolean
+  created_at: string
+}
+
+export type GenerationType = 'DAILY' | 'WEEKLY' | 'MONTHLY'
 export type CompensationType = 'MONTHLY_SALARY' | 'DAILY_WAGE' | 'HOURLY_WAGE' | 'FIXED_CONTRACT'
 export type PayFrequency = 'DAILY' | 'WEEKLY' | 'FORTNIGHTLY' | 'MONTHLY_CALENDAR' | 'MONTHLY_CUSTOM' | 'CUSTOM_PERIOD'
 export type MonthEndRule = 'CLAMP_TO_LAST_DAY' | 'NEXT_AVAILABLE_DAY'
@@ -565,6 +632,13 @@ export interface PayrollScheduleConfig {
   is_active: boolean
   effective_from: string
   effective_to?: string | null
+  generation_type?: GenerationType
+  generation_weekday?: number
+  generation_date?: number
+  editable_period_duration?: number
+  editing_period_unit?: EditingPeriodUnit
+  finalization_deadline_days?: number
+  visibility_policy?: SalarySlipVisibilityPolicy
   compensation_type: CompensationType
   pay_frequency: PayFrequency
   week_start_day: number

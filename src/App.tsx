@@ -175,7 +175,8 @@ export default function App() {
               }
             />
 
-            {/* Holidays Calendar */}
+            {/* Calendar & Schedules */}
+            <Route path="/calendar" element={<Navigate to="/meetings" replace />} />
             <Route path="/holidays" element={<Holidays />} />
 
             {/* Payroll Runs */}

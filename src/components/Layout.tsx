@@ -21,7 +21,7 @@ import {
   Shield,
   ChevronDown,
 } from './Icons'
-import { Palette, Video } from 'lucide-react'
+import { Palette } from 'lucide-react'
 
 const navIcon = 'w-[18px] h-[18px] shrink-0'
 
@@ -87,8 +87,15 @@ export const Layout: React.FC = () => {
           { label: 'Leaves', path: '/leaves' },
         ],
       },
-      { label: 'Meetings', path: '/meetings', icon: <Video className={navIcon} /> },
-      { label: 'Holidays', path: '/holidays', icon: <CalendarDays className={navIcon} /> },
+      {
+        label: 'Calendar',
+        path: '/meetings',
+        icon: <CalendarDays className={navIcon} />,
+        children: [
+          { label: 'Meetings', path: '/meetings' },
+          { label: 'Holidays', path: '/holidays' },
+        ],
+      },
       { label: 'Compensation', path: '/salary', icon: <DollarSign className={navIcon} /> },
       { label: 'Payroll Runs', path: '/payroll/runs', icon: <FileText className={navIcon} /> },
       { label: 'Settings', path: '/settings', icon: <Settings className={navIcon} /> },
@@ -111,8 +118,15 @@ export const Layout: React.FC = () => {
           { label: 'Leaves', path: '/leaves' },
         ],
       },
-      { label: 'Meetings', path: '/meetings', icon: <Video className={navIcon} /> },
-      { label: 'Holidays', path: '/holidays', icon: <CalendarDays className={navIcon} /> },
+      {
+        label: 'Calendar',
+        path: '/meetings',
+        icon: <CalendarDays className={navIcon} />,
+        children: [
+          { label: 'Meetings', path: '/meetings' },
+          { label: 'Holidays', path: '/holidays' },
+        ],
+      },
     ]
     if (can('salary.view')) {
       navItems.push({ label: 'Salary', path: '/salary', icon: <DollarSign className={navIcon} /> })

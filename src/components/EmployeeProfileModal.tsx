@@ -22,12 +22,19 @@ import {
   Upload,
   ScanFace,
   Shield,
-  CheckCircle2
+  CheckCircle2,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  UserCheck
 } from './Icons'
 import { ThemeToggle } from './ThemeToggle'
 import { ToggleSwitch } from './ToggleSwitch'
 import { PayrollScheduleSection } from './PayrollScheduleSection'
+import { WorkingHoursOvertimeSection } from './WorkingHoursOvertimeSection'
+import { EmployeeWorkingHoursTab } from './EmployeeWorkingHoursTab'
 import apiClient from '../services/api'
+import type { PayrollScheduleResolution, GenerationType } from '../types'
 
 import { useAuth } from '../context/AuthContext'
 
@@ -58,9 +65,17 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
   const [activityLogs, setActivityLogs] = useState<any[]>([])
   const [revisions, setRevisions] = useState<any[]>([])
   const [comparisons, setComparisons] = useState<any[]>([])
+  const [revisionHistoryPage, setRevisionHistoryPage] = useState<number>(1)
+  const REVISION_PAGE_SIZE = 5
+  const totalRevisionPages = Math.max(1, Math.ceil(comparisons.length / REVISION_PAGE_SIZE))
+  const paginatedComparisons = comparisons.slice(
+    (revisionHistoryPage - 1) * REVISION_PAGE_SIZE,
+    revisionHistoryPage * REVISION_PAGE_SIZE
+  )
   const [compItems, setCompItems] = useState<any[]>([])
   const [leaves, setLeaves] = useState<any[]>([])
-  const [workingHours, setWorkingHours] = useState<any>(null)
+  const [scheduleResolution, setScheduleResolution] = useState<PayrollScheduleResolution | null>(null)
+  const [workingHoursRevision, setWorkingHoursRevision] = useState<number>(0)
 
   // Attendance states
   const now = new Date()
@@ -106,12 +121,16 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
     calculation_type: 'FIXED_AMOUNT',
     amount: '',
     frequency: 'RECURRING',
+    recurrence_frequency: 'MONTHLY',
     effective_from: new Date().toISOString().split('T')[0],
+    effective_to: '',
+    affects_payroll: true,
     reason: '',
     notes: ''
   })
 
   const [showRevisionModal, setShowRevisionModal] = useState<boolean>(false)
+  const [editingRevisionId, setEditingRevisionId] = useState<string | null>(null)
   const [revisionForm, setRevisionForm] = useState({
     basic_salary: '',
     hourly_rate: '0',
@@ -132,9 +151,60 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
   const isSuperAdminOrAdmin = role === 'SUPERADMIN' || role === 'BUSINESS_ADMIN'
   const canEditEmployee = isSuperAdminOrAdmin || hasPermission('employees.edit')
   const canManageSalary = isSuperAdminOrAdmin || hasPermission('salary.edit')
+  const canManageLeaves = isSuperAdminOrAdmin || hasPermission('leave.approve') || hasPermission('leave.reject')
   const canUploadDoc = isSuperAdminOrAdmin || hasPermission('documents.upload')
   const canDeleteDoc = isSuperAdminOrAdmin || hasPermission('documents.delete')
+  const canVerifyDoc = isSuperAdminOrAdmin || hasPermission('documents.verify') || hasPermission('documents.upload')
   const canEnrollFace = isSuperAdminOrAdmin || hasPermission('employee.face_enrollment')
+
+  // Inline status editing states
+  const [updatingLeaveId, setUpdatingLeaveId] = useState<string | null>(null)
+  const [updatingEmpStatus, setUpdatingEmpStatus] = useState<boolean>(false)
+  const [updatingDocStatusId, setUpdatingDocStatusId] = useState<string | null>(null)
+
+  const handleUpdateDocumentStatus = async (docId: string, newStatus: string) => {
+    setUpdatingDocStatusId(docId)
+    try {
+      const res = await apiClient.post(`/documents/${docId}/verify/`, { status: newStatus })
+      const updated = res.data
+      setDocuments((prev) =>
+        prev.map((d) => (d.id === docId ? { ...d, ...updated, verification_status: newStatus } : d))
+      )
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to update document status.')
+    } finally {
+      setUpdatingDocStatusId(null)
+    }
+  }
+
+  const handleUpdateLeaveStatus = async (leaveId: string, newStatus: string) => {
+    setUpdatingLeaveId(leaveId)
+    try {
+      const res = await apiClient.patch(`/leaves/requests/${leaveId}/status/`, { status: newStatus })
+      const updated = res.data.leave_request || res.data
+      setLeaves((prev) =>
+        prev.map((l) => (l.id === leaveId ? { ...l, ...updated, status: newStatus } : l))
+      )
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to update leave request status.')
+    } finally {
+      setUpdatingLeaveId(null)
+    }
+  }
+
+  const handleUpdateEmploymentStatus = async (newStatus: string) => {
+    if (!employee) return
+    setUpdatingEmpStatus(true)
+    try {
+      await apiClient.patch(`/employees/${employee.id}/`, { employment_status: newStatus })
+      setEmployee((prev: any) => ({ ...prev, employment_status: newStatus }))
+      if (onUpdate) onUpdate()
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to update employment status.')
+    } finally {
+      setUpdatingEmpStatus(false)
+    }
+  }
 
   // Biometrics States
   const [biometricStatus, setBiometricStatus] = useState<any>(null)
@@ -217,49 +287,14 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
     }
   }, [employeeId])
 
-  // Fetch Working Hours & Provenance
-  const fetchWorkingHours = useCallback(async () => {
-    if (!employeeId) return
-    try {
-      const res = await apiClient.get(`/employees/${employeeId}/working-hours/`)
-      setWorkingHours(res.data)
-    } catch {
-      // Fallback to centre policy if available
-      if (employee?.branch) {
-        apiClient.get(`/centres/${employee.branch}/attendance-policy/`)
-          .then((pRes) => {
-            setWorkingHours({
-              configuration_source: 'Centre Policy',
-              source_badge: 'Inherited from Centre',
-              shift_timings: {
-                office_start: pRes.data.effective?.office_start || '09:00',
-                office_end: pRes.data.effective?.office_end || '18:00',
-                break_start: pRes.data.effective?.break_start || '13:00',
-                break_end: pRes.data.effective?.break_end || '14:00',
-              },
-              rules: {
-                grace_period_minutes: pRes.data.effective?.grace_period_minutes || 15,
-                minimum_present_minutes: pRes.data.effective?.minimum_present_minutes || 480,
-                minimum_half_day_minutes: pRes.data.effective?.minimum_half_day_minutes || 240,
-                working_days_per_week: pRes.data.effective?.working_days || 5,
-                weekly_off_days: ['Sunday'],
-                ot_enabled: pRes.data.effective?.ot_enabled || false,
-              }
-            })
-          })
-          .catch(() => {})
-      }
-    }
-  }, [employeeId, employee?.branch])
-
   useEffect(() => {
     if (isOpen) {
+      setRevisionHistoryPage(1)
       fetchEmployeeData()
       fetchMetadata()
       fetchAttendanceCalendar(attYear, attMonth)
-      fetchWorkingHours()
     }
-  }, [isOpen, fetchEmployeeData, fetchMetadata, fetchAttendanceCalendar, fetchWorkingHours, attYear, attMonth])
+  }, [isOpen, fetchEmployeeData, fetchMetadata, fetchAttendanceCalendar, attYear, attMonth])
 
   // Lazy load tab data
   useEffect(() => {
@@ -283,16 +318,17 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
       apiClient.get(`/employees/${employeeId}/compensation-items/`)
         .then((res) => setCompItems(Array.isArray(res.data) ? res.data : []))
         .catch(() => {})
+      apiClient.get<PayrollScheduleResolution>(`/employees/${employeeId}/payroll-schedule/`)
+        .then((res) => setScheduleResolution(res.data))
+        .catch(() => {})
     } else if (activeTab === 'leave') {
       apiClient.get(`/leaves/requests/?employee_id=${employeeId}`)
         .then((res) => setLeaves(Array.isArray(res.data) ? res.data : (res.data.results || [])))
         .catch(() => {})
-    } else if (activeTab === 'hours') {
-      fetchWorkingHours()
     } else if (activeTab === 'biometrics') {
       fetchBiometricStatus()
     }
-  }, [activeTab, isOpen, employeeId, fetchWorkingHours, fetchBiometricStatus])
+  }, [activeTab, isOpen, employeeId, fetchBiometricStatus])
 
   // Face Enrollment Handler
   const handleEnrollFace = async (e: React.FormEvent) => {
@@ -371,7 +407,6 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
       })
       setEmployee(res.data)
       setShowEmploymentModal(false)
-      fetchWorkingHours()
       if (onUpdate) onUpdate()
     } catch (err: any) {
       alert(err.response?.data?.detail || 'Failed to update employment details.')
@@ -385,8 +420,9 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
       await apiClient.post(`/employees/${employeeId}/compensation-items/`, {
         ...compForm,
         component_type: compType,
-        frequency: compForm.frequency,
-        amount: parseFloat(compForm.amount)
+        frequency: compForm.frequency === 'ONE_TIME' ? 'ONE_TIME' : compForm.recurrence_frequency,
+        amount: parseFloat(compForm.amount),
+        effective_to: compForm.effective_to ? compForm.effective_to : null,
       })
       setShowCompModal(false)
       setCompForm({
@@ -394,14 +430,31 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
         calculation_type: 'FIXED_AMOUNT',
         amount: '',
         frequency: 'RECURRING',
+        recurrence_frequency: 'MONTHLY',
         effective_from: new Date().toISOString().split('T')[0],
+        effective_to: '',
+        affects_payroll: true,
         reason: '',
         notes: ''
       })
       const res = await apiClient.get(`/employees/${employeeId}/compensation-items/`)
-      setCompItems(res.data)
+      setCompItems(Array.isArray(res.data) ? res.data : (res.data.results || []))
     } catch (err: any) {
-      alert(err.response?.data?.detail || 'Failed to add compensation item.')
+      alert(err.response?.data?.detail || err.response?.data?.amount?.[0] || 'Failed to add compensation item.')
+    }
+  }
+
+  // Toggle Affect Payroll
+  const handleToggleAffectPayroll = async (item: any) => {
+    try {
+      const nextVal = !item.affects_payroll
+      await apiClient.patch(`/employees/${employeeId}/compensation-items/${item.id}/`, {
+        affects_payroll: nextVal
+      })
+      const res = await apiClient.get(`/employees/${employeeId}/compensation-items/`)
+      setCompItems(Array.isArray(res.data) ? res.data : (res.data.results || []))
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to update Affect Payroll setting.')
     }
   }
 
@@ -411,26 +464,93 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
     try {
       await apiClient.delete(`/employees/${employeeId}/compensation-items/${itemId}/`)
       const res = await apiClient.get(`/employees/${employeeId}/compensation-items/`)
-      setCompItems(res.data)
+      setCompItems(Array.isArray(res.data) ? res.data : (res.data.results || []))
     } catch (err: any) {
       alert(err.response?.data?.detail || 'Failed to deactivate item.')
     }
   }
 
-  // Save Salary Revision
+  // Open New Revision Modal
+  const handleOpenNewRevision = () => {
+    setEditingRevisionId(null)
+    setRevisionForm({
+      basic_salary: currentRevision ? String(currentRevision.basic_salary) : '',
+      hourly_rate: currentRevision ? String(currentRevision.hourly_rate || '0') : '0',
+      ot_rate: currentRevision ? String(currentRevision.ot_rate || '0') : '0',
+      effective_from: new Date().toISOString().split('T')[0],
+      reason: '',
+      confirm_backdated: false
+    })
+    setBackdatedWarning(null)
+    setShowRevisionModal(true)
+  }
+
+  // Open Edit Revision Modal (Only for Upcoming and Current)
+  const handleOpenEditRevision = (comparisonItem: any) => {
+    const rev = revisions.find((r: any) => r.id === comparisonItem.revision_id)
+    setEditingRevisionId(comparisonItem.revision_id)
+    setRevisionForm({
+      basic_salary: rev ? String(rev.basic_salary) : String(comparisonItem.new_salary || ''),
+      hourly_rate: rev ? String(rev.hourly_rate || '0') : '0',
+      ot_rate: rev ? String(rev.ot_rate || '0') : '0',
+      effective_from: rev ? rev.effective_from : (comparisonItem.effective_from || new Date().toISOString().split('T')[0]),
+      reason: rev ? rev.reason : (comparisonItem.reason || ''),
+      confirm_backdated: false
+    })
+    setBackdatedWarning(null)
+    setShowRevisionModal(true)
+  }
+
+  // Delete Salary Revision (Only for Upcoming and Current)
+  const handleDeleteRevision = async (comparisonItem: any) => {
+    const isUp = Boolean(comparisonItem.is_upcoming || comparisonItem.status === 'UPCOMING' || (comparisonItem.effective_from && comparisonItem.effective_from > todayDateStr))
+    const confirmMsg = isUp
+      ? `Are you sure you want to delete this upcoming salary revision scheduled for ${comparisonItem.effective_from}?`
+      : `Are you sure you want to delete the current salary revision effective from ${comparisonItem.effective_from}? The previous salary record will be restored.`
+
+    if (!window.confirm(confirmMsg)) return
+
+    try {
+      await apiClient.delete(`/employees/${employeeId}/salary-revisions/${comparisonItem.revision_id}/`)
+      const [revRes, compRes] = await Promise.all([
+        apiClient.get(`/employees/${employeeId}/salary-revisions/`),
+        apiClient.get(`/employees/${employeeId}/salary-comparison/`)
+      ])
+      setRevisions(revRes.data)
+      setComparisons(compRes.data.comparisons || [])
+      if (onUpdate) onUpdate()
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to delete salary revision.')
+    }
+  }
+
+  // Save Salary Revision (Create or Update)
   const handleSaveRevision = async (e: React.FormEvent) => {
     e.preventDefault()
     setBackdatedWarning(null)
     try {
-      await apiClient.post(`/employees/${employeeId}/salary-revisions/`, {
-        basic_salary: parseFloat(revisionForm.basic_salary),
-        hourly_rate: parseFloat(revisionForm.hourly_rate) || 0,
-        ot_rate: parseFloat(revisionForm.ot_rate) || 0,
-        effective_from: revisionForm.effective_from,
-        reason: revisionForm.reason,
-        confirm_backdated: revisionForm.confirm_backdated
-      })
+      if (editingRevisionId) {
+        await apiClient.put(`/employees/${employeeId}/salary-revisions/${editingRevisionId}/`, {
+          basic_salary: parseFloat(revisionForm.basic_salary),
+          salary_unit: effectiveGenType,
+          hourly_rate: parseFloat(revisionForm.hourly_rate) || 0,
+          ot_rate: parseFloat(revisionForm.ot_rate) || 0,
+          effective_from: revisionForm.effective_from,
+          reason: revisionForm.reason,
+        })
+      } else {
+        await apiClient.post(`/employees/${employeeId}/salary-revisions/`, {
+          basic_salary: parseFloat(revisionForm.basic_salary),
+          salary_unit: effectiveGenType,
+          hourly_rate: parseFloat(revisionForm.hourly_rate) || 0,
+          ot_rate: parseFloat(revisionForm.ot_rate) || 0,
+          effective_from: revisionForm.effective_from,
+          reason: revisionForm.reason,
+          confirm_backdated: revisionForm.confirm_backdated
+        })
+      }
       setShowRevisionModal(false)
+      setEditingRevisionId(null)
       setRevisionForm({
         basic_salary: '',
         hourly_rate: '0',
@@ -443,6 +563,7 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
       setRevisions(revRes.data)
       const compRes = await apiClient.get(`/employees/${employeeId}/salary-comparison/`)
       setComparisons(compRes.data.comparisons || [])
+      setRevisionHistoryPage(1)
       if (onUpdate) onUpdate()
     } catch (err: any) {
       if (err.response?.status === 409 && err.response?.data?.requires_confirmation) {
@@ -554,6 +675,29 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
     .sort((a, b) => (a.effective_from || '').localeCompare(b.effective_from || ''))
   const upcomingRevision = upcomingRevisions[0] || null
 
+  // Authoritative salary unit synchronized with Section 2 generation schedule
+  const effectiveGenType: GenerationType = (
+    scheduleResolution?.effective_config?.generation_type ||
+    (scheduleResolution?.effective_config?.pay_frequency === 'DAILY' ? 'DAILY' :
+     scheduleResolution?.effective_config?.pay_frequency === 'WEEKLY' ? 'WEEKLY' : 'MONTHLY')
+  ) as GenerationType
+
+  const salaryUnitLabel =
+    effectiveGenType === 'DAILY' ? '/ day' :
+    effectiveGenType === 'WEEKLY' ? '/ week' : '/ month'
+
+  const effectiveCompType = scheduleResolution?.effective_config?.compensation_type || 'MONTHLY_SALARY'
+  const effectiveCompTypeLabel =
+    effectiveCompType === 'DAILY_WAGE' ? 'Daily Wage' :
+    effectiveCompType === 'HOURLY_WAGE' ? 'Hourly Wage' :
+    effectiveCompType === 'FIXED_CONTRACT' ? 'Fixed Contract' :
+    effectiveGenType === 'DAILY' ? 'Daily Wage / Salary' :
+    effectiveGenType === 'WEEKLY' ? 'Weekly Wage / Salary' : 'Fixed Monthly Salary'
+
+  const effectiveCompTypeSubtitle =
+    effectiveGenType === 'DAILY' ? 'Evaluated on 1-day daily cycle' :
+    effectiveGenType === 'WEEKLY' ? 'Evaluated on 7-day weekly cycle' : 'Standard monthly baseline'
+
   // Compensation items (instances): check upcoming vs active now
   const isItemUpcoming = (item: any) =>
     item.is_upcoming || item.status_display === 'UPCOMING' || (item.effective_from && item.effective_from > todayDateStr)
@@ -656,27 +800,64 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
       <div className="bg-white dark:bg-slate-900 border-0 md:border border-slate-200 dark:border-slate-800 rounded-none md:rounded-2xl w-full md:w-[94vw] max-w-7xl h-[100dvh] md:h-[92vh] flex flex-col shadow-2xl overflow-hidden transition-colors">
         
         {/* EMPLOYEE HEADER */}
-        <div className="px-3.5 sm:px-6 py-3.5 bg-slate-50 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0">
-          <div className="flex items-center gap-3 sm:gap-3.5 min-w-0">
+        <div className="px-4 sm:px-6 py-2.5 sm:py-3 bg-slate-50 dark:bg-slate-950/80 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between gap-3 shrink-0">
+          <div className="flex items-center gap-3 min-w-0">
             {/* Avatar */}
-            <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-gradient-to-br from-blue-500/20 to-indigo-500/30 border border-blue-500/40 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-sm sm:text-base shadow-sm shrink-0">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-gradient-to-br from-blue-500/20 to-indigo-500/30 border border-blue-500/40 flex items-center justify-center text-blue-600 dark:text-blue-400 font-bold text-xs sm:text-sm shadow-xs shrink-0">
               {employee ? `${employee.first_name[0] || 'E'}${employee.last_name ? employee.last_name[0] : ''}` : 'E'}
             </div>
 
             <div className="min-w-0">
               <div className="flex items-center gap-1.5 sm:gap-2 flex-wrap">
-                <h2 className="text-sm sm:text-base md:text-lg font-bold text-slate-900 dark:text-white truncate max-w-[180px] sm:max-w-none">
+                <h2 className="text-sm sm:text-base font-bold text-slate-900 dark:text-white truncate max-w-[180px] sm:max-w-none">
                   {employee?.full_name || 'Employee Profile'}
                 </h2>
                 {employee?.employee_id && (
-                  <span className="text-[11px] sm:text-xs font-mono font-semibold px-2 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 shrink-0">
+                  <span className="text-[10px] sm:text-[11px] font-mono font-semibold px-1.5 py-0.5 rounded bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300 border border-slate-300 dark:border-slate-700 shrink-0">
                     {employee.employee_id}
                   </span>
                 )}
-                {employee && getStatusBadge(employee.employment_status)}
+                {employee && (
+                  canEditEmployee ? (
+                    <div className="relative inline-flex items-center shrink-0">
+                      <select
+                        value={employee.employment_status || 'ACTIVE'}
+                        disabled={updatingEmpStatus}
+                        onChange={(e) => handleUpdateEmploymentStatus(e.target.value)}
+                        className={`text-[10px] sm:text-[11px] font-bold uppercase rounded-full pl-2 pr-5 py-0.5 border cursor-pointer appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all ${
+                          (employee.employment_status || 'ACTIVE') === 'ACTIVE'
+                            ? 'bg-emerald-50 text-emerald-700 border-emerald-300 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-800'
+                            : (employee.employment_status || 'ACTIVE') === 'PROBATION'
+                            ? 'bg-amber-50 text-amber-700 border-amber-300 dark:bg-amber-950/80 dark:text-amber-300 dark:border-amber-800'
+                            : (employee.employment_status || 'ACTIVE') === 'SUSPENDED'
+                            ? 'bg-orange-50 text-orange-700 border-orange-300 dark:bg-orange-950/80 dark:text-orange-300 dark:border-orange-800'
+                            : (employee.employment_status || 'ACTIVE') === 'TERMINATED'
+                            ? 'bg-rose-50 text-rose-700 border-rose-300 dark:bg-rose-950/80 dark:text-rose-300 dark:border-rose-800'
+                            : 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                        } ${updatingEmpStatus ? 'opacity-60 cursor-not-allowed' : ''}`}
+                        title="Click to change employment status"
+                      >
+                        <option value="ACTIVE" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-semibold">ACTIVE</option>
+                        <option value="PROBATION" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-semibold">PROBATION</option>
+                        <option value="SUSPENDED" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-semibold">SUSPENDED</option>
+                        <option value="TERMINATED" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-semibold">TERMINATED</option>
+                        <option value="INACTIVE" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-semibold">INACTIVE</option>
+                      </select>
+                      <div className="absolute right-1 pointer-events-none flex items-center">
+                        {updatingEmpStatus ? (
+                          <div className="w-2 h-2 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                        ) : (
+                          <ChevronDown className="w-2.5 h-2.5 opacity-60" />
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    getStatusBadge(employee.employment_status)
+                  )
+                )}
               </div>
 
-              <div className="text-[11px] sm:text-xs text-slate-600 dark:text-slate-400 mt-0.5 flex items-center gap-1.5 sm:gap-2 flex-wrap">
+              <div className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
                 <span className="font-medium text-slate-800 dark:text-slate-200">
                   {employee?.designation_name || employee?.designation || 'Staff'}
                 </span>
@@ -684,7 +865,7 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                 <span>{employee?.department_name || 'General Department'}</span>
                 <span>•</span>
                 <span className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 font-medium">
-                  <Building2 className="w-3.5 h-3.5 shrink-0" />
+                  <Building2 className="w-3 h-3 shrink-0" />
                   {employee?.branch_name || 'Headquarters'}
                 </span>
                 {employee?.joining_date && (
@@ -697,21 +878,21 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
+          <div className="flex items-center gap-1.5 shrink-0">
             <ThemeToggle size="sm" />
             <button
               onClick={onClose}
-              className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white p-1.5 sm:p-2 rounded-xl hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
+              className="text-slate-500 hover:text-slate-800 dark:text-slate-400 dark:hover:text-white p-1.5 rounded-lg hover:bg-slate-200/60 dark:hover:bg-slate-800 transition-colors shrink-0 cursor-pointer"
               title="Close workspace"
               aria-label="Close workspace"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* 7-TAB HORIZONTAL NAVIGATION */}
-        <div className="px-3 sm:px-6 bg-slate-100/90 dark:bg-slate-950/60 border-b border-slate-200 dark:border-slate-800 flex items-center space-x-1.5 overflow-x-auto no-scrollbar py-2 text-xs font-semibold shrink-0 touch-pan-x">
+        {/* 8-TAB HORIZONTAL NAVIGATION */}
+        <div className="px-3 sm:px-6 bg-slate-100/80 dark:bg-slate-950/60 border-b border-slate-200 dark:border-slate-800 flex items-center space-x-1 overflow-x-auto no-scrollbar py-1.5 text-xs font-semibold shrink-0 touch-pan-x">
           {[
             { key: 'overview', label: 'Overview', icon: User },
             { key: 'documents', label: 'Documents', icon: FileText },
@@ -728,9 +909,9 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
               <button
                 key={tab.key}
                 onClick={() => setActiveTab(tab.key as any)}
-                className={`flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl transition-all whitespace-nowrap cursor-pointer select-none ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all whitespace-nowrap cursor-pointer select-none ${
                   isActive
-                    ? 'bg-blue-600 text-white shadow-sm ring-1 ring-blue-700 font-bold'
+                    ? 'bg-blue-600 text-white shadow-xs font-semibold'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100 hover:bg-slate-200/70 dark:hover:bg-slate-800/60 font-medium'
                 }`}
               >
@@ -851,7 +1032,44 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                         </div>
                         <div className="flex items-center justify-between gap-3 py-2">
                           <span className="text-slate-500 dark:text-slate-400 shrink-0">Current Status</span>
-                          <div>{getStatusBadge(employee.employment_status)}</div>
+                          <div>
+                            {canEditEmployee ? (
+                              <div className="relative inline-flex items-center">
+                                <select
+                                  value={employee.employment_status || 'ACTIVE'}
+                                  disabled={updatingEmpStatus}
+                                  onChange={(e) => handleUpdateEmploymentStatus(e.target.value)}
+                                  className={`text-[11px] font-bold uppercase rounded-full pl-2.5 pr-6 py-0.5 border cursor-pointer appearance-none focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-all ${
+                                    (employee.employment_status || 'ACTIVE') === 'ACTIVE'
+                                      ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950/80 dark:text-emerald-300 dark:border-emerald-800'
+                                      : (employee.employment_status || 'ACTIVE') === 'PROBATION'
+                                      ? 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950/80 dark:text-amber-300 dark:border-amber-800'
+                                      : (employee.employment_status || 'ACTIVE') === 'SUSPENDED'
+                                      ? 'bg-orange-100 text-orange-800 border-orange-300 dark:bg-orange-950/80 dark:text-orange-300 dark:border-orange-800'
+                                      : (employee.employment_status || 'ACTIVE') === 'TERMINATED'
+                                      ? 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950/80 dark:text-rose-300 dark:border-rose-800'
+                                      : 'bg-slate-100 text-slate-800 border-slate-300 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700'
+                                  } ${updatingEmpStatus ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                  title="Click to change employment status"
+                                >
+                                  <option value="ACTIVE" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-semibold">ACTIVE</option>
+                                  <option value="PROBATION" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-semibold">PROBATION</option>
+                                  <option value="SUSPENDED" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-semibold">SUSPENDED</option>
+                                  <option value="TERMINATED" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-semibold">TERMINATED</option>
+                                  <option value="INACTIVE" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 font-semibold">INACTIVE</option>
+                                </select>
+                                <div className="absolute right-1.5 pointer-events-none flex items-center">
+                                  {updatingEmpStatus ? (
+                                    <div className="w-2.5 h-2.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                  ) : (
+                                    <ChevronDown className="w-3 h-3 opacity-60" />
+                                  )}
+                                </div>
+                              </div>
+                            ) : (
+                              getStatusBadge(employee.employment_status)
+                            )}
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -926,12 +1144,29 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                   <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-6 shadow-xs relative overflow-hidden">
                     <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                       <div className="min-w-0">
-                        <div className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
-                          <DollarSign className="w-4 h-4 text-emerald-500 shrink-0" /> Current Compensation Summary
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <div className="text-xs font-bold uppercase tracking-wider text-blue-600 dark:text-blue-400 flex items-center gap-1.5">
+                            <DollarSign className="w-4 h-4 text-emerald-500 shrink-0" /> Current Compensation Summary
+                          </div>
+                          {scheduleResolution && (
+                            scheduleResolution.source === 'EMPLOYEE' ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 inline-flex items-center gap-1">
+                                <UserCheck className="w-3 h-3" /> Employee Override
+                              </span>
+                            ) : scheduleResolution.source === 'CENTRE' ? (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-blue-300 border border-blue-300 dark:border-blue-800 inline-flex items-center gap-1">
+                                <Building2 className="w-3 h-3" /> Centre Default
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800 dark:bg-purple-950/80 dark:text-purple-300 border border-purple-300 dark:border-purple-800 inline-flex items-center gap-1">
+                                <Shield className="w-3 h-3" /> Enterprise Default
+                              </span>
+                            )
+                          )}
                         </div>
                         <div className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white mt-1.5 truncate">
                           {currentRevision
-                            ? `${currentRevision.currency} ${Number(currentRevision.basic_salary).toLocaleString('en-IN')} / month`
+                            ? `${currentRevision.currency} ${Number(currentRevision.basic_salary).toLocaleString('en-IN')} ${salaryUnitLabel}`
                             : 'Salary Not Configured'}
                         </div>
                         {currentRevision && (
@@ -947,7 +1182,7 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                           <div className="mt-2.5 inline-flex items-center gap-2 px-2.5 py-1 rounded-xl text-xs font-semibold bg-amber-50 dark:bg-amber-950/50 text-amber-800 dark:text-amber-300 border border-amber-300 dark:border-amber-800 flex-wrap">
                             <Clock className="w-3.5 h-3.5 text-amber-600 shrink-0" />
                             <span>
-                              Upcoming Revision: <strong>{upcomingRevision.currency} {Number(upcomingRevision.basic_salary).toLocaleString('en-IN')} / month</strong> takes effect on {upcomingRevision.effective_from}
+                              Upcoming Revision: <strong>{upcomingRevision.currency} {Number(upcomingRevision.basic_salary).toLocaleString('en-IN')} {salaryUnitLabel}</strong> takes effect on {upcomingRevision.effective_from}
                             </span>
                           </div>
                         )}
@@ -1118,15 +1353,44 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                                   {doc.uploaded_by_name || 'Admin'}
                                 </td>
                                 <td className="px-4 py-3">
-                                  <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                                    doc.verification_status === 'VERIFIED'
-                                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
-                                      : doc.verification_status === 'REJECTED'
-                                      ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
-                                      : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
-                                  }`}>
-                                    {doc.verification_status || 'PENDING'}
-                                  </span>
+                                  {canVerifyDoc ? (
+                                    <div className="relative inline-flex items-center">
+                                      <select
+                                        value={doc.verification_status || 'PENDING'}
+                                        disabled={updatingDocStatusId === doc.id}
+                                        onChange={(e) => handleUpdateDocumentStatus(doc.id, e.target.value)}
+                                        className={`text-[10px] font-bold px-2 py-0.5 pr-5 rounded border appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-colors ${
+                                          doc.verification_status === 'VERIFIED'
+                                            ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800'
+                                            : doc.verification_status === 'REJECTED'
+                                            ? 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800'
+                                            : 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800'
+                                        } ${updatingDocStatusId === doc.id ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                        title="Click to update document verification status"
+                                      >
+                                        <option value="PENDING" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">PENDING</option>
+                                        <option value="VERIFIED" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">VERIFIED</option>
+                                        <option value="REJECTED" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">REJECTED</option>
+                                      </select>
+                                      <div className="absolute right-1 pointer-events-none flex items-center">
+                                        {updatingDocStatusId === doc.id ? (
+                                          <div className="w-2.5 h-2.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                        ) : (
+                                          <ChevronDown className="w-2.5 h-2.5 opacity-60" />
+                                        )}
+                                      </div>
+                                    </div>
+                                  ) : (
+                                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
+                                      doc.verification_status === 'VERIFIED'
+                                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800'
+                                        : doc.verification_status === 'REJECTED'
+                                        ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300 border border-rose-300 dark:border-rose-800'
+                                        : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800'
+                                    }`}>
+                                      {doc.verification_status || 'PENDING'}
+                                    </span>
+                                  )}
                                 </td>
                                 <td className="px-4 py-3 text-right">
                                   <div className="flex items-center justify-end gap-2">
@@ -1221,89 +1485,15 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
 
               {/* TAB 4: WORKING HOURS */}
               {activeTab === 'hours' && (
-                <div className="space-y-6">
-                  {/* Configuration Provenance Banner */}
-                  <div className="p-4 rounded-2xl bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/40 dark:to-indigo-950/40 border border-blue-200 dark:border-blue-900 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-xl bg-blue-600 text-white flex items-center justify-center font-bold shrink-0">
-                        <Clock className="w-5 h-5" />
-                      </div>
-                      <div>
-                        <div className="text-xs text-blue-700 dark:text-blue-300 font-semibold uppercase tracking-wider">
-                          Effective Working Hours Configuration
-                        </div>
-                        <div className="text-sm font-bold text-slate-900 dark:text-white mt-0.5">
-                          {workingHours?.configuration_source || `Inherited from ${employee?.branch_name || 'Enterprise'}`}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="px-3.5 py-1.5 rounded-xl bg-blue-600 text-white font-bold text-xs shadow-xs self-start sm:self-auto shrink-0">
-                      {workingHours?.source_badge || 'Inherited from Centre'}
-                    </div>
-                  </div>
-
-                  {/* Working Hours Cards */}
-                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4 sm:gap-5">
-                    {/* Shift Timings */}
-                    <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-2">
-                      <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Shift Timings</div>
-                      <div className="text-2xl font-extrabold text-slate-900 dark:text-white">
-                        {workingHours?.shift_timings?.office_start || '09:00'} – {workingHours?.shift_timings?.office_end || '18:00'}
-                      </div>
-                      <p className="text-xs text-slate-500">Official working day duration</p>
-                    </div>
-
-                    {/* Break Schedule */}
-                    <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-2">
-                      <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Break Schedule</div>
-                      <div className="text-2xl font-extrabold text-slate-900 dark:text-white">
-                        {workingHours?.shift_timings?.break_start || '13:00'} – {workingHours?.shift_timings?.break_end || '14:00'}
-                      </div>
-                      <p className="text-xs text-slate-500">Designated meal & recess interval</p>
-                    </div>
-
-                    {/* Grace Period */}
-                    <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-2">
-                      <div className="text-xs font-bold text-slate-500 uppercase tracking-wider">Grace Period</div>
-                      <div className="text-2xl font-extrabold text-amber-600 dark:text-amber-400">
-                        {workingHours?.rules?.grace_period_minutes ?? 15} Minutes
-                      </div>
-                      <p className="text-xs text-slate-500">Late punch penalty waiver threshold</p>
-                    </div>
-                  </div>
-
-                  {/* Attendance Calculation Thresholds */}
-                  <div className="p-5 rounded-2xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 space-y-4">
-                    <h4 className="text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-400">Attendance Calculation Rules</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 text-xs">
-                      <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                        <span className="text-slate-500 block mb-1">Minimum Present</span>
-                        <span className="font-bold text-slate-900 dark:text-white text-base">
-                          {workingHours?.rules?.minimum_present_minutes ?? 480} mins (8 hrs)
-                        </span>
-                      </div>
-                      <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                        <span className="text-slate-500 block mb-1">Minimum Half Day</span>
-                        <span className="font-bold text-slate-900 dark:text-white text-base">
-                          {workingHours?.rules?.minimum_half_day_minutes ?? 240} mins (4 hrs)
-                        </span>
-                      </div>
-                      <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                        <span className="text-slate-500 block mb-1">Overtime Status</span>
-                        <span className={`font-bold text-base ${workingHours?.rules?.ot_enabled ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500'}`}>
-                          {workingHours?.rules?.ot_enabled ? 'Enabled' : 'Disabled'}
-                        </span>
-                      </div>
-                      <div className="p-3 bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800">
-                        <span className="text-slate-500 block mb-1">Weekly Off</span>
-                        <span className="font-bold text-slate-900 dark:text-white text-base">
-                          {workingHours?.rules?.weekly_off_days ? workingHours.rules.weekly_off_days.join(', ') : 'Sunday'}
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
+                <EmployeeWorkingHoursTab
+                  employeeId={employeeId}
+                  employeeName={employee?.full_name}
+                  branchName={employee?.branch_name}
+                  onScheduleUpdated={() => {
+                    setWorkingHoursRevision((v) => v + 1)
+                    fetchAttendanceCalendar(attYear, attMonth)
+                  }}
+                />
               )}
 
               {/* TAB 5: ATTENDANCE */}
@@ -1450,15 +1640,44 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                                 )}
                               </td>
                               <td className="px-4 py-3">
-                                <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
-                                  l.status === 'APPROVED'
-                                    ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
-                                    : l.status === 'REJECTED'
-                                    ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
-                                    : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
-                                }`}>
-                                  {l.status}
-                                </span>
+                                {canManageLeaves ? (
+                                  <div className="relative inline-flex items-center">
+                                    <select
+                                      value={l.status}
+                                      disabled={updatingLeaveId === l.id}
+                                      onChange={(e) => handleUpdateLeaveStatus(l.id, e.target.value)}
+                                      className={`text-[10px] font-bold px-2 py-0.5 pr-5 rounded border appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-blue-500/40 transition-colors ${
+                                        l.status === 'APPROVED'
+                                          ? 'bg-emerald-100 text-emerald-800 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-300 dark:border-emerald-800'
+                                          : l.status === 'REJECTED'
+                                          ? 'bg-rose-100 text-rose-800 border-rose-300 dark:bg-rose-950 dark:text-rose-300 dark:border-rose-800'
+                                          : 'bg-amber-100 text-amber-800 border-amber-300 dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800'
+                                      } ${updatingLeaveId === l.id ? 'opacity-60 cursor-not-allowed' : ''}`}
+                                      title="Click to update leave status"
+                                    >
+                                      <option value="PENDING" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">PENDING</option>
+                                      <option value="APPROVED" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">APPROVED</option>
+                                      <option value="REJECTED" className="bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100">REJECTED</option>
+                                    </select>
+                                    <div className="absolute right-1 pointer-events-none flex items-center">
+                                      {updatingLeaveId === l.id ? (
+                                        <div className="w-2.5 h-2.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                                      ) : (
+                                        <ChevronDown className="w-2.5 h-2.5 opacity-60" />
+                                      )}
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                                    l.status === 'APPROVED'
+                                      ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
+                                      : l.status === 'REJECTED'
+                                      ? 'bg-rose-100 text-rose-800 dark:bg-rose-950 dark:text-rose-300'
+                                      : 'bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300'
+                                  }`}>
+                                    {l.status}
+                                  </span>
+                                )}
                               </td>
                               <td className="px-4 py-3 text-slate-600 dark:text-slate-400">{l.reason || '—'}</td>
                               <td className="px-4 py-3 text-slate-600 dark:text-slate-300">{l.approved_by_name || '—'}</td>
@@ -1473,202 +1692,396 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
 
               {/* TAB 7: SALARY & COMPENSATION */}
               {activeTab === 'salary' && (
-                <div className="space-y-6">
-                  {/* Current Active Compensation Banner */}
-                  <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 sm:p-6 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 shadow-xs">
-                    <div>
-                      <div className="text-xs text-blue-600 dark:text-blue-400 uppercase font-bold tracking-wider flex items-center gap-1.5">
-                        <DollarSign className="w-4 h-4 text-emerald-500" /> Active Base Monthly Salary
-                      </div>
-                      <div className="text-2xl sm:text-3xl font-black text-slate-900 dark:text-white mt-1">
-                        {currentRevision ? `${currentRevision.currency} ${Number(currentRevision.basic_salary).toLocaleString('en-IN')}` : 'Not Configured'}
-                      </div>
-                      {currentRevision && (
-                        <div className="text-xs text-slate-500 dark:text-slate-400 mt-1 flex items-center gap-2 sm:gap-3 flex-wrap">
-                          <span>Effective From: <strong className="text-slate-800 dark:text-slate-200 font-semibold">{currentRevision.effective_from}</strong></span>
-                          <span>•</span>
-                          <span>OT Rate: <strong className="text-emerald-600 dark:text-emerald-400 font-semibold">{currentRevision.currency} {currentRevision.ot_rate}/hr</strong></span>
-                          <span>•</span>
-                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800">Current Active</span>
+                <div className="space-y-4 sm:space-y-5">
+                  {/* SECTION 1: BASE SALARY & COMPENSATION */}
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl p-4 sm:p-5 shadow-xs transition-colors space-y-3.5">
+                    {/* Header & New Revision Button */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                      <div>
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                            <DollarSign className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                            Base Salary & Compensation
+                          </h4>
+                          {scheduleResolution && (
+                            scheduleResolution.source === 'EMPLOYEE' ? (
+                              <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 inline-flex items-center gap-1">
+                                <UserCheck className="w-3 h-3" /> Employee Override
+                              </span>
+                            ) : scheduleResolution.source === 'CENTRE' ? (
+                              <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800 inline-flex items-center gap-1">
+                                <Building2 className="w-3 h-3" /> Centre Default
+                              </span>
+                            ) : (
+                              <span className="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800 inline-flex items-center gap-1">
+                                <Shield className="w-3 h-3" /> Enterprise Default
+                              </span>
+                            )
+                          )}
                         </div>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                          Current effective salary baseline and overtime parameters.
+                        </p>
+                      </div>
+
+                      {canManageSalary && (
+                        <button
+                          type="button"
+                          onClick={handleOpenNewRevision}
+                          className="w-full sm:w-auto px-3 py-1.5 text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white rounded-lg shadow-xs transition-colors flex items-center justify-center gap-1.5 cursor-pointer"
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          <span>New Salary Revision</span>
+                        </button>
                       )}
                     </div>
 
-                    {canManageSalary && (
-                      <button
-                        onClick={() => setShowRevisionModal(true)}
-                        className="w-full sm:w-auto px-4 py-2.5 text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white rounded-xl shadow-xs transition-colors text-center justify-center flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <Plus className="w-4 h-4" /> New Salary Revision
-                      </button>
-                    )}
+                    {/* Salary Focal Point */}
+                    <div className="pt-1">
+                      <div className="flex items-baseline gap-2 flex-wrap">
+                        <span className="text-2xl sm:text-3xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+                          {currentRevision ? `${currentRevision.currency} ${Number(currentRevision.basic_salary).toLocaleString('en-IN')}` : 'Not Configured'}
+                        </span>
+                        <span className="text-sm font-semibold text-slate-500 dark:text-slate-400">
+                          {salaryUnitLabel}
+                        </span>
+                      </div>
+                      <div className="text-xs text-slate-500 dark:text-slate-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
+                        <span className="font-medium text-slate-700 dark:text-slate-300">{effectiveCompTypeLabel}</span>
+                        <span>•</span>
+                        <span>Effective since {currentRevision?.effective_from || 'hire'}</span>
+                      </div>
+                    </div>
+
+                    {/* Secondary Attributes Horizontal Grid */}
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 pt-3 border-t border-slate-100 dark:border-slate-800/80 text-xs">
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+                          Compensation Type
+                        </span>
+                        <span className="font-semibold text-xs text-slate-800 dark:text-slate-200 block">
+                          {effectiveCompTypeLabel}
+                        </span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
+                          {effectiveCompTypeSubtitle}
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+                          Overtime Rate
+                        </span>
+                        <span className="font-semibold text-xs text-slate-800 dark:text-slate-200 block font-mono">
+                          {currentRevision ? `${currentRevision.currency} ${currentRevision.ot_rate}/hr` : '1.5× Hourly'}
+                        </span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
+                          Approved OT hours
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+                          Leave Deduction
+                        </span>
+                        <span className="font-semibold text-xs text-slate-800 dark:text-slate-200 block font-mono">
+                          Pro-rata
+                        </span>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
+                          1/30th / day divisor
+                        </span>
+                      </div>
+
+                      <div>
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-0.5">
+                          Status
+                        </span>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                          <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 inline-flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Active
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 block mt-0.5">
+                          Since {currentRevision?.effective_from || 'hire'}
+                        </span>
+                      </div>
+                    </div>
                   </div>
 
-                  {/* Scheduled Upcoming Salary Revision Card */}
+                  {/* UPCOMING SALARY REVISION NOTICE (Compact & Subtle) */}
                   {upcomingRevision && (
-                    <div className="bg-gradient-to-r from-amber-50 to-orange-50 dark:from-amber-950/40 dark:to-orange-950/30 border border-amber-300 dark:border-amber-800/80 rounded-2xl p-4 sm:p-5 shadow-xs flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-                      <div className="flex items-start sm:items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-amber-100 dark:bg-amber-900/60 border border-amber-300 dark:border-amber-700 flex items-center justify-center text-amber-700 dark:text-amber-300 shrink-0 mt-0.5 sm:mt-0">
-                          <Clock className="w-5 h-5" />
+                    <div className="bg-amber-50/70 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/60 rounded-xl px-4 py-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 text-xs transition-colors">
+                      <div className="flex items-start sm:items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-amber-100 dark:bg-amber-900/60 border border-amber-300 dark:border-amber-700 flex items-center justify-center text-amber-700 dark:text-amber-300 shrink-0 mt-0.5 sm:mt-0">
+                          <Clock className="w-4 h-4" />
                         </div>
-                        <div>
+                        <div className="min-w-0">
                           <div className="flex items-center gap-2 flex-wrap">
-                            <span className="text-[11px] font-bold uppercase tracking-wider text-amber-800 dark:text-amber-300">
-                              Upcoming Revision Scheduled
+                            <span className="font-bold text-amber-900 dark:text-amber-200">
+                              Upcoming salary revision
                             </span>
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-200/90 text-amber-900 dark:bg-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700">
-                              Takes effect on {upcomingRevision.effective_from}
+                            <span className="px-2 py-0.5 rounded-md text-[10px] font-semibold bg-amber-100/90 text-amber-800 dark:bg-amber-900/60 dark:text-amber-200 border border-amber-300 dark:border-amber-700">
+                              Effective {upcomingRevision.effective_from}
                             </span>
                           </div>
-                          <div className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white mt-1">
-                            {upcomingRevision.currency} {Number(upcomingRevision.basic_salary).toLocaleString('en-IN')}
-                            <span className="text-xs font-semibold text-slate-500 dark:text-slate-400 ml-2">
-                              / month (OT: {upcomingRevision.currency} {upcomingRevision.ot_rate}/hr)
+                          <div className="flex items-baseline gap-2 mt-0.5 flex-wrap">
+                            <span className="font-bold text-slate-900 dark:text-white">
+                              {upcomingRevision.currency} {Number(upcomingRevision.basic_salary).toLocaleString('en-IN')} {salaryUnitLabel}
                             </span>
                             {currentRevision && Number(currentRevision.basic_salary) > 0 && (
-                              <span className="ml-2.5 text-xs font-bold text-emerald-600 dark:text-emerald-400">
+                              <span className="text-[11px] font-semibold text-emerald-700 dark:text-emerald-300">
                                 +{upcomingRevision.currency} {(Number(upcomingRevision.basic_salary) - Number(currentRevision.basic_salary)).toLocaleString('en-IN')} (+{(((Number(upcomingRevision.basic_salary) - Number(currentRevision.basic_salary)) / Number(currentRevision.basic_salary)) * 100).toFixed(1)}%)
                               </span>
                             )}
                           </div>
                           {upcomingRevision.reason && (
-                            <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
+                            <p className="text-[11px] text-slate-600 dark:text-slate-400 mt-0.5 truncate">
                               Reason: <span className="font-medium text-slate-800 dark:text-slate-200">{upcomingRevision.reason}</span>
-                              {upcomingRevision.revised_by_name ? ` • Revised by ${upcomingRevision.revised_by_name}` : ''}
+                              {upcomingRevision.revised_by_name ? ` • By ${upcomingRevision.revised_by_name}` : ''}
                             </p>
                           )}
                         </div>
                       </div>
+
+                      {canManageSalary && (
+                        <div className="flex items-center gap-1.5 shrink-0 self-start sm:self-center">
+                          <button
+                            type="button"
+                            onClick={() => handleOpenEditRevision({
+                              revision_id: upcomingRevision.id,
+                              new_salary: upcomingRevision.basic_salary,
+                              effective_from: upcomingRevision.effective_from,
+                              reason: upcomingRevision.reason
+                            })}
+                            className="px-2.5 py-1 text-xs font-semibold bg-white dark:bg-slate-900 text-amber-900 dark:text-amber-200 border border-amber-300 dark:border-amber-700 rounded-lg hover:bg-amber-100/60 dark:hover:bg-amber-900/40 transition shrink-0 cursor-pointer inline-flex items-center gap-1"
+                          >
+                            <Edit className="w-3 h-3" />
+                            <span>Edit</span>
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteRevision({
+                              revision_id: upcomingRevision.id,
+                              effective_from: upcomingRevision.effective_from,
+                              status: 'UPCOMING',
+                              is_upcoming: true
+                            })}
+                            className="p-1 text-xs font-semibold bg-white dark:bg-slate-900 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800 rounded-lg hover:bg-rose-50 dark:hover:bg-rose-950/40 transition shrink-0 cursor-pointer inline-flex items-center justify-center"
+                            title="Delete upcoming revision"
+                          >
+                            <Trash2 className="w-3 h-3" />
+                          </button>
+                        </div>
+                      )}
                     </div>
                   )}
 
-                  {/* Section: Payroll Schedule & Salary Cycle */}
+                  {/* SECTION 2: SALARY GENERATION SCHEDULE */}
                   <PayrollScheduleSection
                     employeeId={employeeId}
                     employeeName={employee?.full_name || 'Employee'}
                     canManage={canManageSalary}
+                    scheduleResolution={scheduleResolution}
+                    onScheduleUpdated={(updatedRes) => {
+                      setScheduleResolution(updatedRes)
+                    }}
+                    onUpdated={() => {
+                      apiClient.get(`/employees/${employeeId}/salary-comparison/`)
+                        .then((res) => setComparisons(res.data.comparisons || []))
+                        .catch(() => {})
+                    }}
                   />
 
-                  {/* Itemized Compensation Components */}
-                  <div className="space-y-3">
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+                  {/* SECTION 3: WORKING HOURS & OVERTIME */}
+                  <WorkingHoursOvertimeSection
+                    key={`wh-${workingHoursRevision}`}
+                    employeeId={employeeId}
+                    otRate={currentRevision?.ot_rate || 0}
+                    currency={currentRevision?.currency || 'INR'}
+                  />
+
+                  {/* SECTION 4: ITEMIZED COMPENSATION COMPONENTS */}
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl p-4 sm:p-5 shadow-xs transition-colors space-y-3.5">
+                    {/* Header & Add Component Actions */}
+                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800/80">
                       <div>
-                        <h4 className="text-sm font-bold text-slate-900 dark:text-white">Itemized Compensation Components</h4>
-                        <p className="text-xs text-slate-500 dark:text-slate-400">Earnings, allowances, one-time/recurring bonuses, and payroll deductions.</p>
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                          Itemized Compensation
+                        </h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                          Earnings, allowances, bonuses, and payroll deductions.
+                        </p>
                       </div>
 
                       {canManageSalary && (
-                        <div className="flex items-center gap-2 flex-wrap w-full sm:w-auto">
+                        <div className="flex items-center gap-2 flex-wrap">
                           <button
+                            type="button"
                             onClick={() => {
                               setCompType('EARNING')
-                              setCompForm((f) => ({ ...f, frequency: 'RECURRING' }))
+                              setCompForm((f) => ({ ...f, frequency: 'RECURRING', recurrence_frequency: 'MONTHLY', affects_payroll: true }))
                               setShowCompModal(true)
                             }}
-                            className="flex-1 sm:flex-initial justify-center px-3 py-1.5 text-xs font-semibold bg-emerald-50 hover:bg-emerald-100 text-emerald-700 dark:bg-emerald-950/60 dark:hover:bg-emerald-900/60 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 rounded-xl transition-colors flex items-center gap-1 shadow-xs cursor-pointer"
+                            className="px-2.5 py-1 text-xs font-semibold bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/70 dark:hover:bg-slate-800 text-emerald-700 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800/60 rounded-lg transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
                           >
-                            <Plus className="w-3 h-3" /> Add Earning
+                            <Plus className="w-3 h-3" />
+                            <span>Add Earning</span>
                           </button>
                           <button
+                            type="button"
                             onClick={() => {
                               setCompType('BONUS')
-                              setCompForm((f) => ({ ...f, frequency: 'ONE_TIME' }))
+                              setCompForm((f) => ({ ...f, frequency: 'ONE_TIME', affects_payroll: true }))
                               setShowCompModal(true)
                             }}
-                            className="flex-1 sm:flex-initial justify-center px-3 py-1.5 text-xs font-semibold bg-purple-50 hover:bg-purple-100 text-purple-700 dark:bg-purple-950/60 dark:hover:bg-purple-900/60 dark:text-purple-300 border border-purple-300 dark:border-purple-800 rounded-xl transition-colors flex items-center gap-1 shadow-xs cursor-pointer"
+                            className="px-2.5 py-1 text-xs font-semibold bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/70 dark:hover:bg-slate-800 text-purple-700 dark:text-purple-300 border border-purple-200 dark:border-purple-800/60 rounded-lg transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
                           >
-                            <Plus className="w-3 h-3" /> Add Bonus
+                            <Plus className="w-3 h-3" />
+                            <span>Add Bonus</span>
                           </button>
                           <button
+                            type="button"
                             onClick={() => {
                               setCompType('DEDUCTION')
-                              setCompForm((f) => ({ ...f, frequency: 'RECURRING' }))
+                              setCompForm((f) => ({ ...f, frequency: 'RECURRING', recurrence_frequency: 'MONTHLY', affects_payroll: true }))
                               setShowCompModal(true)
                             }}
-                            className="flex-1 sm:flex-initial justify-center px-3 py-1.5 text-xs font-semibold bg-rose-50 hover:bg-rose-100 text-rose-700 dark:bg-rose-950/60 dark:hover:bg-rose-900/60 dark:text-rose-300 border border-rose-300 dark:border-rose-800 rounded-xl transition-colors flex items-center gap-1 shadow-xs cursor-pointer"
+                            className="px-2.5 py-1 text-xs font-semibold bg-slate-50 hover:bg-slate-100 dark:bg-slate-800/70 dark:hover:bg-slate-800 text-rose-700 dark:text-rose-300 border border-rose-200 dark:border-rose-800/60 rounded-lg transition-colors flex items-center gap-1 cursor-pointer shadow-2xs"
                           >
-                            <Plus className="w-3 h-3" /> Add Deduction
+                            <Plus className="w-3 h-3" />
+                            <span>Add Deduction</span>
                           </button>
                         </div>
                       )}
                     </div>
 
-                    {/* Components Table */}
+                    {/* Daily Wage Notice Banner (when applicable) */}
+                    {(effectiveGenType === 'DAILY' || scheduleResolution?.effective_config?.compensation_type === 'DAILY_WAGE' || currentRevision?.salary_unit === 'DAILY') && (
+                      <div className="p-2.5 rounded-lg border border-amber-200 dark:border-amber-800/60 bg-amber-50/70 dark:bg-amber-950/30 text-amber-900 dark:text-amber-200 text-xs flex items-center gap-2">
+                        <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0" />
+                        <span>
+                          <strong>Daily-Wage Payroll Notice:</strong> Itemized components are not applicable to daily-wage payroll calculations.
+                        </span>
+                      </div>
+                    )}
+
+                    {/* Empty State vs Components Table */}
                     {compItems.length === 0 ? (
-                      <div className="py-8 text-center text-slate-400 text-xs border border-slate-200 dark:border-slate-800 rounded-2xl bg-slate-50/50 dark:bg-slate-950/30">
-                        No custom compensation items defined for this employee.
+                      <div className="py-6 text-center text-xs text-slate-500 dark:text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg bg-slate-50/40 dark:bg-slate-950/20">
+                        <p className="font-medium text-slate-700 dark:text-slate-300">No compensation components configured for this employee.</p>
+                        <p className="text-slate-400 mt-0.5">Add an earning, bonus, or deduction to get started.</p>
                       </div>
                     ) : (
-                      <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-950/40 shadow-xs">
-                        <table className="w-full min-w-[720px] text-left text-xs text-slate-700 dark:text-slate-300">
-                          <thead className="bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 uppercase font-semibold border-b border-slate-200 dark:border-slate-800">
+                      <div className="overflow-x-auto rounded-lg border border-slate-200/80 dark:border-slate-800 bg-white dark:bg-slate-950/40">
+                        <table className="w-full min-w-[800px] text-left text-xs text-slate-700 dark:text-slate-300">
+                          <thead className="bg-slate-50 dark:bg-slate-900/80 text-slate-500 dark:text-slate-400 uppercase font-semibold text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-800">
                             <tr>
-                              <th className="px-4 py-3">Component Name</th>
-                              <th className="px-4 py-3">Type</th>
-                              <th className="px-4 py-3">Frequency</th>
-                              <th className="px-4 py-3">Calculation</th>
-                              <th className="px-4 py-3">Amount / %</th>
-                              <th className="px-4 py-3">Effective Range</th>
-                              <th className="px-4 py-3">Status</th>
-                              <th className="px-4 py-3 text-right">Actions</th>
+                              <th className="px-3.5 py-2.5">Component Name</th>
+                              <th className="px-3.5 py-2.5">Type</th>
+                              <th className="px-3.5 py-2.5">Recurrence</th>
+                              <th className="px-3.5 py-2.5">Calculation</th>
+                              <th className="px-3.5 py-2.5">Amount / %</th>
+                              <th className="px-3.5 py-2.5">Effective Period</th>
+                              <th className="px-3.5 py-2.5">Affect Payroll</th>
+                              <th className="px-3.5 py-2.5">Status</th>
+                              <th className="px-3.5 py-2.5">Source</th>
+                              <th className="px-3.5 py-2.5 text-right">Actions</th>
                             </tr>
                           </thead>
-                          <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-medium">
+                          <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
                             {compItems.map((item) => (
-                              <tr key={item.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
-                                <td className="px-4 py-3 text-slate-900 dark:text-white font-semibold">{item.name}</td>
-                                <td className="px-4 py-3">
-                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-200">
+                              <tr key={item.id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                                <td className="px-3.5 py-2.5 text-slate-900 dark:text-white font-medium">
+                                  {item.name}
+                                </td>
+                                <td className="px-3.5 py-2.5">
+                                  <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                                    item.component_type === 'EARNING' ? 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800' :
+                                    item.component_type === 'BONUS' ? 'bg-purple-50 text-purple-700 dark:bg-purple-950/60 dark:text-purple-300 border border-purple-200 dark:border-purple-800' :
+                                    item.component_type === 'DEDUCTION' ? 'bg-rose-50 text-rose-700 dark:bg-rose-950/60 dark:text-rose-300 border border-rose-200 dark:border-rose-800' :
+                                    'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+                                  }`}>
                                     {item.component_type}
                                   </span>
                                 </td>
-                                <td className="px-4 py-3">
-                                  {item.frequency === 'ONE_TIME' ? (
-                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-800 inline-flex items-center gap-1">
+                                <td className="px-3.5 py-2.5">
+                                  {item.recurrence_type === 'ONE_TIME' || item.frequency === 'ONE_TIME' ? (
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800 inline-flex items-center gap-1">
                                       ⚡ One-Time
                                     </span>
                                   ) : (
-                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 inline-flex items-center gap-1">
-                                      🔄 Recurring
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 inline-flex items-center gap-1">
+                                      🔄 {item.recurrence_frequency === 'WEEKLY' || item.frequency === 'WEEKLY' ? 'Weekly' : 'Monthly'}
                                     </span>
                                   )}
                                 </td>
-                                <td className="px-4 py-3 text-slate-500">
-                                  {item.calculation_type === 'PERCENTAGE' ? 'Percentage (%)' : 'Fixed Amount'}
+                                <td className="px-3.5 py-2.5 text-slate-500">
+                                  {item.calculation_type === 'PERCENTAGE' ? 'Percentage' : 'Fixed'}
                                 </td>
-                                <td className="px-4 py-3 font-mono font-bold text-slate-900 dark:text-slate-100">
+                                <td className="px-3.5 py-2.5 font-mono font-semibold text-slate-900 dark:text-slate-100">
                                   {item.calculation_type === 'PERCENTAGE' ? `${item.amount}%` : `₹ ${Number(item.amount).toLocaleString('en-IN')}`}
                                 </td>
-                                <td className="px-4 py-3 text-slate-500">
-                                  {item.effective_from} to {item.effective_to || 'Present'}
+                                <td className="px-3.5 py-2.5 text-slate-500 text-[11px]">
+                                  {item.effective_from} → {item.effective_to || 'Present'}
                                 </td>
-                                <td className="px-4 py-3">
-                                  {isItemUpcoming(item) ? (
-                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-950/80 dark:text-amber-300 border border-amber-300 dark:border-amber-800 inline-flex items-center gap-1">
+                                <td className="px-3.5 py-2.5">
+                                  <button
+                                    type="button"
+                                    onClick={() => handleToggleAffectPayroll(item)}
+                                    title="Click to toggle Affect Payroll ON/OFF"
+                                    className="cursor-pointer"
+                                  >
+                                    {item.affects_payroll ? (
+                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 inline-flex items-center gap-1 hover:bg-emerald-100 transition">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> ON
+                                      </span>
+                                    ) : (
+                                      <span className="px-2 py-0.5 rounded-full text-[10px] font-medium bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700 inline-flex items-center gap-1 hover:bg-slate-200 transition">
+                                        <span className="w-1.5 h-1.5 rounded-full bg-slate-400"></span> OFF
+                                      </span>
+                                    )}
+                                  </button>
+                                </td>
+                                <td className="px-3.5 py-2.5">
+                                  {item.status_display === 'UPCOMING' ? (
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800 inline-flex items-center gap-1">
                                       <Clock className="w-2.5 h-2.5" /> Upcoming
                                     </span>
-                                  ) : item.is_active ? (
-                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 inline-flex items-center gap-1">
-                                      Active
+                                  ) : item.status_display === 'ALREADY_APPLIED' ? (
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-300 border border-blue-200 dark:border-blue-800 inline-flex items-center gap-1">
+                                      <CheckCircle2 className="w-2.5 h-2.5" /> Applied
                                     </span>
                                   ) : item.status_display === 'EXPIRED' ? (
-                                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
                                       Expired
                                     </span>
+                                  ) : item.status_display === 'CANCELLED' ? (
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-rose-50 text-rose-600 dark:bg-rose-950/60 dark:text-rose-400 border border-rose-200 dark:border-rose-900">
+                                      Cancelled
+                                    </span>
+                                  ) : item.status_display === 'DISABLED' ? (
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                                      Disabled
+                                    </span>
                                   ) : (
-                                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
-                                      Deactivated
+                                    <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 inline-flex items-center gap-1">
+                                      Active
                                     </span>
                                   )}
                                 </td>
-                                <td className="px-4 py-3 text-right">
+                                <td className="px-3.5 py-2.5">
+                                  <span className="text-[11px] font-medium text-slate-600 dark:text-slate-400">
+                                    {item.source === 'ENTERPRISE' ? 'Enterprise' : item.source === 'CENTRE' ? 'Centre' : 'Employee'}
+                                  </span>
+                                </td>
+                                <td className="px-3.5 py-2.5 text-right">
                                   {canManageSalary && item.is_active && (
                                     <button
+                                      type="button"
                                       onClick={() => handleDeactivateCompItem(item.id, item.name)}
-                                      className="px-2.5 py-1 text-[11px] font-semibold text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/50 rounded-lg border border-rose-200 dark:border-rose-900 transition-colors cursor-pointer"
-                                      title={isItemUpcoming(item) ? "Cancel scheduled component" : "Soft-deactivate without altering historical payroll"}
+                                      className="px-2 py-0.5 text-[11px] font-medium text-slate-500 hover:text-rose-600 dark:text-slate-400 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/40 rounded transition-colors cursor-pointer"
+                                      title={item.status_display === 'UPCOMING' ? "Cancel scheduled component" : "Soft-deactivate"}
                                     >
-                                      {isItemUpcoming(item) ? 'Cancel / Deactivate' : 'Deactivate'}
+                                      {item.status_display === 'UPCOMING' ? 'Cancel' : 'Deactivate'}
                                     </button>
                                   )}
                                 </td>
@@ -1680,70 +2093,168 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                     )}
                   </div>
 
-                  {/* Salary Comparison & History Engine */}
-                  <div className="space-y-3 pt-5 border-t border-slate-200 dark:border-slate-800">
-                    <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                      <TrendingUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />
-                      Historical Salary Revisions & Comparisons
-                    </h4>
+                  {/* SECTION 5: SALARY REVISION HISTORY */}
+                  <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl p-4 sm:p-5 shadow-xs transition-colors space-y-3.5">
+                    {/* Header */}
+                    <div className="flex items-center justify-between gap-3 pb-3 border-b border-slate-100 dark:border-slate-800/80">
+                      <div>
+                        <h4 className="text-sm font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                          <TrendingUp className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+                          Salary Revision History
+                        </h4>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                          Chronological record of all approved salary revisions and adjustments.
+                        </p>
+                      </div>
+                    </div>
 
+                    {/* Table or Empty State */}
                     {comparisons.length === 0 ? (
-                      <div className="py-6 text-center text-slate-400 text-xs">No historical revisions recorded yet.</div>
+                      <div className="py-6 text-center text-xs text-slate-400 border border-dashed border-slate-200 dark:border-slate-800 rounded-lg">
+                        No historical revisions recorded yet.
+                      </div>
                     ) : (
-                      <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-950/40 shadow-xs">
-                        <table className="w-full min-w-[720px] text-left text-xs text-slate-700 dark:text-slate-300">
-                          <thead className="bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 uppercase font-semibold border-b border-slate-200 dark:border-slate-800">
-                            <tr>
-                              <th className="px-4 py-3">Effective Date</th>
-                              <th className="px-4 py-3">New Salary</th>
-                              <th className="px-4 py-3">Previous</th>
-                              <th className="px-4 py-3">Difference</th>
-                              <th className="px-4 py-3">Change %</th>
-                              <th className="px-4 py-3">Changed By</th>
-                              <th className="px-4 py-3">Reason</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-medium">
-                            {comparisons.map((c) => (
-                              <tr key={c.revision_id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40">
-                                <td className="px-4 py-3 text-slate-900 dark:text-slate-100 whitespace-nowrap">
-                                  <span className="font-medium">{c.effective_from}</span>
-                                  {c.is_upcoming || c.status === 'UPCOMING' || c.effective_from > todayDateStr ? (
-                                    <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-amber-100 text-amber-800 dark:bg-amber-950 dark:text-amber-300 border border-amber-300 dark:border-amber-800 font-bold inline-flex items-center gap-1">
-                                      <Clock className="w-2.5 h-2.5" /> Upcoming
-                                    </span>
-                                  ) : (c.is_current || c.status === 'CURRENT') ? (
-                                    <span className="ml-2 px-1.5 py-0.5 rounded text-[10px] bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300 border border-emerald-300 dark:border-emerald-800 font-bold inline-flex items-center gap-1">
-                                      Current
-                                    </span>
-                                  ) : null}
-                                </td>
-                                <td className="px-4 py-3 font-mono font-bold text-slate-900 dark:text-slate-100 whitespace-nowrap">
-                                  {c.currency} {c.new_salary.toLocaleString('en-IN')}
-                                </td>
-                                <td className="px-4 py-3 font-mono text-slate-500 whitespace-nowrap">
-                                  {c.previous_salary ? `${c.currency} ${c.previous_salary.toLocaleString('en-IN')}` : '—'}
-                                </td>
-                                <td className="px-4 py-3 font-mono whitespace-nowrap">
-                                  {c.previous_salary ? (
-                                    <span className={c.difference >= 0 ? 'text-emerald-600 dark:text-emerald-400 font-bold' : 'text-rose-600 dark:text-rose-400 font-bold'}>
-                                      {c.difference >= 0 ? '+' : ''}{c.currency} {c.difference.toLocaleString('en-IN')}
-                                    </span>
-                                  ) : '—'}
-                                </td>
-                                <td className="px-4 py-3 font-mono whitespace-nowrap">
-                                  {c.previous_salary ? (
-                                    <span className={`font-bold ${c.percentage >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                                      {c.percentage >= 0 ? '+' : ''}{c.percentage}%
-                                    </span>
-                                  ) : '—'}
-                                </td>
-                                <td className="px-4 py-3 text-slate-500">{c.changed_by}</td>
-                                <td className="px-4 py-3 text-slate-700 dark:text-slate-300">{c.reason}</td>
+                      <div className="border border-slate-200/80 dark:border-slate-800 rounded-lg bg-white dark:bg-slate-950/40 overflow-hidden">
+                        <div className="overflow-x-auto">
+                          <table className="w-full min-w-[820px] text-left text-xs text-slate-700 dark:text-slate-300">
+                            <thead className="bg-slate-50 dark:bg-slate-900/80 text-slate-500 dark:text-slate-400 uppercase font-semibold text-[10px] tracking-wider border-b border-slate-200 dark:border-slate-800">
+                              <tr>
+                                <th className="px-3.5 py-2.5">Effective Date</th>
+                                <th className="px-3.5 py-2.5">Previous Salary</th>
+                                <th className="px-3.5 py-2.5">New Salary</th>
+                                <th className="px-3.5 py-2.5">Change</th>
+                                <th className="px-3.5 py-2.5">Changed By</th>
+                                <th className="px-3.5 py-2.5">Reason</th>
+                                <th className="px-3.5 py-2.5">Status</th>
+                                <th className="px-3.5 py-2.5 text-right">Actions</th>
                               </tr>
-                            ))}
-                          </tbody>
-                        </table>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80 font-normal">
+                              {paginatedComparisons.map((c) => {
+                                const isUpcoming = Boolean(c.is_upcoming || c.status === 'UPCOMING' || (c.effective_from && c.effective_from > todayDateStr))
+                                const isCurrent = Boolean((c.is_current || c.status === 'CURRENT') && !isUpcoming)
+                                const canModify = canManageSalary && (isUpcoming || isCurrent)
+
+                                return (
+                                  <tr key={c.revision_id} className="hover:bg-slate-50/70 dark:hover:bg-slate-800/40 transition-colors">
+                                    <td className="px-3.5 py-2.5 text-slate-900 dark:text-slate-100 font-medium whitespace-nowrap">
+                                      {c.effective_from}
+                                    </td>
+                                    <td className="px-3.5 py-2.5 font-mono text-slate-500 whitespace-nowrap">
+                                      {c.previous_salary ? (
+                                        <>
+                                          {c.currency} {Number(c.previous_salary).toLocaleString('en-IN')}
+                                          <span className="text-[10px] text-slate-400 ml-1">
+                                            {c.previous_salary_unit_display || (c.previous_salary_unit === 'DAILY' ? '/ day' : c.previous_salary_unit === 'WEEKLY' ? '/ week' : '/ month')}
+                                          </span>
+                                        </>
+                                      ) : '—'}
+                                    </td>
+                                    <td className="px-3.5 py-2.5 font-mono font-semibold text-slate-900 dark:text-slate-100 whitespace-nowrap">
+                                      {c.currency} {Number(c.new_salary).toLocaleString('en-IN')}
+                                      <span className="text-[10px] text-slate-500 font-normal ml-1">
+                                        {c.salary_unit_display || (c.salary_unit === 'DAILY' ? '/ day' : c.salary_unit === 'WEEKLY' ? '/ week' : '/ month')}
+                                      </span>
+                                    </td>
+                                    <td className="px-3.5 py-2.5 font-mono whitespace-nowrap">
+                                      {c.previous_salary ? (
+                                        <span className={c.difference >= 0 ? 'text-emerald-600 dark:text-emerald-400 font-semibold' : 'text-rose-600 dark:text-rose-400 font-semibold'}>
+                                          {c.difference >= 0 ? '+' : ''}{c.currency} {Number(c.difference).toLocaleString('en-IN')}
+                                          <span className="text-[10px] text-slate-500 dark:text-slate-400 font-normal ml-1">
+                                            ({c.percentage >= 0 ? '+' : ''}{c.percentage}%)
+                                          </span>
+                                        </span>
+                                      ) : (
+                                        <span className="text-slate-400 font-normal">Initial</span>
+                                      )}
+                                    </td>
+                                    <td className="px-3.5 py-2.5 text-slate-500 whitespace-nowrap">
+                                      {c.changed_by}
+                                    </td>
+                                    <td className="px-3.5 py-2.5 text-slate-700 dark:text-slate-300">
+                                      {c.reason || '—'}
+                                    </td>
+                                    <td className="px-3.5 py-2.5 whitespace-nowrap">
+                                      {isUpcoming ? (
+                                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800 inline-flex items-center gap-1">
+                                          <Clock className="w-2.5 h-2.5" /> Upcoming
+                                        </span>
+                                      ) : isCurrent ? (
+                                        <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 dark:bg-emerald-950/60 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800">
+                                          Current
+                                        </span>
+                                      ) : (
+                                        <span className="px-2 py-0.5 rounded text-[10px] font-medium bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
+                                          Historical
+                                        </span>
+                                      )}
+                                    </td>
+                                    <td className="px-3.5 py-2.5 whitespace-nowrap text-right">
+                                      {canModify ? (
+                                        <div className="flex items-center justify-end gap-1">
+                                          <button
+                                            type="button"
+                                            onClick={() => handleOpenEditRevision(c)}
+                                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-blue-600 dark:hover:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded transition cursor-pointer"
+                                            title="Edit salary revision"
+                                          >
+                                            <Edit className="w-3.5 h-3.5 text-blue-600 dark:text-blue-400" />
+                                            <span className="text-[11px]">Edit</span>
+                                          </button>
+                                          <button
+                                            type="button"
+                                            onClick={() => handleDeleteRevision(c)}
+                                            className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-slate-600 dark:text-slate-300 hover:text-rose-600 dark:hover:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-900/30 rounded transition cursor-pointer"
+                                            title="Delete salary revision"
+                                          >
+                                            <Trash2 className="w-3.5 h-3.5 text-rose-500 dark:text-rose-400" />
+                                            <span className="text-[11px]">Delete</span>
+                                          </button>
+                                        </div>
+                                      ) : (
+                                        <span className="text-slate-300 dark:text-slate-600 text-xs px-2 select-none">—</span>
+                                      )}
+                                    </td>
+                                  </tr>
+                                )
+                              })}
+                            </tbody>
+                          </table>
+                        </div>
+
+                        {/* Pagination Bar */}
+                        {comparisons.length > REVISION_PAGE_SIZE && (
+                          <div className="px-3.5 py-2.5 border-t border-slate-200 dark:border-slate-800 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400 bg-slate-50/60 dark:bg-slate-900/40">
+                            <div>
+                              Showing <span className="font-semibold text-slate-900 dark:text-white">{(revisionHistoryPage - 1) * REVISION_PAGE_SIZE + 1}</span> to{' '}
+                              <span className="font-semibold text-slate-900 dark:text-white">{Math.min(revisionHistoryPage * REVISION_PAGE_SIZE, comparisons.length)}</span> of{' '}
+                              <span className="font-semibold text-slate-900 dark:text-white">{comparisons.length}</span> entries
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <button
+                                type="button"
+                                onClick={() => setRevisionHistoryPage((prev) => Math.max(1, prev - 1))}
+                                disabled={revisionHistoryPage <= 1}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                              >
+                                <ChevronLeft className="w-3.5 h-3.5" />
+                                <span>Previous</span>
+                              </button>
+                              <span className="px-2 py-1 font-medium text-slate-600 dark:text-slate-400">
+                                Page {revisionHistoryPage} of {totalRevisionPages}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setRevisionHistoryPage((prev) => Math.min(totalRevisionPages, prev + 1))}
+                                disabled={revisionHistoryPage >= totalRevisionPages}
+                                className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700 text-xs font-medium text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 disabled:opacity-40 disabled:cursor-not-allowed transition"
+                              >
+                                <span>Next</span>
+                                <ChevronRight className="w-3.5 h-3.5" />
+                              </button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -2210,30 +2721,66 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                     onChange={(e) => setCompForm({ ...compForm, frequency: e.target.value })}
                     className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
-                    <option value="RECURRING">Recurring (Applied monthly ongoing)</option>
+                    <option value="RECURRING">Recurring (Applied ongoing)</option>
                     <option value="ONE_TIME">One-Time (Period-specific - does not recur)</option>
                   </select>
-                  {compForm.frequency === 'ONE_TIME' && (
-                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1">
-                      ⚡ One-time components apply strictly to the payroll period covering the effective date and never recur.
+                  {compForm.frequency === 'ONE_TIME' ? (
+                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1 font-medium">
+                      ⚡ One-Time: Configured for a single applicable date. Included in exactly one eligible payroll run and never recurs.
                     </p>
+                  ) : (
+                    <div className="mt-2.5">
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Recurrence Frequency</label>
+                      <select
+                        value={compForm.recurrence_frequency}
+                        onChange={(e) => setCompForm({ ...compForm, recurrence_frequency: e.target.value })}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <option value="MONTHLY">Monthly Ongoing</option>
+                        <option value="WEEKLY">Weekly Ongoing</option>
+                      </select>
+                    </div>
                   )}
                 </div>
 
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Effective Date</label>
-                  <input
-                    type="date"
-                    required
-                    value={compForm.effective_from}
-                    onChange={(e) => setCompForm({ ...compForm, effective_from: e.target.value })}
-                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                  />
-                  {compForm.effective_from && compForm.effective_from > todayDateStr && (
-                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1 font-medium flex items-center gap-1">
-                      <Clock className="w-3 h-3" /> Scheduled Future Date: Will be marked as Upcoming until {compForm.effective_from}.
-                    </p>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      {compForm.frequency === 'ONE_TIME' ? 'Applicable Date *' : 'Effective Start Date *'}
+                    </label>
+                    <input
+                      type="date"
+                      required
+                      value={compForm.effective_from}
+                      onChange={(e) => setCompForm({ ...compForm, effective_from: e.target.value })}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    />
+                  </div>
+                  {compForm.frequency !== 'ONE_TIME' && (
+                    <div>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Effective End Date (Optional)</label>
+                      <input
+                        type="date"
+                        value={compForm.effective_to}
+                        onChange={(e) => setCompForm({ ...compForm, effective_to: e.target.value })}
+                        className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      />
+                    </div>
                   )}
+                </div>
+
+                {/* Affect Payroll Setting */}
+                <div className="p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/30 flex items-center justify-between gap-3">
+                  <div>
+                    <span className="text-xs font-bold text-slate-900 dark:text-white block">Affect Payroll</span>
+                    <span className="text-[11px] text-slate-500 dark:text-slate-400 block">
+                      {compForm.affects_payroll ? 'ON: Eligible for upcoming payroll calculations' : 'OFF: Stored in profile records but excluded from payroll'}
+                    </span>
+                  </div>
+                  <ToggleSwitch
+                    checked={compForm.affects_payroll}
+                    onChange={(checked) => setCompForm({ ...compForm, affects_payroll: checked })}
+                  />
                 </div>
 
                 <div>
@@ -2272,9 +2819,14 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in overflow-y-auto">
             <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl max-h-[92dvh] flex flex-col overflow-hidden">
               <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
-                <h3 className="text-base font-bold text-slate-900 dark:text-white">Create New Salary Revision</h3>
+                <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                  {editingRevisionId ? 'Edit Salary Revision' : 'Create New Salary Revision'}
+                </h3>
                 <button
-                  onClick={() => setShowRevisionModal(false)}
+                  onClick={() => {
+                    setShowRevisionModal(false)
+                    setEditingRevisionId(null)
+                  }}
                   className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
                 >
                   <X className="w-4 h-4" />
@@ -2312,7 +2864,7 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                 <form onSubmit={handleSaveRevision} className="space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
                     <div>
-                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">New Monthly Base Salary (₹) *</label>
+                      <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">New Base Salary ({salaryUnitLabel}) (₹) *</label>
                       <input
                         type="number"
                         required
@@ -2369,7 +2921,10 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                   <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
                     <button
                       type="button"
-                      onClick={() => setShowRevisionModal(false)}
+                      onClick={() => {
+                        setShowRevisionModal(false)
+                        setEditingRevisionId(null)
+                      }}
                       className="w-full sm:w-auto px-4 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-center"
                     >
                       Cancel
@@ -2378,7 +2933,7 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                       type="submit"
                       className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white rounded-xl shadow transition-colors text-center cursor-pointer"
                     >
-                      Save Salary Revision
+                      {editingRevisionId ? 'Update Salary Revision' : 'Save Salary Revision'}
                     </button>
                   </div>
                 </form>

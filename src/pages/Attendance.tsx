@@ -19,7 +19,8 @@ import {
   Eye,
   Check,
   Shield,
-  Settings
+  Settings,
+  Trash2
 } from '../components/Icons'
 import { useSearchParams } from 'react-router-dom'
 import apiClient from '../services/api'
@@ -309,9 +310,16 @@ export const Attendance: React.FC = () => {
   const [qrTokenData, setQrTokenData] = useState<{
     centre_name: string
     qr_code: string
-    timestamp: number
+    qr_id?: string
+    validity_period?: string
+    expires_at?: string
+    reused?: boolean
+    time_to_live_seconds?: number
+    timestamp?: number
   } | null>(null)
+  const [qrValidityPeriod, setQrValidityPeriod] = useState<string>('DYNAMIC')
   const [qrLoading, setQrLoading] = useState<boolean>(false)
+  const [qrRevoking, setQrRevoking] = useState<boolean>(false)
 
   const [loading, setLoading] = useState<boolean>(true)
   const [error, setError] = useState<string | null>(null)
@@ -474,7 +482,7 @@ export const Attendance: React.FC = () => {
   }
 
   // Open QR Kiosk Token Modal
-  const openQrKiosk = async () => {
+  const openQrKiosk = async (forceRefresh: boolean = false, validity?: string) => {
     setQrModalOpen(true)
     setQrLoading(true)
     try {
@@ -482,13 +490,43 @@ export const Attendance: React.FC = () => {
       if (selectedCentre && selectedCentre !== 'all') {
         params.centre_id = selectedCentre
       }
+      if (forceRefresh) {
+        params.force_refresh = 'true'
+      }
+      const periodToUse = validity || qrValidityPeriod
+      if (periodToUse) {
+        params.validity_period = periodToUse
+      }
       const res = await apiClient.get('/attendance/qr/centre-token/', { params })
       setQrTokenData(res.data)
+      if (res.data.validity_period) {
+        setQrValidityPeriod(res.data.validity_period)
+      }
     } catch (err: any) {
       alert(err.response?.data?.detail || 'Failed to generate centre QR token.')
       setQrModalOpen(false)
     } finally {
       setQrLoading(false)
+    }
+  }
+
+  const handleRevokeQr = async () => {
+    if (!qrTokenData?.qr_id) return
+    if (!window.confirm('Are you sure you want to revoke this QR code immediately? Any kiosks displaying it will stop working until refreshed.')) return
+    setQrRevoking(true)
+    try {
+      await apiClient.post('/attendance/qr/revoke/', {
+        centre_id: selectedCentre && selectedCentre !== 'all' ? selectedCentre : undefined,
+        qr_id: qrTokenData.qr_id,
+        reason: 'Revoked by administrator via kiosk modal'
+      })
+      alert('QR code has been successfully revoked.')
+      setQrTokenData(null)
+      openQrKiosk(true)
+    } catch (err: any) {
+      alert(err.response?.data?.detail || 'Failed to revoke QR code.')
+    } finally {
+      setQrRevoking(false)
     }
   }
 
@@ -609,7 +647,7 @@ export const Attendance: React.FC = () => {
             </OwnButton>
 
             <OwnButton
-              onClick={openQrKiosk}
+              onClick={() => openQrKiosk()}
               variant="outline"
               size="md"
               leftIcon={<QrCode className="w-4 h-4" />}
@@ -2019,6 +2057,26 @@ export const Attendance: React.FC = () => {
             </div>
           ) : qrTokenData && (
             <div className="p-6 text-center space-y-4">
+              <div className="flex items-center justify-center gap-3">
+                <label className="text-xs font-semibold text-muted-foreground">Validity:</label>
+                <OwnSelect
+                  value={qrValidityPeriod}
+                  onChange={(e) => {
+                    const newPeriod = e.target.value
+                    setQrValidityPeriod(newPeriod)
+                    openQrKiosk(true, newPeriod)
+                  }}
+                  size="sm"
+                  className="w-48 text-xs"
+                  options={[
+                    { value: 'DYNAMIC', label: 'Dynamic (5 Mins)' },
+                    { value: 'DAILY', label: 'Daily (End of Day)' },
+                    { value: 'WEEKLY', label: 'Weekly (End of Week)' },
+                    { value: 'MONTHLY', label: 'Monthly (End of Month)' }
+                  ]}
+                />
+              </div>
+
               <div className="w-64 h-64 mx-auto p-4 bg-white rounded-2xl shadow-lg border border-border flex flex-col items-center justify-center">
                 {/* SVG QR Code Simulation */}
                 <div className="w-full h-full flex flex-col items-center justify-center border-4 border-dashed border-slate-900 rounded-xl p-2 bg-slate-50 text-slate-900">
@@ -2031,20 +2089,51 @@ export const Attendance: React.FC = () => {
 
               <div>
                 <div className="text-base font-bold text-foreground">{qrTokenData.centre_name}</div>
-                <div className="text-xs text-muted-foreground mt-1">
-                  Valid for current session. Scans automatically verify centre boundary and employee permissions.
+                <div className="flex items-center justify-center gap-2 mt-2">
+                  <OwnBadge variant="outline" className="text-[10px] uppercase font-semibold">
+                    {qrTokenData.validity_period || qrValidityPeriod}
+                  </OwnBadge>
+                  {qrTokenData.reused && (
+                    <OwnBadge variant="secondary" className="text-[10px]">
+                      Reused Active QR
+                    </OwnBadge>
+                  )}
+                </div>
+                {qrTokenData.expires_at && (
+                  <div className="text-xs text-muted-foreground mt-1">
+                    Expires: {new Date(qrTokenData.expires_at).toLocaleString()}
+                  </div>
+                )}
+                <div className="text-[11px] text-muted-foreground mt-1">
+                  Scans automatically verify centre boundary and employee permissions.
                 </div>
               </div>
             </div>
           )}
 
-          <OwnDialogFooter>
-            <OwnButton variant="outline" onClick={openQrKiosk}>
-              Refresh QR
-            </OwnButton>
-            <OwnButton variant="secondary" onClick={() => setQrModalOpen(false)}>
-              Close
-            </OwnButton>
+          <OwnDialogFooter className="flex items-center justify-between gap-2">
+            <div>
+              {qrTokenData?.qr_id && (
+                <OwnButton
+                  variant="outline"
+                  className="text-destructive hover:bg-destructive/10 border-destructive/20 text-xs"
+                  disabled={qrRevoking}
+                  onClick={handleRevokeQr}
+                >
+                  <Trash2 className="w-3.5 h-3.5 mr-1" />
+                  {qrRevoking ? 'Revoking...' : 'Revoke QR'}
+                </OwnButton>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <OwnButton variant="outline" onClick={() => openQrKiosk(true)}>
+                <RefreshCw className="w-3.5 h-3.5 mr-1" />
+                Force New QR
+              </OwnButton>
+              <OwnButton variant="secondary" onClick={() => setQrModalOpen(false)}>
+                Close
+              </OwnButton>
+            </div>
           </OwnDialogFooter>
         </OwnDialogContent>
       </OwnDialog>

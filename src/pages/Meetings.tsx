@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react'
+import { Link } from 'react-router-dom'
 import apiClient from '../services/api'
 import { usePermission } from '../context/AuthContext'
 import type { Meeting, ParticipantResponseStatus } from '../types'
@@ -10,6 +11,7 @@ import {
 import {
   Video,
   Calendar,
+  CalendarDays,
   Clock,
   Users,
   MapPin,
@@ -163,11 +165,16 @@ export const Meetings: React.FC = () => {
   }, [meetings])
 
   return (
-    <div className="space-y-6 max-w-7xl mx-auto px-4 sm:px-6 py-6 font-sans">
+    <div className="space-y-4 sm:space-y-6 max-w-7xl mx-auto px-3 sm:px-6 py-4 sm:py-6 font-sans">
       {/* Header */}
       <OwnPageHeader
         title="Meetings & Schedules"
         description="Collaborative workspace for internal strategy reviews, client discussions, and department meetings."
+        breadcrumbs={[
+          { label: 'Workspace', href: '/' },
+          { label: 'Calendar', href: '/meetings' },
+          { label: 'Meetings' },
+        ]}
         actions={
           canCreate ? (
             <OwnButton
@@ -176,61 +183,142 @@ export const Meetings: React.FC = () => {
                 setEditingMeeting(null)
                 setIsCreateOpen(true)
               }}
-              className="flex items-center gap-2 shadow-xs cursor-pointer"
+              className="flex items-center gap-1.5 sm:gap-2 text-[clamp(0.72rem,1.8vw,0.85rem)] px-3 sm:px-4 py-1.5 sm:py-2 rounded-xl shadow-xs cursor-pointer w-full sm:w-auto justify-center font-bold"
             >
-              <Plus className="w-4 h-4" />
+              <Plus className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
               <span>Schedule Meeting</span>
             </OwnButton>
           ) : undefined
         }
       />
 
+      {/* Calendar Section Switcher */}
+      <div className="flex items-center space-x-2 border-b border-slate-200 dark:border-slate-800 pb-3">
+        <Link
+          to="/meetings"
+          className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold bg-primary text-primary-foreground shadow-xs cursor-pointer"
+        >
+          <Video className="w-3.5 h-3.5" />
+          <span>Meetings</span>
+        </Link>
+        <Link
+          to="/holidays"
+          className="flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted cursor-pointer transition-colors"
+        >
+          <CalendarDays className="w-3.5 h-3.5" />
+          <span>Holidays</span>
+        </Link>
+      </div>
+
       {/* Notifications / Alerts */}
       {actionSuccess && (
-        <div className="p-3.5 rounded-xl bg-success/10 border border-success/20 text-success text-xs font-semibold flex items-center justify-between">
+        <div className="p-3 sm:p-3.5 rounded-xl bg-success/10 border border-success/20 text-success text-[clamp(0.68rem,1.8vw,0.75rem)] font-semibold flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4" />
+            <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>{actionSuccess}</span>
           </div>
-          <button onClick={() => setActionSuccess(null)} className="text-success hover:opacity-75">✕</button>
+          <button onClick={() => setActionSuccess(null)} className="text-success hover:opacity-75 cursor-pointer">✕</button>
         </div>
       )}
 
       {error && (
-        <div className="p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-semibold flex items-center justify-between">
+        <div className="p-3 sm:p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-[clamp(0.68rem,1.8vw,0.75rem)] font-semibold flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <AlertCircle className="w-4 h-4" />
+            <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
-          <button onClick={() => setError(null)} className="text-danger hover:opacity-75">✕</button>
+          <button onClick={() => setError(null)} className="text-danger hover:opacity-75 cursor-pointer">✕</button>
         </div>
       )}
 
-      {/* 4 Metric Summary Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 sm:gap-4">
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Total Scheduled</div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white mt-2">{stats.scheduled}</div>
+      {/* 4 Metric Summary Cards - Dynamic Screen Responsive Grid */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3.5 md:gap-4">
+        {/* Total Scheduled */}
+        <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between transition-all hover:border-slate-300 dark:hover:border-slate-700">
+          <div className="flex items-center justify-between gap-1.5 sm:gap-2">
+            <span className="text-[clamp(0.62rem,1.8vw,0.72rem)] font-bold tracking-tight text-slate-500 dark:text-slate-400 uppercase truncate">
+              Total Scheduled
+            </span>
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-primary/10 text-primary flex items-center justify-center shrink-0">
+              <Calendar className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div className="mt-1 sm:mt-2">
+            <div className="text-[clamp(1.3rem,3.8vw,1.85rem)] font-black text-slate-900 dark:text-white leading-none">
+              {stats.scheduled}
+            </div>
+            <div className="text-[clamp(0.6rem,1.5vw,0.7rem)] text-slate-400 dark:text-slate-500 font-medium truncate mt-1">
+              Active meetings
+            </div>
+          </div>
         </div>
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-emerald-200 dark:border-emerald-950/60 shadow-xs flex flex-col justify-between">
-          <div className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">Today's Sessions</div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white mt-2">{stats.today}</div>
+
+        {/* Today's Sessions */}
+        <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-900 border border-emerald-200/80 dark:border-emerald-950/60 shadow-xs flex flex-col justify-between transition-all hover:border-emerald-300 dark:hover:border-emerald-800">
+          <div className="flex items-center justify-between gap-1.5 sm:gap-2">
+            <span className="text-[clamp(0.62rem,1.8vw,0.72rem)] font-bold tracking-tight text-emerald-600 dark:text-emerald-400 uppercase truncate">
+              Today's Sessions
+            </span>
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shrink-0">
+              <Clock className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div className="mt-1 sm:mt-2">
+            <div className="text-[clamp(1.3rem,3.8vw,1.85rem)] font-black text-slate-900 dark:text-white leading-none">
+              {stats.today}
+            </div>
+            <div className="text-[clamp(0.6rem,1.5vw,0.7rem)] text-emerald-600/70 dark:text-emerald-400/70 font-medium truncate mt-1">
+              Scheduled today
+            </div>
+          </div>
         </div>
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-amber-200 dark:border-amber-950/60 shadow-xs flex flex-col justify-between">
-          <div className="text-xs font-semibold text-amber-600 dark:text-amber-400 uppercase tracking-wider">Awaiting My RSVP</div>
-          <div className="text-2xl font-bold text-amber-600 dark:text-amber-400 mt-2">{stats.pendingRSVP}</div>
+
+        {/* Awaiting RSVP */}
+        <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-900 border border-amber-200/80 dark:border-amber-950/60 shadow-xs flex flex-col justify-between transition-all hover:border-amber-300 dark:hover:border-amber-800">
+          <div className="flex items-center justify-between gap-1.5 sm:gap-2">
+            <span className="text-[clamp(0.62rem,1.8vw,0.72rem)] font-bold tracking-tight text-amber-600 dark:text-amber-400 uppercase truncate">
+              Awaiting RSVP
+            </span>
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-amber-500/10 text-amber-600 dark:text-amber-400 flex items-center justify-center shrink-0">
+              <AlertCircle className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div className="mt-1 sm:mt-2">
+            <div className="text-[clamp(1.3rem,3.8vw,1.85rem)] font-black text-amber-600 dark:text-amber-400 leading-none">
+              {stats.pendingRSVP}
+            </div>
+            <div className="text-[clamp(0.6rem,1.5vw,0.7rem)] text-amber-600/70 dark:text-amber-400/70 font-medium truncate mt-1">
+              Requires response
+            </div>
+          </div>
         </div>
-        <div className="p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 shadow-xs flex flex-col justify-between">
-          <div className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Filter Count</div>
-          <div className="text-2xl font-bold text-slate-900 dark:text-white mt-2">{stats.total}</div>
+
+        {/* Filter Count */}
+        <div className="p-3 sm:p-4 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-xs flex flex-col justify-between transition-all hover:border-slate-300 dark:hover:border-slate-700">
+          <div className="flex items-center justify-between gap-1.5 sm:gap-2">
+            <span className="text-[clamp(0.62rem,1.8vw,0.72rem)] font-bold tracking-tight text-slate-500 dark:text-slate-400 uppercase truncate">
+              Filtered Total
+            </span>
+            <div className="w-6 h-6 sm:w-7 sm:h-7 rounded-lg bg-slate-500/10 text-slate-500 flex items-center justify-center shrink-0">
+              <Users className="w-3.5 h-3.5" />
+            </div>
+          </div>
+          <div className="mt-1 sm:mt-2">
+            <div className="text-[clamp(1.3rem,3.8vw,1.85rem)] font-black text-slate-900 dark:text-white leading-none">
+              {stats.total}
+            </div>
+            <div className="text-[clamp(0.6rem,1.5vw,0.7rem)] text-slate-400 dark:text-slate-500 font-medium truncate mt-1">
+              In current view
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Filter Toolbar */}
-      <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl p-4 shadow-xs space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+      {/* Filter Toolbar - Responsive & Fluid */}
+      <div className="bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl sm:rounded-2xl p-3 sm:p-4 shadow-xs space-y-2.5 sm:space-y-3">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5 sm:gap-3">
           {/* Tab Pills */}
-          <div className="flex items-center space-x-1 overflow-x-auto no-scrollbar py-1">
+          <div className="flex items-center space-x-1 sm:space-x-1.5 overflow-x-auto no-scrollbar py-0.5 -mx-1 px-1">
             {[
               { id: 'UPCOMING', label: 'Upcoming' },
               { id: 'TODAY', label: 'Today' },
@@ -241,7 +329,7 @@ export const Meetings: React.FC = () => {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id as any)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                className={`px-2.5 sm:px-3.5 py-1.5 rounded-lg sm:rounded-xl text-[clamp(0.68rem,1.8vw,0.78rem)] font-semibold transition-all cursor-pointer whitespace-nowrap ${
                   activeTab === tab.id
                     ? 'bg-primary text-white shadow-xs font-bold'
                     : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
@@ -253,11 +341,11 @@ export const Meetings: React.FC = () => {
           </div>
 
           {/* Scope Select (Admins/Managers) */}
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex items-center gap-2 w-full sm:w-auto">
             <select
               value={selectedScope}
               onChange={(e: any) => setSelectedScope(e.target.value)}
-              className="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer"
+              className="flex-1 sm:flex-none bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg sm:rounded-xl px-2.5 py-1.5 text-[clamp(0.68rem,1.8vw,0.78rem)] font-semibold text-slate-800 dark:text-slate-200 cursor-pointer"
             >
               <option value="my_meetings">My Meetings</option>
               <option value="organized">Organized by Me</option>
@@ -268,7 +356,7 @@ export const Meetings: React.FC = () => {
               <select
                 value={selectedCentre}
                 onChange={(e) => setSelectedCentre(e.target.value)}
-                className="bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-2.5 py-1.5 text-xs font-semibold text-slate-800 dark:text-slate-200 cursor-pointer"
+                className="flex-1 sm:flex-none bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg sm:rounded-xl px-2.5 py-1.5 text-[clamp(0.68rem,1.8vw,0.78rem)] font-semibold text-slate-800 dark:text-slate-200 cursor-pointer"
               >
                 <option value="">All Centres</option>
                 {centres.map((c) => (
@@ -281,51 +369,53 @@ export const Meetings: React.FC = () => {
 
         {/* Search Bar */}
         <div className="relative">
-          <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
+          <Search className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-slate-400 absolute left-3 top-2.5 sm:top-3 pointer-events-none" />
           <input
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Search meetings by title, agenda, or location room..."
-            className="w-full pl-9 pr-4 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900"
+            placeholder="Search meetings by title, agenda, or location/room..."
+            className="w-full pl-8 sm:pl-9 pr-3 sm:pr-4 py-1.5 sm:py-2.5 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-lg sm:rounded-xl text-[clamp(0.72rem,1.9vw,0.85rem)] text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900 transition-colors"
           />
         </div>
       </div>
 
-      {/* Meetings Grid / List */}
+      {/* Meetings Grid / List - Dynamic to Screen */}
       {loading ? (
-        <div className="py-16 text-center text-slate-500 text-xs font-medium animate-pulse">
+        <div className="py-16 text-center text-slate-500 text-[clamp(0.75rem,2vw,0.85rem)] font-medium animate-pulse">
           Loading meetings and calendar schedules...
         </div>
       ) : meetings.length === 0 ? (
-        <div className="p-12 text-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xs space-y-3">
-          <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto">
-            <Video className="w-6 h-6" />
+        <div className="p-8 sm:p-12 text-center bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 rounded-xl sm:rounded-2xl shadow-xs space-y-3">
+          <div className="w-10 h-10 sm:w-12 sm:h-12 rounded-xl sm:rounded-2xl bg-primary/10 text-primary flex items-center justify-center mx-auto">
+            <Video className="w-5 h-5 sm:w-6 sm:h-6" />
           </div>
-          <div className="text-sm font-bold text-slate-900 dark:text-white">No meetings found</div>
-          <p className="text-xs text-slate-500 max-w-sm mx-auto">
+          <div className="text-[clamp(0.95rem,2.5vw,1.1rem)] font-bold text-slate-900 dark:text-white">
+            No meetings found
+          </div>
+          <p className="text-[clamp(0.72rem,1.9vw,0.82rem)] text-slate-500 max-w-sm mx-auto leading-relaxed">
             There are no meetings matching the selected filter criteria. Click "+ Schedule Meeting" to organize one.
           </p>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-3 sm:gap-4 lg:gap-5">
           {meetings.map((m) => (
             <div
               key={m.id}
-              className={`p-5 rounded-2xl bg-white dark:bg-slate-900 border transition-all shadow-xs flex flex-col justify-between space-y-4 hover:border-primary/40 ${
+              className={`p-3.5 sm:p-5 rounded-xl sm:rounded-2xl bg-white dark:bg-slate-900 border transition-all shadow-xs flex flex-col justify-between space-y-3 sm:space-y-4 hover:border-primary/40 hover:shadow-md ${
                 m.status === 'CANCELLED'
                   ? 'border-rose-200 dark:border-rose-950/60 opacity-80'
-                  : 'border-slate-200 dark:border-slate-800'
+                  : 'border-slate-200/80 dark:border-slate-800'
               }`}
             >
               {/* Card Top: Timing & Status */}
               <div>
-                <div className="flex items-center justify-between gap-2 mb-2">
-                  <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-[11px] font-semibold text-slate-700 dark:text-slate-300">
-                    <Calendar className="w-3.5 h-3.5 text-primary" /> {m.meeting_date}
+                <div className="flex items-center justify-between gap-1.5 sm:gap-2 mb-2 flex-wrap">
+                  <span className="inline-flex items-center gap-1 sm:gap-1.5 px-2 sm:px-2.5 py-0.5 sm:py-1 rounded-lg bg-slate-100 dark:bg-slate-800 text-[clamp(0.65rem,1.8vw,0.75rem)] font-semibold text-slate-700 dark:text-slate-300">
+                    <Calendar className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-primary" /> {m.meeting_date}
                   </span>
                   <span
-                    className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                    className={`px-1.5 sm:px-2 py-0.5 rounded text-[clamp(0.58rem,1.6vw,0.68rem)] font-bold uppercase tracking-wider ${
                       m.status === 'SCHEDULED'
                         ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950/80 dark:text-emerald-300'
                         : m.status === 'CANCELLED'
@@ -337,70 +427,70 @@ export const Meetings: React.FC = () => {
                   </span>
                 </div>
 
-                <div className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1.5">
-                  <Clock className="w-3.5 h-3.5 text-slate-400" />
+                <div className="flex items-center gap-1.5 text-[clamp(0.68rem,1.9vw,0.78rem)] font-semibold text-slate-500 dark:text-slate-400 mb-1.5">
+                  <Clock className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400 shrink-0" />
                   <span>{m.start_time.slice(0, 5)} - {m.end_time.slice(0, 5)} ({m.timezone.split('/')[1] || m.timezone})</span>
                 </div>
 
                 <h4
                   onClick={() => openDetailDrawer(m.id)}
-                  className="text-base font-bold text-slate-900 dark:text-white hover:text-primary transition-colors cursor-pointer line-clamp-1"
+                  className="text-[clamp(0.9rem,2.4vw,1.05rem)] font-bold text-slate-900 dark:text-white hover:text-primary transition-colors cursor-pointer line-clamp-2 leading-snug"
                 >
                   {m.title}
                 </h4>
 
-                <div className="mt-1.5 flex items-center gap-2 text-xs text-slate-500">
-                  <span>Organized by: <strong className="text-slate-700 dark:text-slate-300">{m.organizer_name}</strong></span>
+                <div className="mt-1.5 flex flex-wrap items-center gap-1 sm:gap-1.5 text-[clamp(0.68rem,1.8vw,0.75rem)] text-slate-500">
+                  <span>Organized by: <strong className="text-slate-700 dark:text-slate-300 font-semibold">{m.organizer_name}</strong></span>
                   {m.branch_name && (
                     <>
                       <span>•</span>
-                      <span>{m.branch_name}</span>
+                      <span className="truncate max-w-[120px]">{m.branch_name}</span>
                     </>
                   )}
                 </div>
               </div>
 
               {/* Location & Links */}
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 text-xs flex items-center justify-between">
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 text-[clamp(0.68rem,1.8vw,0.78rem)] flex items-center justify-between gap-2 flex-wrap">
                 {m.location_type === 'ONLINE' ? (
                   m.meeting_url ? (
                     <a
                       href={m.meeting_url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 text-primary hover:underline font-semibold"
+                      className="inline-flex items-center gap-1 sm:gap-1.5 text-primary hover:underline font-semibold"
                     >
-                      <Video className="w-3.5 h-3.5" />
+                      <Video className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                       <span>Join Call</span>
-                      <ExternalLink className="w-3 h-3" />
+                      <ExternalLink className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
                     </a>
                   ) : (
-                    <span className="text-slate-400 italic">Online (Link not provided)</span>
+                    <span className="text-slate-400 italic">Online (Link pending)</span>
                   )
                 ) : (
-                  <span className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-400 truncate">
-                    <MapPin className="w-3.5 h-3.5 text-slate-400 shrink-0" />
+                  <span className="inline-flex items-center gap-1 text-slate-600 dark:text-slate-400 truncate max-w-[160px]">
+                    <MapPin className="w-3 h-3 sm:w-3.5 sm:h-3.5 text-slate-400 shrink-0" />
                     <span className="truncate">{m.location_details || 'In-Person'}</span>
                   </span>
                 )}
 
                 {/* Participant counter */}
                 {m.participant_count && (
-                  <span className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-500 shrink-0">
-                    <Users className="w-3.5 h-3.5" />
+                  <span className="inline-flex items-center gap-1 text-[clamp(0.62rem,1.6vw,0.72rem)] font-medium text-slate-500 shrink-0">
+                    <Users className="w-3 h-3 sm:w-3.5 sm:h-3.5" />
                     <span>{m.participant_count.total} Guests</span>
                   </span>
                 )}
               </div>
 
               {/* RSVP Actions & Card Footer */}
-              <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-2">
+              <div className="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between gap-1.5 sm:gap-2 flex-wrap">
                 {/* My RSVP Status */}
                 {m.my_response_status ? (
-                  <div className="flex items-center gap-1.5">
-                    <span className="text-[11px] text-slate-500">My RSVP:</span>
+                  <div className="flex items-center gap-1 sm:gap-1.5">
+                    <span className="text-[clamp(0.64rem,1.7vw,0.72rem)] text-slate-500">My RSVP:</span>
                     <span
-                      className={`text-[10px] font-bold px-2 py-0.5 rounded ${
+                      className={`text-[clamp(0.58rem,1.6vw,0.68rem)] font-bold px-1.5 sm:px-2 py-0.5 rounded ${
                         m.my_response_status === 'ACCEPTED'
                           ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300'
                           : m.my_response_status === 'DECLINED'
@@ -412,7 +502,7 @@ export const Meetings: React.FC = () => {
                     </span>
                   </div>
                 ) : (
-                  <span className="text-[11px] text-slate-400">Viewer Only</span>
+                  <span className="text-[clamp(0.64rem,1.7vw,0.72rem)] text-slate-400">Viewer Only</span>
                 )}
 
                 {/* RSVP Toggle Buttons for invitees */}
@@ -420,13 +510,13 @@ export const Meetings: React.FC = () => {
                   <div className="flex items-center gap-1">
                     <button
                       onClick={() => handleRSVP(m.id, 'ACCEPTED')}
-                      className="px-2 py-1 rounded bg-emerald-500 hover:bg-emerald-600 text-white text-[11px] font-bold cursor-pointer"
+                      className="px-2 sm:px-2.5 py-1 rounded-md bg-emerald-500 hover:bg-emerald-600 text-white text-[clamp(0.62rem,1.6vw,0.72rem)] font-bold cursor-pointer transition-colors"
                     >
                       Accept
                     </button>
                     <button
                       onClick={() => handleRSVP(m.id, 'DECLINED')}
-                      className="px-2 py-1 rounded bg-slate-200 dark:bg-slate-700 hover:bg-rose-500 hover:text-white text-slate-700 dark:text-slate-200 text-[11px] font-bold cursor-pointer transition-colors"
+                      className="px-2 sm:px-2.5 py-1 rounded-md bg-slate-200 dark:bg-slate-700 hover:bg-rose-500 hover:text-white text-slate-700 dark:text-slate-200 text-[clamp(0.62rem,1.6vw,0.72rem)] font-bold cursor-pointer transition-colors"
                     >
                       Decline
                     </button>
@@ -434,7 +524,7 @@ export const Meetings: React.FC = () => {
                 ) : (
                   <button
                     onClick={() => openDetailDrawer(m.id)}
-                    className="text-xs font-semibold text-primary hover:underline flex items-center gap-0.5 cursor-pointer"
+                    className="text-[clamp(0.68rem,1.8vw,0.78rem)] font-semibold text-primary hover:underline flex items-center gap-0.5 cursor-pointer ml-auto"
                   >
                     <span>Details</span>
                     <ChevronRight className="w-3.5 h-3.5" />

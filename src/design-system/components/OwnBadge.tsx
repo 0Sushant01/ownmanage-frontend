@@ -87,8 +87,10 @@ export const OwnStatusBadge: React.FC<{ status: string; size?: 'sm' | 'md' | 'lg
     case 'PRESENT':
     case 'PAID':
     case 'APPROVED':
+    case 'RELEASED':
       variant = 'success'
       break
+    case 'FINALIZED':
     case 'PROCESSED':
     case 'OVERTIME':
     case 'PROBATION':
