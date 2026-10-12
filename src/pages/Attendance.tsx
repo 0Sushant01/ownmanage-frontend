@@ -22,6 +22,7 @@ import {
   Settings,
   Trash2
 } from '../components/Icons'
+import { X } from 'lucide-react'
 import { useSearchParams } from 'react-router-dom'
 import apiClient from '../services/api'
 import { useAuth } from '../context/AuthContext'
@@ -789,7 +790,9 @@ export const Attendance: React.FC = () => {
         {punchMessage && (
           <div className="px-4 py-3 bg-primary/10 border border-primary/30 text-primary rounded-xl text-sm font-medium flex items-center justify-between mb-4">
             <span>{punchMessage}</span>
-            <button onClick={() => setPunchMessage(null)} className="text-primary hover:opacity-75">✕</button>
+            <button type="button" onClick={() => setPunchMessage(null)} className="text-primary hover:opacity-75 cursor-pointer">
+              <X className="w-3.5 h-3.5" />
+            </button>
           </div>
         )}
 
@@ -1413,23 +1416,25 @@ export const Attendance: React.FC = () => {
                           const getCellBadge = (st: string) => {
                             switch (st) {
                               case 'PRESENT':
-                                return <span className="w-6 h-6 rounded flex items-center justify-center bg-emerald-500/15 text-emerald-500 font-bold text-[10px]">P</span>
+                                return <span className="w-6 h-6 rounded flex items-center justify-center bg-success/15 text-success font-bold text-[10px]">P</span>
                               case 'LATE':
-                                return <span className="w-6 h-6 rounded flex items-center justify-center bg-amber-500/15 text-amber-500 font-bold text-[10px]">L</span>
+                                return <span className="w-6 h-6 rounded flex items-center justify-center bg-warning/15 text-warning font-bold text-[10px]">L</span>
                               case 'HALF_DAY':
-                                return <span className="w-6 h-6 rounded flex items-center justify-center bg-amber-500/15 text-amber-600 font-bold text-[10px]">HD</span>
+                                return <span className="w-6 h-6 rounded flex items-center justify-center bg-warning/15 text-warning font-bold text-[10px]">HD</span>
                               case 'LEAVE_EARLY':
-                                return <span className="w-6 h-6 rounded flex items-center justify-center bg-amber-500/15 text-amber-500 font-bold text-[10px]">LE</span>
+                                return <span className="w-6 h-6 rounded flex items-center justify-center bg-warning/15 text-warning font-bold text-[10px]">LE</span>
                               case 'ON_LEAVE':
-                                return <span className="w-6 h-6 rounded flex items-center justify-center bg-blue-500/15 text-blue-500 font-bold text-[10px]">LV</span>
+                                return <span className="w-6 h-6 rounded flex items-center justify-center bg-info/15 text-info font-bold text-[10px]">LV</span>
                               case 'HOLIDAY':
-                                return <span className="w-6 h-6 rounded flex items-center justify-center bg-purple-500/15 text-purple-500 font-bold text-[10px]">H</span>
+                                return <span className="w-6 h-6 rounded flex items-center justify-center bg-accent text-accent-foreground font-bold text-[10px]">H</span>
                               case 'WEEKLY_OFF':
                                 return <span className="w-6 h-6 rounded flex items-center justify-center bg-muted text-muted-foreground font-medium text-[10px]">WO</span>
                               case 'ABSENT':
-                                return <span className="w-6 h-6 rounded flex items-center justify-center bg-rose-500/15 text-rose-500 font-bold text-[10px]">A</span>
+                                return <span className="w-6 h-6 rounded flex items-center justify-center bg-destructive/15 text-destructive font-bold text-[10px]">A</span>
                               case 'FUTURE':
                                 return <span className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground/30 text-[10px]">•</span>
+                              case 'NOT_EMPLOYED':
+                                return <span className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground/20 font-mono text-[10px]">—</span>
                               case 'NOT_MARKED':
                               default:
                                 return <span className="w-6 h-6 rounded flex items-center justify-center text-muted-foreground/40 font-mono text-[10px]">NM</span>
@@ -1698,17 +1703,17 @@ export const Attendance: React.FC = () => {
             <div className="space-y-6 max-h-[72vh] overflow-y-auto pr-1">
               {/* Overridden Distinction Banner */}
               {detailData.is_overridden && (
-                <div className="p-4 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-500 text-xs sm:text-sm space-y-1">
+                <div className="p-4 rounded-xl bg-warning/10 border border-warning/30 text-warning text-xs sm:text-sm space-y-1">
                   <div className="font-bold flex items-center gap-1.5">
                     <Shield className="w-4 h-4" />
-                    <span>Authoritative Manager Override Applied</span>
+                    <span>Manager Override Applied</span>
                   </div>
                   <div>
                     Modified by <span className="font-semibold text-foreground">{detailData.overridden_by_name || 'Authorized Admin'}</span>
                     {detailData.overridden_at && ` on ${new Date(detailData.overridden_at).toLocaleString()}`}.
                   </div>
                   {detailData.override_reason && (
-                    <div className="mt-1 pt-1 border-t border-amber-500/20 font-medium text-foreground">
+                    <div className="mt-1 pt-1 border-t border-warning/20 font-medium text-foreground">
                       Reason: "{detailData.override_reason}"
                     </div>
                   )}
@@ -1952,7 +1957,7 @@ export const Attendance: React.FC = () => {
               <div className="space-y-2">
                 <div className="text-xs font-bold text-foreground flex items-center gap-1.5">
                   <Clock className="w-4 h-4 text-muted-foreground" />
-                  <span>Punch Events Chronicle ({detailData.events?.length || 0})</span>
+                  <span>Punch History ({detailData.events?.length || 0})</span>
                 </div>
                 {detailData.events && detailData.events.length > 0 ? (
                   <div className="border border-border rounded-xl overflow-hidden">
@@ -2077,11 +2082,11 @@ export const Attendance: React.FC = () => {
                 />
               </div>
 
-              <div className="w-64 h-64 mx-auto p-4 bg-white rounded-2xl shadow-lg border border-border flex flex-col items-center justify-center">
+              <div className="w-64 h-64 mx-auto p-4 bg-card rounded-2xl shadow-lg border border-border flex flex-col items-center justify-center">
                 {/* SVG QR Code Simulation */}
-                <div className="w-full h-full flex flex-col items-center justify-center border-4 border-dashed border-slate-900 rounded-xl p-2 bg-slate-50 text-slate-900">
-                  <QrCode className="w-32 h-32 text-slate-900 mx-auto" />
-                  <div className="mt-2 text-[10px] font-mono font-bold break-all px-2 text-center text-slate-700">
+                <div className="w-full h-full flex flex-col items-center justify-center border-2 border-dashed border-primary/40 rounded-xl p-3 bg-muted/40 text-foreground">
+                  <QrCode className="w-28 h-28 text-primary mx-auto" />
+                  <div className="mt-2 text-[10px] font-mono font-bold break-all px-2 text-center text-muted-foreground">
                     {qrTokenData.qr_code}
                   </div>
                 </div>

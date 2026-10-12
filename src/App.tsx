@@ -26,6 +26,7 @@ import { Commissions } from './pages/broker/Commissions'
 import { ManagerAccessControl } from './pages/ManagerAccessControl'
 import { Holidays } from './pages/Holidays'
 import { PayrollRuns } from './pages/PayrollRuns'
+import { Compensation } from './pages/Compensation'
 import { ThemeAudit } from './pages/ThemeAudit'
 import { Meetings } from './pages/Meetings'
 
@@ -179,7 +180,15 @@ export default function App() {
             <Route path="/calendar" element={<Navigate to="/meetings" replace />} />
             <Route path="/holidays" element={<Holidays />} />
 
-            {/* Payroll Runs */}
+            {/* Compensation & Payroll */}
+            <Route
+              path="/compensation"
+              element={
+                <ProtectedRoute allowedRoles={['BUSINESS_ADMIN', 'SUPERADMIN']}>
+                  <Compensation />
+                </ProtectedRoute>
+              }
+            />
             <Route
               path="/payroll/runs"
               element={

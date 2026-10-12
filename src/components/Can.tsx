@@ -1,4 +1,5 @@
 import React from 'react'
+import { Lock } from 'lucide-react'
 import { usePermission } from '../context/AuthContext'
 
 interface CanProps {
@@ -43,15 +44,15 @@ export const PermissionGuard: React.FC<PermissionGuardProps> = ({
   }
 
   return (
-    <div className="flex flex-col items-center justify-center p-12 text-center bg-slate-900/60 rounded-2xl border border-slate-800 my-8">
-      <div className="w-16 h-16 rounded-2xl bg-amber-500/10 border border-amber-500/20 flex items-center justify-center text-2xl mb-4 text-amber-400">
-        🔒
+    <div className="flex flex-col items-center justify-center p-12 text-center bg-card rounded-2xl border border-border my-8 shadow-xs">
+      <div className="w-14 h-14 rounded-2xl bg-warning/10 border border-warning/20 flex items-center justify-center mb-4 text-warning">
+        <Lock className="w-6 h-6" />
       </div>
-      <h3 className="text-xl font-semibold text-white mb-2">{title}</h3>
-      <p className="text-slate-400 text-sm max-w-md mb-6">{message}</p>
-      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-800 text-slate-300 text-xs font-mono border border-slate-700">
-        <span>Required:</span>
-        <span className="text-amber-400">{permission}</span>
+      <h3 className="text-lg font-semibold text-foreground mb-2">{title}</h3>
+      <p className="text-muted-foreground text-sm max-w-md mb-6">{message}</p>
+      <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-muted text-foreground text-xs font-mono border border-border">
+        <span className="text-muted-foreground">Required:</span>
+        <span className="text-warning font-semibold">{permission}</span>
       </div>
     </div>
   )

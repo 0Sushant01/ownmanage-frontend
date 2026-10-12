@@ -1,7 +1,5 @@
 import React, { useEffect, useState, type ReactNode } from 'react'
 import { Link, useLocation, Outlet } from 'react-router-dom'
-import { useAuth, usePermission } from '../context/AuthContext'
-import { ThemeToggle } from './ThemeToggle'
 import {
   LogOut,
   Menu,
@@ -17,13 +15,15 @@ import {
   Settings,
   CalendarDays,
   DollarSign,
-  FileText,
   Shield,
   ChevronDown,
-} from './Icons'
-import { Palette } from 'lucide-react'
+  Palette,
+  Wallet,
+} from 'lucide-react'
+import { useAuth, usePermission } from '../context/AuthContext'
+import { ThemeToggle } from './ThemeToggle'
 
-const navIcon = 'w-[18px] h-[18px] shrink-0'
+const navIcon = 'w-4 h-4 shrink-0'
 
 interface NavChild {
   label: string
@@ -96,8 +96,16 @@ export const Layout: React.FC = () => {
           { label: 'Holidays', path: '/holidays' },
         ],
       },
-      { label: 'Compensation', path: '/salary', icon: <DollarSign className={navIcon} /> },
-      { label: 'Payroll Runs', path: '/payroll/runs', icon: <FileText className={navIcon} /> },
+      {
+        label: 'Payroll & Compensation',
+        path: '/compensation',
+        icon: <Wallet className={navIcon} />,
+        children: [
+          { label: 'Compensation', path: '/compensation' },
+          { label: 'Payroll Runs', path: '/payroll/runs' },
+          { label: 'Payslips & Register', path: '/salary' },
+        ],
+      },
       { label: 'Settings', path: '/settings', icon: <Settings className={navIcon} /> },
       { label: 'Profile', path: '/profile', icon: <User className={navIcon} /> },
     ]
@@ -129,7 +137,14 @@ export const Layout: React.FC = () => {
       },
     ]
     if (can('salary.view')) {
-      navItems.push({ label: 'Salary', path: '/salary', icon: <DollarSign className={navIcon} /> })
+      navItems.push({
+        label: 'Payroll & Compensation',
+        path: '/salary',
+        icon: <Wallet className={navIcon} />,
+        children: [
+          { label: 'Payslips & Register', path: '/salary' },
+        ],
+      })
     }
     navItems.push({ label: 'Profile', path: '/profile', icon: <User className={navIcon} /> })
   } else {
@@ -145,25 +160,25 @@ export const Layout: React.FC = () => {
     const cleanTarget = pathPart.replace(/\/+$/, '') || '/'
 
     if (queryPart) {
-      return location.pathname === cleanTarget && location.search.includes(queryPart)
+      return currentPath === cleanTarget && location.search.includes(queryPart)
     }
 
     if (targetPath === '/attendance') {
-      return location.pathname === '/attendance' && (!location.search || location.search.includes('tab=register'))
+      return currentPath === '/attendance' && (!location.search || location.search.includes('tab=register'))
     }
 
     if (targetPath === '/managers') {
       return (
-        location.pathname === '/managers' &&
+        currentPath === '/managers' &&
         (!location.search || !location.search.includes('tab=centres'))
       )
     }
 
     if (targetPath === '/managers/access-control') {
-      return location.pathname.includes('/access-control')
+      return currentPath.includes('/access-control')
     }
 
-    return location.pathname === cleanTarget
+    return currentPath === cleanTarget || currentPath.startsWith(cleanTarget + '/')
   }
 
   const isItemActive = (item: NavItem) => {
@@ -208,6 +223,22 @@ export const Layout: React.FC = () => {
   // Collapsible menu state (expanded/minimized)
   const [collapsedMenus, setCollapsedMenus] = useState<Record<string, boolean>>({})
 
+  // Auto-expand menu when navigating or landing on an active child route
+  useEffect(() => {
+    navItems.forEach((item) => {
+      if (item.children && isItemActive(item)) {
+        setCollapsedMenus((prev) => {
+          if (prev[item.label]) {
+            const next = { ...prev }
+            delete next[item.label]
+            return next
+          }
+          return prev
+        })
+      }
+    })
+  }, [location.pathname, location.search])
+
   const toggleMenu = (label: string, e?: React.MouseEvent) => {
     if (e) {
       e.preventDefault()
@@ -215,27 +246,27 @@ export const Layout: React.FC = () => {
     }
     setCollapsedMenus((prev) => ({
       ...prev,
-      [label]: !prev[label]
+      [label]: !prev[label],
     }))
   }
 
   const navLinkClass = (isActive: boolean) =>
-    `flex items-center space-x-3 min-h-10 px-3.5 py-2.5 rounded-xl text-xs font-semibold tracking-tight transition-all duration-150 select-none ${
+    `flex items-center space-x-2.5 min-h-9 px-3 py-2 rounded-lg text-xs font-medium tracking-tight transition-all duration-150 select-none ${
       isActive
-        ? 'bg-sidebar-active text-sidebar-active-foreground border border-primary/20 shadow-xs'
-        : 'text-muted-foreground hover:text-foreground hover:bg-muted'
+        ? 'bg-sidebar-active text-sidebar-active-foreground font-semibold border border-primary/20 shadow-2xs'
+        : 'text-muted-foreground hover:text-foreground hover:bg-muted/70'
     }`
 
   return (
     <div className="min-h-screen min-h-dvh bg-background text-foreground flex flex-col md:flex-row transition-colors font-sans antialiased">
-      <aside className="hidden md:flex flex-col w-64 bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-colors shadow-xs shrink-0">
-        <div className="p-5 border-b border-sidebar-border flex items-center justify-between">
-          <div className="flex items-center space-x-3 min-w-0">
-            <div className="h-9 w-9 rounded-xl bg-primary flex items-center justify-center font-extrabold text-primary-foreground text-sm shadow-xs shrink-0 tracking-tight">
+      <aside className="hidden md:flex flex-col w-60 bg-sidebar text-sidebar-foreground border-r border-sidebar-border transition-colors shadow-2xs shrink-0">
+        <div className="p-4 border-b border-sidebar-border flex items-center justify-between">
+          <div className="flex items-center space-x-2.5 min-w-0">
+            <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center font-bold text-primary-foreground text-xs shadow-2xs shrink-0 tracking-tight">
               OM
             </div>
             <div className="min-w-0">
-              <span className="font-bold text-foreground text-sm tracking-tight block truncate">
+              <span className="font-semibold text-foreground text-sm tracking-tight block truncate">
                 OwnManage
               </span>
               <span className="text-[11px] text-muted-foreground font-mono block truncate">
@@ -246,7 +277,7 @@ export const Layout: React.FC = () => {
           <ThemeToggle size="sm" />
         </div>
 
-        <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
+        <nav className="flex-1 p-2.5 space-y-0.5 overflow-y-auto">
           {navItems.map((item) => {
             const isActive = isItemActive(item)
             const isCollapsed = !!collapsedMenus[item.label]
@@ -263,30 +294,30 @@ export const Layout: React.FC = () => {
                     <button
                       type="button"
                       onClick={(e) => toggleMenu(item.label, e)}
-                      className="p-2 ml-1 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-lg transition-colors cursor-pointer"
+                      className="p-1.5 ml-0.5 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-md transition-colors cursor-pointer"
                       title={isCollapsed ? `Expand ${item.label}` : `Minimize ${item.label}`}
                       aria-label={isCollapsed ? `Expand ${item.label}` : `Minimize ${item.label}`}
                     >
                       <ChevronDown
                         className={`w-3.5 h-3.5 transition-transform duration-200 ${
                           isCollapsed ? '-rotate-90' : 'rotate-0'
-                        } ${isActive ? 'text-primary font-bold' : 'text-muted-foreground/70'}`}
+                        } ${isActive ? 'text-primary font-semibold' : 'text-muted-foreground/70'}`}
                       />
                     </button>
                   )}
                 </div>
                 {item.children && !isCollapsed && (
-                  <div className="ml-5 pl-3 border-l border-sidebar-border/70 my-1 space-y-0.5">
+                  <div className="ml-4 pl-2.5 border-l border-sidebar-border my-0.5 space-y-0.5">
                     {item.children.map((child) => {
                       const isChildActive = isSubItemActive(child.path)
                       return (
                         <Link
                           key={child.path}
                           to={child.path}
-                          className={`block px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${
+                          className={`block px-2.5 py-1.5 rounded-md text-[11px] transition-colors ${
                             isChildActive
-                              ? 'bg-primary/10 text-primary font-bold'
-                              : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                              ? 'bg-primary/10 text-primary font-semibold'
+                              : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                           }`}
                         >
                           {child.label}
@@ -300,8 +331,8 @@ export const Layout: React.FC = () => {
           })}
         </nav>
 
-        <div className="p-4 border-t border-sidebar-border bg-muted/40">
-          <div className="flex items-center justify-between mb-3">
+        <div className="p-3 border-t border-sidebar-border bg-muted/30">
+          <div className="flex items-center justify-between mb-2.5">
             <div className="truncate mr-2">
               <span className="text-xs font-semibold text-foreground block truncate">
                 {user?.full_name || user?.email}
@@ -310,13 +341,13 @@ export const Layout: React.FC = () => {
                 {user?.email}
               </span>
             </div>
-            <span className="text-[10px] uppercase font-bold px-2 py-0.5 rounded-md border border-border bg-card text-foreground shrink-0">
+            <span className="text-[10px] uppercase font-semibold px-1.5 py-0.5 rounded border border-border bg-card text-muted-foreground shrink-0">
               {role}
             </span>
           </div>
           <button
             onClick={logout}
-            className="w-full min-h-9 flex items-center justify-center space-x-2 bg-card hover:bg-danger/10 hover:text-danger hover:border-danger/30 text-muted-foreground text-xs py-2 rounded-xl border border-border transition-colors shadow-xs cursor-pointer"
+            className="w-full min-h-8 flex items-center justify-center space-x-1.5 bg-card hover:bg-destructive/10 hover:text-destructive hover:border-destructive/30 text-muted-foreground text-xs py-1.5 rounded-lg border border-border transition-colors shadow-2xs cursor-pointer"
           >
             <LogOut className="w-3.5 h-3.5" />
             <span>Sign Out</span>
@@ -325,21 +356,21 @@ export const Layout: React.FC = () => {
       </aside>
 
       <div
-        className="md:hidden flex items-center justify-between px-4 bg-card/95 backdrop-blur-md border-b border-border sticky top-0 z-40 transition-colors shadow-xs"
+        className="md:hidden flex items-center justify-between px-4 bg-card/95 backdrop-blur-md border-b border-border sticky top-0 z-40 transition-colors shadow-2xs"
         style={{ paddingTop: 'max(0.75rem, env(safe-area-inset-top))', paddingBottom: '0.75rem' }}
       >
         <div className="flex items-center space-x-2.5 min-w-0">
-          <div className="h-8 w-8 rounded-xl bg-primary flex items-center justify-center font-bold text-primary-foreground text-xs shadow-xs shrink-0">
+          <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center font-bold text-primary-foreground text-xs shadow-2xs shrink-0">
             OM
           </div>
-          <span className="font-bold text-foreground text-sm tracking-tight truncate">OwnManage</span>
+          <span className="font-semibold text-foreground text-sm tracking-tight truncate">OwnManage</span>
         </div>
         <div className="flex items-center gap-1.5 shrink-0">
           <ThemeToggle size="sm" />
           <button
             type="button"
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className="text-foreground min-h-10 min-w-10 inline-flex items-center justify-center rounded-xl bg-muted hover:bg-muted/80 border border-border transition-colors cursor-pointer"
+            className="text-foreground min-h-9 min-w-9 inline-flex items-center justify-center rounded-lg bg-muted hover:bg-muted/80 border border-border transition-colors cursor-pointer"
             aria-label={mobileMenuOpen ? 'Close navigation menu' : 'Open navigation menu'}
             aria-expanded={mobileMenuOpen}
           >
@@ -357,21 +388,21 @@ export const Layout: React.FC = () => {
             onClick={() => setMobileMenuOpen(false)}
           />
           <div
-            className="absolute top-0 right-0 h-full w-[min(20rem,86vw)] bg-sidebar text-sidebar-foreground border-l border-sidebar-border shadow-2xl flex flex-col"
+            className="absolute top-0 right-0 h-full w-[min(19rem,86vw)] bg-sidebar text-sidebar-foreground border-l border-sidebar-border shadow-xl flex flex-col"
             style={{ paddingTop: 'env(safe-area-inset-top)', paddingBottom: 'env(safe-area-inset-bottom)' }}
           >
-            <div className="flex items-center justify-between px-4 py-3.5 border-b border-sidebar-border">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-sidebar-border">
               <span className="text-sm font-semibold text-foreground tracking-tight">Navigation</span>
               <button
                 type="button"
                 onClick={() => setMobileMenuOpen(false)}
-                className="min-h-10 min-w-10 inline-flex items-center justify-center rounded-xl text-muted-foreground hover:bg-muted"
+                className="min-h-9 min-w-9 inline-flex items-center justify-center rounded-lg text-muted-foreground hover:bg-muted"
                 aria-label="Close navigation menu"
               >
-                <X className="w-5 h-5" />
+                <X className="w-4 h-4" />
               </button>
             </div>
-            <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+            <nav className="flex-1 overflow-y-auto p-2.5 space-y-0.5">
               {navItems.map((item) => {
                 const isActive = isItemActive(item)
                 const isCollapsed = !!collapsedMenus[item.label]
@@ -392,20 +423,20 @@ export const Layout: React.FC = () => {
                         <button
                           type="button"
                           onClick={(e) => toggleMenu(item.label, e)}
-                          className="p-2 ml-1 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-lg transition-colors cursor-pointer"
+                          className="p-1.5 ml-0.5 text-muted-foreground hover:text-foreground hover:bg-muted/80 rounded-md transition-colors cursor-pointer"
                           title={isCollapsed ? `Expand ${item.label}` : `Minimize ${item.label}`}
                           aria-label={isCollapsed ? `Expand ${item.label}` : `Minimize ${item.label}`}
                         >
                           <ChevronDown
                             className={`w-3.5 h-3.5 transition-transform duration-200 ${
                               isCollapsed ? '-rotate-90' : 'rotate-0'
-                            } ${isActive ? 'text-primary font-bold' : 'text-muted-foreground/70'}`}
+                            } ${isActive ? 'text-primary font-semibold' : 'text-muted-foreground/70'}`}
                           />
                         </button>
                       )}
                     </div>
                     {item.children && !isCollapsed && (
-                      <div className="ml-5 pl-3 border-l border-sidebar-border/70 my-1 space-y-0.5">
+                      <div className="ml-4 pl-2.5 border-l border-sidebar-border my-0.5 space-y-0.5">
                         {item.children.map((child) => {
                           const isChildActive = isSubItemActive(child.path)
                           return (
@@ -413,10 +444,10 @@ export const Layout: React.FC = () => {
                               key={child.path}
                               to={child.path}
                               onClick={() => setMobileMenuOpen(false)}
-                              className={`block px-2.5 py-1.5 rounded-lg text-[11px] font-medium transition-colors ${
+                              className={`block px-2.5 py-1.5 rounded-md text-[11px] transition-colors ${
                                 isChildActive
-                                  ? 'bg-primary/10 text-primary font-bold'
-                                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/60'
+                                  ? 'bg-primary/10 text-primary font-semibold'
+                                  : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                               }`}
                             >
                               {child.label}
@@ -429,10 +460,10 @@ export const Layout: React.FC = () => {
                 )
               })}
             </nav>
-            <div className="p-4 border-t border-sidebar-border bg-muted/40">
+            <div className="p-3 border-t border-sidebar-border bg-muted/30">
               <button
                 onClick={logout}
-                className="w-full min-h-10 flex items-center justify-center space-x-2 bg-card text-muted-foreground hover:text-danger rounded-xl border border-border text-xs"
+                className="w-full min-h-9 flex items-center justify-center space-x-1.5 bg-card text-muted-foreground hover:text-destructive rounded-lg border border-border text-xs"
               >
                 <LogOut className="w-3.5 h-3.5" />
                 <span>Sign Out</span>

@@ -15,7 +15,7 @@ import {
   CalendarDays,
   Smartphone
 } from '../components/Icons'
-import { ShieldCheck, Lock, Unlock } from 'lucide-react'
+import { ShieldCheck, Lock, Unlock, X } from 'lucide-react'
 import apiClient from '../services/api'
 import { CentreSelector } from '../components/CentreSelector'
 import { ToggleSwitch } from '../components/ToggleSwitch'
@@ -487,16 +487,20 @@ export const AttendancePolicies: React.FC<AttendancePoliciesProps> = ({
       </div>
 
       {error && (
-        <div className="p-4 bg-rose-50 dark:bg-rose-950/80 border border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200 rounded-xl text-sm flex items-center justify-between">
+        <div className="p-3.5 bg-destructive/10 border border-destructive/30 text-destructive rounded-xl text-xs font-semibold flex items-center justify-between">
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="text-rose-500 hover:text-rose-700 dark:hover:text-white cursor-pointer">✕</button>
+          <button type="button" onClick={() => setError(null)} className="text-destructive hover:opacity-75 cursor-pointer">
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
 
       {successMsg && (
-        <div className="p-4 bg-emerald-50 dark:bg-emerald-950/80 border border-emerald-300 dark:border-emerald-800 text-emerald-800 dark:text-emerald-200 rounded-xl text-sm flex items-center justify-between">
+        <div className="p-3.5 bg-success/10 border border-success/30 text-success rounded-xl text-xs font-semibold flex items-center justify-between">
           <span>{successMsg}</span>
-          <button onClick={() => setSuccessMsg(null)} className="text-emerald-500 hover:text-emerald-700 dark:hover:text-white cursor-pointer">✕</button>
+          <button type="button" onClick={() => setSuccessMsg(null)} className="text-success hover:opacity-75 cursor-pointer">
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
 

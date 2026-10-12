@@ -8,6 +8,7 @@ import {
   OwnButton,
   OwnPageHeader,
 } from '../../design-system'
+import { X, Check, Copy } from 'lucide-react'
 
 interface ReferredBusinessItem {
   id: string
@@ -304,10 +305,11 @@ export const Brokers: React.FC = () => {
                   </span>
                 </div>
                 <button
+                  type="button"
                   onClick={() => setSelectedBrokerId(null)}
                   className="rounded-lg p-2 text-muted-foreground hover:bg-muted hover:text-foreground transition cursor-pointer"
                 >
-                  ✕
+                  <X className="w-4 h-4" />
                 </button>
               </div>
 
@@ -369,8 +371,9 @@ export const Brokers: React.FC = () => {
                           onClick={() => handleCopyReferralLink(brokerDetail.referral_code)}
                           size="sm"
                           variant={copiedLink ? 'secondary' : 'primary'}
+                          leftIcon={copiedLink ? <Check className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
                         >
-                          <span>{copiedLink ? '✓ Copied!' : '📋 Copy Link'}</span>
+                          {copiedLink ? 'Copied' : 'Copy Link'}
                         </OwnButton>
                       </div>
                     </div>

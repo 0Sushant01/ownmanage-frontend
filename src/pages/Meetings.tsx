@@ -212,22 +212,26 @@ export const Meetings: React.FC = () => {
 
       {/* Notifications / Alerts */}
       {actionSuccess && (
-        <div className="p-3 sm:p-3.5 rounded-xl bg-success/10 border border-success/20 text-success text-[clamp(0.68rem,1.8vw,0.75rem)] font-semibold flex items-center justify-between">
+        <div className="p-3 sm:p-3.5 rounded-xl bg-success/10 border border-success/20 text-success text-xs font-semibold flex items-center justify-between">
           <div className="flex items-center gap-2">
             <CheckCircle2 className="w-4 h-4 shrink-0" />
             <span>{actionSuccess}</span>
           </div>
-          <button onClick={() => setActionSuccess(null)} className="text-success hover:opacity-75 cursor-pointer">✕</button>
+          <button type="button" onClick={() => setActionSuccess(null)} className="text-success hover:opacity-75 cursor-pointer">
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
 
       {error && (
-        <div className="p-3 sm:p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-[clamp(0.68rem,1.8vw,0.75rem)] font-semibold flex items-center justify-between">
+        <div className="p-3 sm:p-3.5 rounded-xl bg-danger/10 border border-danger/20 text-danger text-xs font-semibold flex items-center justify-between">
           <div className="flex items-center gap-2">
             <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{error}</span>
           </div>
-          <button onClick={() => setError(null)} className="text-danger hover:opacity-75 cursor-pointer">✕</button>
+          <button type="button" onClick={() => setError(null)} className="text-danger hover:opacity-75 cursor-pointer">
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
 
@@ -396,6 +400,21 @@ export const Meetings: React.FC = () => {
           <p className="text-[clamp(0.72rem,1.9vw,0.82rem)] text-slate-500 max-w-sm mx-auto leading-relaxed">
             There are no meetings matching the selected filter criteria. Click "+ Schedule Meeting" to organize one.
           </p>
+          {canCreate && (
+            <div className="pt-2">
+              <OwnButton
+                variant="primary"
+                onClick={() => {
+                  setEditingMeeting(null)
+                  setIsCreateOpen(true)
+                }}
+                className="inline-flex items-center gap-1.5 sm:gap-2 text-xs font-bold px-4 py-2 rounded-xl shadow-xs"
+              >
+                <Plus className="w-4 h-4" />
+                <span>Schedule Meeting</span>
+              </OwnButton>
+            </div>
+          )}
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-3 sm:gap-4 lg:gap-5">

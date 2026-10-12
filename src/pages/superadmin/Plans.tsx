@@ -8,6 +8,7 @@ import {
   OwnButton,
   OwnPageHeader,
 } from '../../design-system'
+import { Building2, X } from 'lucide-react'
 
 interface PlanSubscriber {
   business_id: string
@@ -280,7 +281,7 @@ export const Plans: React.FC = () => {
                       onClick={() => openSubscribersModal(p)}
                       className="px-2.5 py-1 rounded-lg bg-primary/10 border border-primary/20 text-primary text-xs font-semibold hover:bg-primary/20 transition flex items-center space-x-1 cursor-pointer"
                     >
-                      <span>🏢</span>
+                      <Building2 className="w-3.5 h-3.5 text-primary shrink-0" />
                       <span>{p.active_subscribers_count ?? 0} active</span>
                       <span className="text-[10px] text-muted-foreground">({p.total_subscribers_count ?? 0} total)</span>
                     </button>
@@ -519,10 +520,11 @@ export const Plans: React.FC = () => {
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => setSelectedPlanForSubs(null)}
-                className="text-muted-foreground hover:text-foreground text-lg font-bold p-1 cursor-pointer"
+                className="text-muted-foreground hover:text-foreground p-1 cursor-pointer"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 

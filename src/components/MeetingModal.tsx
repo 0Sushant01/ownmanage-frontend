@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import apiClient from '../services/api'
 import type { Meeting, EligibleEmployee, MeetingConflict } from '../types'
-import {
-  OwnButton,
-} from '../design-system'
+import { OwnButton } from '../design-system'
 import {
   X,
   Search,
@@ -12,6 +10,12 @@ import {
   AlertTriangle,
   Plus,
   ExternalLink,
+  Calendar,
+  Clock,
+  Building2,
+  MapPin,
+  Sparkles,
+  Link2,
 } from 'lucide-react'
 
 interface MeetingModalProps {
@@ -19,6 +23,50 @@ interface MeetingModalProps {
   onClose: () => void
   onSuccess: (meeting: Meeting) => void
   editMeeting?: Meeting | null
+}
+
+const DURATION_PRESETS = [
+  { label: '15m', mins: 15 },
+  { label: '30m', mins: 30 },
+  { label: '45m', mins: 45 },
+  { label: '1h', mins: 60 },
+  { label: '1.5h', mins: 90 },
+  { label: '2h', mins: 120 },
+]
+
+const ROOM_PRESETS = ['Conference Room A', 'Board Room', 'Meeting Room 2', 'Discussion Pod']
+
+const addMinutesToTime = (timeStr: string, minutesToAdd: number) => {
+  const [hStr, mStr] = (timeStr || '10:00').split(':')
+  const h = parseInt(hStr || '10', 10)
+  const m = parseInt(mStr || '00', 10)
+  const totalMins = h * 60 + m + minutesToAdd
+  const newH = Math.floor((totalMins / 60) % 24)
+  const newM = totalMins % 60
+  return `${String(newH).padStart(2, '0')}:${String(newM).padStart(2, '0')}`
+}
+
+const getInitials = (name: string) => {
+  if (!name) return '?'
+  const parts = name.trim().split(/\s+/)
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase()
+  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase()
+}
+
+const getAvatarBg = (name: string) => {
+  const colors = [
+    'bg-emerald-500/15 text-emerald-700 dark:text-emerald-400 border-emerald-500/30',
+    'bg-blue-500/15 text-blue-700 dark:text-blue-400 border-blue-500/30',
+    'bg-purple-500/15 text-purple-700 dark:text-purple-400 border-purple-500/30',
+    'bg-amber-500/15 text-amber-700 dark:text-amber-400 border-amber-500/30',
+    'bg-rose-500/15 text-rose-700 dark:text-rose-400 border-rose-500/30',
+    'bg-teal-500/15 text-teal-700 dark:text-teal-400 border-teal-500/30',
+  ]
+  let hash = 0
+  for (let i = 0; i < (name || '').length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash)
+  }
+  return colors[Math.abs(hash) % colors.length]
 }
 
 export const MeetingModal: React.FC<MeetingModalProps> = ({
@@ -74,7 +122,6 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({
         setLocationType(editMeeting.location_type)
         setLocationDetails(editMeeting.location_details || '')
         setMeetingUrl(editMeeting.meeting_url || '')
-        // Participants if detailed
         if (editMeeting.participants) {
           const initEmps: EligibleEmployee[] = editMeeting.participants
             .filter((p) => !p.is_organizer)
@@ -196,8 +243,8 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({
   }
 
   // Save handler
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
+  const handleSubmit = async (e?: React.FormEvent) => {
+    if (e) e.preventDefault()
     setError(null)
 
     if (!title.trim()) {
@@ -257,39 +304,39 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({
   if (!isOpen) return null
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-slate-900/60 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-2.5 sm:p-4 bg-background/80 backdrop-blur-xs animate-in fade-in duration-200">
       <div
-        className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-xl sm:rounded-2xl shadow-2xl border border-slate-200 dark:border-slate-800 flex flex-col max-h-[92vh] overflow-hidden"
+        className="w-full max-w-2xl bg-card text-card-foreground rounded-2xl shadow-2xl border border-border flex flex-col max-h-[92vh] overflow-hidden"
         role="dialog"
         aria-modal="true"
       >
         {/* Modal Header */}
-        <div className="px-3.5 sm:px-5 py-3 sm:py-4 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-950/40">
-          <div className="flex items-center space-x-2 sm:space-x-2.5">
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0">
-              <Video className="w-4 h-4 sm:w-5 sm:h-5" />
+        <div className="px-4 sm:px-6 py-3.5 sm:py-4 border-b border-border flex items-center justify-between bg-muted/30">
+          <div className="flex items-center space-x-3">
+            <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-bold shrink-0 shadow-2xs">
+              <Video className="w-5 h-5" />
             </div>
             <div>
-              <h3 className="text-[clamp(0.9rem,2.4vw,1.1rem)] font-bold text-slate-900 dark:text-white leading-tight">
+              <h3 className="text-base sm:text-lg font-bold text-foreground leading-tight">
                 {editMeeting ? 'Edit / Reschedule Meeting' : 'Schedule New Meeting'}
               </h3>
-              <p className="text-[clamp(0.65rem,1.7vw,0.75rem)] text-slate-500 mt-0.5">
+              <p className="text-xs text-muted-foreground mt-0.5">
                 {editMeeting ? 'Update details, change timing, or manage invitees.' : 'Configure timing, internal staff, and external guests.'}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-muted transition-colors cursor-pointer"
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Modal Body */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-3.5 sm:p-5 space-y-3 sm:space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4">
           {error && (
-            <div className="p-2.5 sm:p-3 rounded-xl bg-danger/10 border border-danger/20 text-danger text-[clamp(0.68rem,1.8vw,0.75rem)] font-semibold flex items-center gap-2">
+            <div className="p-3 rounded-xl bg-destructive/10 border border-destructive/20 text-destructive text-xs font-semibold flex items-center gap-2">
               <AlertTriangle className="w-4 h-4 shrink-0" />
               <span>{error}</span>
             </div>
@@ -297,8 +344,8 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({
 
           {/* Meeting Title */}
           <div>
-            <label className="block text-[clamp(0.68rem,1.8vw,0.75rem)] font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Meeting Title <span className="text-danger">*</span>
+            <label className="block text-xs font-semibold text-foreground mb-1.5">
+              Meeting Title <span className="text-destructive">*</span>
             </label>
             <input
               type="text"
@@ -306,88 +353,174 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({
               value={title}
               onChange={(e) => setTitle(e.target.value)}
               placeholder="e.g. Q4 Strategy Review, Client Demo, Weekly Standup"
-              className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-[clamp(0.75rem,2vw,0.875rem)] focus:ring-2 focus:ring-primary focus:border-primary text-slate-900 dark:text-white"
+              className="w-full px-3.5 py-2.5 bg-background border border-border rounded-xl text-sm focus:ring-2 focus:ring-primary focus:border-primary text-foreground placeholder:text-muted-foreground shadow-2xs transition-all"
             />
           </div>
 
           {/* Date and Time Row */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Meeting Date <span className="text-danger">*</span>
-              </label>
-              <input
-                type="date"
-                required
-                value={meetingDate}
-                onChange={(e) => setMeetingDate(e.target.value)}
-                className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white cursor-pointer"
-              />
+          <div className="space-y-2">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1.5 flex items-center gap-1.5">
+                  <Calendar className="w-3.5 h-3.5 text-primary" /> Meeting Date <span className="text-destructive">*</span>
+                </label>
+                <input
+                  type="date"
+                  required
+                  value={meetingDate}
+                  onChange={(e) => setMeetingDate(e.target.value)}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-xl text-xs sm:text-sm text-foreground cursor-pointer shadow-2xs"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1.5 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-primary" /> Start Time <span className="text-destructive">*</span>
+                </label>
+                <input
+                  type="time"
+                  required
+                  value={startTime}
+                  onChange={(e) => setStartTime(e.target.value)}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-xl text-xs sm:text-sm text-foreground cursor-pointer shadow-2xs"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-foreground mb-1.5 flex items-center gap-1.5">
+                  <Clock className="w-3.5 h-3.5 text-primary" /> End Time <span className="text-destructive">*</span>
+                </label>
+                <input
+                  type="time"
+                  required
+                  value={endTime}
+                  onChange={(e) => setEndTime(e.target.value)}
+                  className="w-full px-3 py-2 bg-background border border-border rounded-xl text-xs sm:text-sm text-foreground cursor-pointer shadow-2xs"
+                />
+              </div>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Start Time <span className="text-danger">*</span>
-              </label>
-              <input
-                type="time"
-                required
-                value={startTime}
-                onChange={(e) => setStartTime(e.target.value)}
-                className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white cursor-pointer"
-              />
-            </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                End Time <span className="text-danger">*</span>
-              </label>
-              <input
-                type="time"
-                required
-                value={endTime}
-                onChange={(e) => setEndTime(e.target.value)}
-                className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white cursor-pointer"
-              />
+
+            {/* Quick Duration Presets */}
+            <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+              <span className="text-[11px] text-muted-foreground font-medium flex items-center gap-1">
+                <Sparkles className="w-3 h-3 text-primary" /> Quick Duration:
+              </span>
+              {DURATION_PRESETS.map((p) => (
+                <button
+                  key={p.label}
+                  type="button"
+                  onClick={() => setEndTime(addMinutesToTime(startTime, p.mins))}
+                  className="px-2 py-0.5 rounded-md text-xs font-mono font-medium bg-muted hover:bg-primary/10 hover:text-primary border border-border transition-colors cursor-pointer"
+                >
+                  +{p.label}
+                </button>
+              ))}
             </div>
           </div>
 
           {/* Location Type & Link/Room */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                Location Type
-              </label>
-              <select
-                value={locationType}
-                onChange={(e: any) => setLocationType(e.target.value)}
-                className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white cursor-pointer"
+          <div className="space-y-2.5 pt-1">
+            <label className="block text-xs font-semibold text-foreground">
+              Meeting Platform / Location <span className="text-destructive">*</span>
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              <button
+                type="button"
+                onClick={() => setLocationType('ONLINE')}
+                className={`flex items-center justify-center gap-1.5 p-2 sm:p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                  locationType === 'ONLINE'
+                    ? 'bg-primary/10 border-primary text-primary shadow-2xs font-bold'
+                    : 'bg-background border-border hover:bg-muted text-muted-foreground'
+                }`}
               >
-                <option value="ONLINE">Online / Video Call</option>
-                <option value="IN_PERSON">In Person</option>
-                <option value="OTHER">Other / Custom</option>
-              </select>
+                <Video className="w-3.5 h-3.5" />
+                <span>Online / Video</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setLocationType('IN_PERSON')}
+                className={`flex items-center justify-center gap-1.5 p-2 sm:p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                  locationType === 'IN_PERSON'
+                    ? 'bg-primary/10 border-primary text-primary shadow-2xs font-bold'
+                    : 'bg-background border-border hover:bg-muted text-muted-foreground'
+                }`}
+              >
+                <Building2 className="w-3.5 h-3.5" />
+                <span>In Person</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setLocationType('OTHER')}
+                className={`flex items-center justify-center gap-1.5 p-2 sm:p-2.5 rounded-xl border text-xs font-semibold transition-all cursor-pointer ${
+                  locationType === 'OTHER'
+                    ? 'bg-primary/10 border-primary text-primary shadow-2xs font-bold'
+                    : 'bg-background border-border hover:bg-muted text-muted-foreground'
+                }`}
+              >
+                <MapPin className="w-3.5 h-3.5" />
+                <span>Other / Custom</span>
+              </button>
             </div>
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-                {locationType === 'ONLINE' ? 'Video Call URL (e.g. Meet, Zoom)' : 'Room / Location Details'}
-              </label>
-              {locationType === 'ONLINE' ? (
-                <input
-                  type="url"
-                  value={meetingUrl}
-                  onChange={(e) => setMeetingUrl(e.target.value)}
-                  placeholder="https://meet.google.com/xyz or https://zoom.us/..."
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
-                />
-              ) : (
+
+            {locationType === 'ONLINE' ? (
+              <div className="space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] text-muted-foreground">Video Conference URL:</span>
+                  <a
+                    href="https://meet.google.com/new"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 text-[11px] font-semibold text-primary hover:underline cursor-pointer"
+                  >
+                    <ExternalLink className="w-3 h-3" />
+                    <span>Create New Google Meet</span>
+                  </a>
+                </div>
+                <div className="relative">
+                  <Link2 className="w-4 h-4 text-muted-foreground absolute left-3 top-3 pointer-events-none" />
+                  <input
+                    type="url"
+                    value={meetingUrl}
+                    onChange={(e) => setMeetingUrl(e.target.value)}
+                    placeholder="https://meet.google.com/xyz or https://zoom.us/j/..."
+                    className="w-full pl-9 pr-3 py-2 bg-background border border-border rounded-xl text-xs sm:text-sm text-foreground placeholder:text-muted-foreground"
+                  />
+                </div>
+              </div>
+            ) : locationType === 'IN_PERSON' ? (
+              <div className="space-y-1.5">
+                <span className="text-[11px] text-muted-foreground">Meeting Room / Space:</span>
                 <input
                   type="text"
                   value={locationDetails}
                   onChange={(e) => setLocationDetails(e.target.value)}
                   placeholder="e.g. Conference Room A, 2nd Floor"
-                  className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
+                  className="w-full px-3 py-2 bg-background border border-border rounded-xl text-xs sm:text-sm text-foreground"
                 />
-              )}
-            </div>
+                <div className="flex items-center gap-1.5 flex-wrap pt-0.5">
+                  <span className="text-[10px] text-muted-foreground">Room Presets:</span>
+                  {ROOM_PRESETS.map((rm) => (
+                    <button
+                      key={rm}
+                      type="button"
+                      onClick={() => setLocationDetails(rm)}
+                      className="px-2 py-0.5 rounded text-[11px] font-medium bg-muted hover:bg-primary/10 hover:text-primary border border-border transition-colors cursor-pointer"
+                    >
+                      {rm}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-1.5">
+                <span className="text-[11px] text-muted-foreground">Location Details:</span>
+                <input
+                  type="text"
+                  value={locationDetails}
+                  onChange={(e) => setLocationDetails(e.target.value)}
+                  placeholder="e.g. Client Site, Café Lounge, or External Venue"
+                  className="w-full px-3 py-2 bg-background border border-border rounded-xl text-xs sm:text-sm text-foreground"
+                />
+              </div>
+            )}
           </div>
 
           {/* Conflict Checking Indicator */}
@@ -400,19 +533,19 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({
 
           {/* Soft Conflict Warning Card */}
           {conflicts.length > 0 && (
-            <div className="p-3.5 rounded-xl bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-800 text-xs text-amber-900 dark:text-amber-200 space-y-2">
+            <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-xs text-amber-900 dark:text-amber-200 space-y-2">
               <div className="flex items-center gap-2 font-bold text-amber-800 dark:text-amber-300">
                 <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 shrink-0" />
                 <span>Scheduling Conflict Warning ({conflicts.length} Overlapping Events)</span>
               </div>
-              <ul className="list-disc list-inside space-y-1 text-slate-700 dark:text-slate-300 pl-1">
+              <ul className="list-disc list-inside space-y-1 text-foreground/80 pl-1">
                 {conflicts.map((c, idx) => (
                   <li key={idx} className="leading-snug">
                     <strong>{c.name}</strong>: {c.warning}
                   </li>
                 ))}
               </ul>
-              <label className="flex items-center gap-2 pt-1 font-semibold text-amber-900 dark:text-amber-100 cursor-pointer">
+              <label className="flex items-center gap-2 pt-1 font-semibold text-foreground cursor-pointer">
                 <input
                   type="checkbox"
                   checked={conflictsAcknowledged}
@@ -426,25 +559,25 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({
 
           {/* Agenda / Description */}
           <div>
-            <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
-              Agenda & Notes
+            <label className="block text-xs font-semibold text-foreground mb-1.5">
+              Agenda & Meeting Notes
             </label>
             <textarea
               rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Outline objectives, talking points, or prep materials..."
-              className="w-full px-3 py-2 bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded-xl text-sm text-slate-900 dark:text-white"
+              placeholder="Outline objectives, talking points, or prep materials for invitees..."
+              className="w-full px-3 py-2 bg-background border border-border rounded-xl text-xs sm:text-sm text-foreground placeholder:text-muted-foreground shadow-2xs"
             />
           </div>
 
           {/* SECTION: INTERNAL PARTICIPANTS */}
-          <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
+          <div className="pt-2 border-t border-border">
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+              <label className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
                 <Users className="w-3.5 h-3.5 text-primary" /> Internal Employees ({selectedEmployees.length})
               </label>
-              <span className="text-[11px] text-slate-500">Search by Name, Employee ID, or Email</span>
+              <span className="text-[11px] text-muted-foreground">Search by Name, Employee ID, or Email</span>
             </div>
 
             {/* Selected Employee Chips */}
@@ -453,13 +586,17 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({
                 {selectedEmployees.map((emp) => (
                   <div
                     key={emp.id}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-primary/10 border border-primary/20 text-xs font-medium text-slate-800 dark:text-slate-200"
+                    className="inline-flex items-center gap-1.5 pl-1.5 pr-2 py-1 rounded-lg bg-card border border-border shadow-2xs text-xs"
                   >
-                    <span>{emp.full_name} ({emp.employee_id})</span>
+                    <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold border ${getAvatarBg(emp.full_name)}`}>
+                      {getInitials(emp.full_name)}
+                    </div>
+                    <span className="font-semibold text-foreground">{emp.full_name}</span>
+                    <span className="font-mono text-[10px] text-muted-foreground">[{emp.employee_id}]</span>
                     <button
                       type="button"
                       onClick={() => removeEmployee(emp.id)}
-                      className="text-slate-400 hover:text-danger cursor-pointer"
+                      className="text-muted-foreground hover:text-destructive cursor-pointer ml-0.5"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -471,23 +608,23 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({
             {/* Search Input & Dropdown */}
             <div className="relative">
               <div className="relative">
-                <Search className="w-4 h-4 text-slate-400 absolute left-3 top-2.5 pointer-events-none" />
+                <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-2.5 pointer-events-none" />
                 <input
                   type="text"
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   placeholder="Type employee name or ID to invite..."
-                  className="w-full pl-9 pr-20 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-xs text-slate-900 dark:text-white focus:bg-white dark:focus:bg-slate-900"
+                  className="w-full pl-9 pr-20 py-2 bg-background border border-border rounded-xl text-xs sm:text-sm text-foreground focus:ring-1 focus:ring-primary shadow-2xs"
                 />
                 {searchLoading && (
-                  <span className="absolute right-3 top-2.5 text-[10px] text-slate-400 font-medium">
+                  <span className="absolute right-3 top-2.5 text-[10px] text-muted-foreground font-medium animate-pulse">
                     Searching...
                   </span>
                 )}
               </div>
 
               {searchQuery && searchResults.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-xl shadow-xl z-20 divide-y divide-slate-100 dark:divide-slate-800">
+                <div className="absolute top-full left-0 right-0 mt-1 max-h-48 overflow-y-auto bg-popover text-popover-foreground border border-border rounded-xl shadow-xl z-20 divide-y divide-border">
                   {searchResults.map((emp) => {
                     const isAlready = selectedEmployees.some((e) => e.id === emp.id)
                     return (
@@ -497,19 +634,25 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({
                         disabled={isAlready}
                         onClick={() => addEmployee(emp)}
                         className={`w-full px-3 py-2 text-left text-xs flex items-center justify-between transition-colors cursor-pointer ${
-                          isAlready ? 'opacity-50 cursor-not-allowed bg-slate-50 dark:bg-slate-950' : 'hover:bg-primary/5'
+                          isAlready ? 'opacity-50 cursor-not-allowed bg-muted/40' : 'hover:bg-primary/10'
                         }`}
                       >
-                        <div>
-                          <div className="font-semibold text-slate-900 dark:text-white">
-                            {emp.full_name} <span className="font-normal text-slate-500">[{emp.employee_id}]</span>
+                        <div className="flex items-center gap-2">
+                          <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold shrink-0 border ${getAvatarBg(emp.full_name)}`}>
+                            {getInitials(emp.full_name)}
                           </div>
-                          <div className="text-[11px] text-slate-400 truncate">
-                            {emp.designation} • {emp.branch_name}
+                          <div>
+                            <div className="font-semibold text-foreground flex items-center gap-1.5">
+                              <span>{emp.full_name}</span>
+                              <span className="font-mono text-[10px] px-1 py-0.2 rounded bg-muted text-muted-foreground border border-border">{emp.employee_id}</span>
+                            </div>
+                            <div className="text-[11px] text-muted-foreground truncate">
+                              {emp.designation} • {emp.branch_name || 'All Centres'}
+                            </div>
                           </div>
                         </div>
                         {isAlready ? (
-                          <span className="text-[10px] text-slate-400 font-semibold">Added</span>
+                          <span className="text-[10px] text-muted-foreground font-semibold">Added</span>
                         ) : (
                           <Plus className="w-4 h-4 text-primary" />
                         )}
@@ -522,12 +665,12 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({
           </div>
 
           {/* SECTION: EXTERNAL GUESTS */}
-          <div className="pt-2 border-t border-slate-200 dark:border-slate-800">
+          <div className="pt-2 border-t border-border">
             <div className="flex items-center justify-between mb-2">
-              <label className="text-xs font-bold text-slate-800 dark:text-slate-200 uppercase tracking-wider flex items-center gap-1.5">
+              <label className="text-xs font-bold text-foreground uppercase tracking-wider flex items-center gap-1.5">
                 <ExternalLink className="w-3.5 h-3.5 text-emerald-500" /> External Guests ({externalGuests.length})
               </label>
-              <span className="text-[11px] text-slate-500">No account required</span>
+              <span className="text-[11px] text-muted-foreground">No account required • Instant invite</span>
             </div>
 
             {/* Guest Chips */}
@@ -536,13 +679,13 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({
                 {externalGuests.map((g) => (
                   <div
                     key={g.email}
-                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-50 dark:bg-emerald-950/40 border border-emerald-200 dark:border-emerald-800 text-xs font-medium text-emerald-800 dark:text-emerald-200"
+                    className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-emerald-500/10 border border-emerald-500/30 text-xs font-medium text-emerald-700 dark:text-emerald-300"
                   >
                     <span>{g.name ? `${g.name} (${g.email})` : g.email}</span>
                     <button
                       type="button"
                       onClick={() => removeExternalGuest(g.email)}
-                      className="text-emerald-500 hover:text-danger cursor-pointer"
+                      className="text-emerald-500 hover:text-destructive cursor-pointer"
                     >
                       <X className="w-3.5 h-3.5" />
                     </button>
@@ -557,20 +700,32 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({
                 type="email"
                 value={newGuestEmail}
                 onChange={(e) => setNewGuestEmail(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    addExternalGuest()
+                  }
+                }}
                 placeholder="guest@company.com"
-                className="flex-1 px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-[clamp(0.72rem,1.9vw,0.85rem)] text-slate-900 dark:text-white"
+                className="flex-1 px-3 py-2 bg-background border border-border rounded-xl text-xs sm:text-sm text-foreground"
               />
               <input
                 type="text"
                 value={newGuestName}
                 onChange={(e) => setNewGuestName(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    e.preventDefault()
+                    addExternalGuest()
+                  }
+                }}
                 placeholder="Guest Name (Optional)"
-                className="w-full sm:w-44 px-3 py-2 bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl text-[clamp(0.72rem,1.9vw,0.85rem)] text-slate-900 dark:text-white"
+                className="w-full sm:w-44 px-3 py-2 bg-background border border-border rounded-xl text-xs sm:text-sm text-foreground"
               />
               <button
                 type="button"
                 onClick={addExternalGuest}
-                className="px-3.5 py-2 rounded-xl bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-[clamp(0.72rem,1.9vw,0.82rem)] font-bold text-slate-800 dark:text-slate-200 transition-colors cursor-pointer shrink-0"
+                className="px-3.5 py-2 rounded-xl bg-muted hover:bg-muted/80 text-xs font-bold text-foreground border border-border transition-colors cursor-pointer shrink-0"
               >
                 + Add Guest
               </button>
@@ -579,20 +734,20 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({
         </form>
 
         {/* Modal Footer */}
-        <div className="px-4 sm:px-5 py-3 sm:py-3.5 border-t border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-950/40 flex items-center justify-end gap-2 sm:gap-2.5">
+        <div className="px-4 sm:px-6 py-3 sm:py-3.5 border-t border-border bg-muted/30 flex items-center justify-end gap-2 sm:gap-2.5">
           <button
             type="button"
             onClick={onClose}
             disabled={saving}
-            className="px-3.5 sm:px-4 py-1.5 sm:py-2 rounded-xl border border-slate-300 dark:border-slate-700 text-[clamp(0.72rem,1.8vw,0.82rem)] font-semibold text-slate-700 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+            className="px-3.5 sm:px-4 py-2 rounded-xl border border-border text-xs font-semibold text-muted-foreground hover:bg-muted hover:text-foreground transition-colors cursor-pointer"
           >
             Cancel
           </button>
           <OwnButton
             variant="primary"
-            onClick={handleSubmit}
+            onClick={() => handleSubmit()}
             disabled={saving}
-            className="text-[clamp(0.72rem,1.8vw,0.82rem)] font-bold px-3.5 sm:px-4 py-1.5 sm:py-2"
+            className="text-xs font-bold px-4 py-2 shadow-xs"
           >
             {saving ? 'Scheduling...' : editMeeting ? 'Update Meeting' : 'Schedule Meeting'}
           </OwnButton>
@@ -601,3 +756,4 @@ export const MeetingModal: React.FC<MeetingModalProps> = ({
     </div>
   )
 }
+

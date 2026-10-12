@@ -7,7 +7,6 @@ import {
   OwnCard,
   OwnButton,
   OwnInput,
-  OwnSelect,
   OwnPageHeader,
 } from '../design-system'
 import { RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react'
@@ -88,7 +87,7 @@ export const Settings: React.FC = () => {
       {/* Header */}
       <OwnPageHeader
         title="Business Settings"
-        description="Manage your organizational profile, regional localization, and sequential employee ID policies."
+        description="Manage your organizational profile and sequential employee ID policies."
       />
 
       {success && (
@@ -146,19 +145,6 @@ export const Settings: React.FC = () => {
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
               />
 
-              <OwnSelect
-                label="Timezone"
-                value={formData.timezone}
-                onChange={(e) => setFormData({ ...formData, timezone: e.target.value })}
-                options={[
-                  { value: 'Asia/Kolkata', label: 'Asia/Kolkata (IST +05:30)' },
-                  { value: 'UTC', label: 'UTC (GMT +00:00)' },
-                  { value: 'America/New_York', label: 'America/New_York (EST)' },
-                  { value: 'Europe/London', label: 'Europe/London (BST/GMT)' },
-                  { value: 'Asia/Dubai', label: 'Asia/Dubai (+04:00)' },
-                  { value: 'Asia/Singapore', label: 'Asia/Singapore (+08:00)' },
-                ]}
-              />
 
               <OwnInput
                 label="Currency Code"

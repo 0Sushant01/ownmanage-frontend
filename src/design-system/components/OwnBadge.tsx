@@ -85,13 +85,27 @@ export const OwnStatusBadge: React.FC<{ status: string; size?: 'sm' | 'md' | 'lg
   switch (norm) {
     case 'ACTIVE':
     case 'PRESENT':
-    case 'PAID':
     case 'APPROVED':
-    case 'RELEASED':
       variant = 'success'
       break
+    case 'PAID':
+      variant = 'success'
+      label = 'Paid'
+      break
+    case 'RELEASED':
     case 'FINALIZED':
+      variant = 'info'
+      label = 'Released'
+      break
+    case 'PARTIALLY_PAID':
+      variant = 'warning'
+      label = 'Partially Paid'
+      break
+    case 'DRAFT':
     case 'PROCESSED':
+      variant = 'warning'
+      label = 'Draft'
+      break
     case 'OVERTIME':
     case 'PROBATION':
       variant = 'info'
@@ -99,7 +113,6 @@ export const OwnStatusBadge: React.FC<{ status: string; size?: 'sm' | 'md' | 'lg
     case 'LATE':
     case 'HALF_DAY':
     case 'PENDING':
-    case 'DRAFT':
     case 'IN_PROGRESS':
       variant = 'warning'
       break
@@ -118,6 +131,8 @@ export const OwnStatusBadge: React.FC<{ status: string; size?: 'sm' | 'md' | 'lg
     case 'HOLIDAY':
     case 'WEEKLY_OFF':
     case 'NOT_MARKED':
+    case 'FUTURE':
+    case 'NOT_EMPLOYED':
       variant = 'secondary'
       break
     default:

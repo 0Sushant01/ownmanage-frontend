@@ -14,7 +14,7 @@ import {
   Sparkles,
   RefreshCw
 } from '../components/Icons'
-import { Video } from 'lucide-react'
+import { Video, X } from 'lucide-react'
 import apiClient from '../services/api'
 import { Can } from '../components/Can'
 import { CentreSelector } from '../components/CentreSelector'
@@ -389,15 +389,19 @@ export const Holidays: React.FC = () => {
 
       {/* Alerts */}
       {error && (
-        <div className="p-4 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-sm flex items-center justify-between font-medium">
+        <div className="p-3.5 rounded-xl bg-destructive/10 border border-destructive/30 text-destructive text-xs flex items-center justify-between font-medium">
           <span>{error}</span>
-          <button onClick={() => setError(null)} className="text-destructive hover:opacity-75">✕</button>
+          <button type="button" onClick={() => setError(null)} className="text-destructive hover:opacity-75 cursor-pointer">
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
       {successMsg && (
-        <div className="p-4 rounded-xl bg-success/10 border border-success/30 text-success text-sm flex items-center justify-between font-medium">
+        <div className="p-3.5 rounded-xl bg-success/10 border border-success/30 text-success text-xs flex items-center justify-between font-medium">
           <span>{successMsg}</span>
-          <button onClick={() => setSuccessMsg(null)} className="text-success hover:opacity-75">✕</button>
+          <button type="button" onClick={() => setSuccessMsg(null)} className="text-success hover:opacity-75 cursor-pointer">
+            <X className="w-3.5 h-3.5" />
+          </button>
         </div>
       )}
 

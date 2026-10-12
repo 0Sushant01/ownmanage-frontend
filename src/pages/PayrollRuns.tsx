@@ -345,10 +345,9 @@ export const PayrollRuns: React.FC = () => {
             onChange={(e) => setStatusFilter(e.target.value)}
             options={[
               { value: 'all', label: 'All Run Statuses' },
-              { value: 'CALCULATING', label: 'Calculating' },
-              { value: 'REVIEW', label: 'In Review' },
-              { value: 'APPROVED', label: 'Approved' },
-              { value: 'FINALIZED', label: 'Finalized & Locked' },
+              { value: 'DRAFT', label: 'Draft' },
+              { value: 'RELEASED', label: 'Released' },
+              { value: 'PAID', label: 'Paid' },
               { value: 'CANCELLED', label: 'Cancelled' },
             ]}
           />

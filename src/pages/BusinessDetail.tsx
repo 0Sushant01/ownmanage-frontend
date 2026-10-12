@@ -20,6 +20,8 @@ import {
   AlertTriangle,
   UserPlus,
   FileText,
+  Zap,
+  CheckCircle,
 } from 'lucide-react'
 
 interface CentreAllocationItem {
@@ -346,8 +348,9 @@ export const BusinessDetail: React.FC = () => {
                 variant="secondary"
                 disabled={renewingSub}
                 onClick={handleRenewSubscription}
+                leftIcon={<Zap className="w-3.5 h-3.5 text-primary" />}
               >
-                {renewingSub ? 'Renewing...' : '⚡ Renew (+30d)'}
+                {renewingSub ? 'Renewing...' : 'Renew (+30d)'}
               </OwnButton>
             )}
             <button
@@ -758,8 +761,18 @@ export const BusinessDetail: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
           <div className="bg-card border border-border rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
             <div className="flex justify-between items-center border-b border-border pb-3">
-              <h3 className="text-base font-bold text-foreground">
-                {business.is_active ? '⚠️ Deactivate Business Tenant' : '✅ Reactivate Business Tenant'}
+              <h3 className="text-base font-bold text-foreground flex items-center gap-1.5">
+                {business.is_active ? (
+                  <>
+                    <AlertTriangle className="w-4 h-4 text-warning" />
+                    <span>Deactivate Business Tenant</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4 text-success" />
+                    <span>Reactivate Business Tenant</span>
+                  </>
+                )}
               </h3>
               <button
                 onClick={() => setShowStatusModal(false)}

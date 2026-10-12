@@ -8,6 +8,7 @@ import {
   OwnButton,
   OwnPageHeader,
 } from '../design-system'
+import { Download, AlertTriangle, CheckCircle, Plus, X } from 'lucide-react'
 
 export const Businesses: React.FC = () => {
   const [businesses, setBusinesses] = useState<Business[]>([])
@@ -252,15 +253,17 @@ export const Businesses: React.FC = () => {
               disabled={filteredBusinesses.length === 0}
               variant="outline"
               size="sm"
+              leftIcon={<Download className="w-4 h-4" />}
             >
-              📥 Export CSV
+              Export CSV
             </OwnButton>
             <OwnButton
               onClick={() => setShowCreateModal(true)}
               variant="primary"
               size="sm"
+              leftIcon={<Plus className="w-4 h-4" />}
             >
-              + Register Business
+              Register Business
             </OwnButton>
           </div>
         }
@@ -630,7 +633,9 @@ export const Businesses: React.FC = () => {
                 <h3 className="text-lg font-bold text-foreground">Change Subscription Plan</h3>
                 <p className="text-xs text-muted-foreground">Upgrade or downgrade {selectedBizForPlan.name}&apos;s entitlement tier.</p>
               </div>
-              <button onClick={() => setSelectedBizForPlan(null)} className="text-muted-foreground hover:text-foreground cursor-pointer">✕</button>
+              <button type="button" onClick={() => setSelectedBizForPlan(null)} className="text-muted-foreground hover:text-foreground cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             <form onSubmit={handleChangePlanSubmit} className="space-y-4 text-xs">
@@ -707,10 +712,22 @@ export const Businesses: React.FC = () => {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-background/80 backdrop-blur-sm">
           <div className="bg-card border border-border rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
             <div className="flex justify-between items-center border-b border-border pb-3">
-              <h3 className="text-base font-bold text-foreground">
-                {selectedBizForStatus.is_active ? '⚠️ Deactivate Business Tenant' : '✅ Reactivate Business Tenant'}
+              <h3 className="text-base font-bold text-foreground flex items-center gap-1.5">
+                {selectedBizForStatus.is_active ? (
+                  <>
+                    <AlertTriangle className="w-4 h-4 text-warning" />
+                    <span>Deactivate Business Tenant</span>
+                  </>
+                ) : (
+                  <>
+                    <CheckCircle className="w-4 h-4 text-success" />
+                    <span>Reactivate Business Tenant</span>
+                  </>
+                )}
               </h3>
-              <button onClick={() => setSelectedBizForStatus(null)} className="text-muted-foreground hover:text-foreground cursor-pointer">✕</button>
+              <button type="button" onClick={() => setSelectedBizForStatus(null)} className="text-muted-foreground hover:text-foreground cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             <div className="text-xs text-foreground space-y-2">
@@ -762,7 +779,9 @@ export const Businesses: React.FC = () => {
           <div className="bg-card border border-border rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-5">
             <div className="flex justify-between items-center border-b border-border pb-3">
               <h3 className="text-lg font-bold text-foreground">Register New Business Tenant</h3>
-              <button onClick={() => setShowCreateModal(false)} className="text-muted-foreground hover:text-foreground cursor-pointer">✕</button>
+              <button type="button" onClick={() => setShowCreateModal(false)} className="text-muted-foreground hover:text-foreground cursor-pointer">
+                <X className="w-4 h-4" />
+              </button>
             </div>
 
             <form onSubmit={handleCreateSubmit} className="space-y-4 text-xs">

@@ -13,6 +13,7 @@ import { OwnStatusBadge } from '../design-system/components/OwnBadge'
 import { OwnDialog } from '../design-system/components/OwnDialog'
 import { OwnEmptyState } from '../design-system/components/OwnEmptyState'
 import { ChevronDown } from '../components/Icons'
+import { X } from 'lucide-react'
 
 export const Leaves: React.FC = () => {
   const { role, employee } = useAuth()
@@ -172,10 +173,10 @@ export const Leaves: React.FC = () => {
       />
 
       {actionSuccess && (
-        <div className="p-4 rounded-xl bg-success/10 border border-success/30 text-success text-sm flex items-center justify-between font-medium">
+        <div className="p-3.5 rounded-xl bg-success/10 border border-success/30 text-success text-xs flex items-center justify-between font-medium">
           <span>{actionSuccess}</span>
-          <button onClick={() => setActionSuccess(null)} className="text-success hover:opacity-75 font-bold ml-4">
-            ✕
+          <button type="button" onClick={() => setActionSuccess(null)} className="text-success hover:opacity-75 cursor-pointer ml-4">
+            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       )}

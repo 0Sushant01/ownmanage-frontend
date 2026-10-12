@@ -206,10 +206,25 @@ export interface LeaveType {
   is_paid: boolean
 }
 
+export interface PayrollPayment {
+  id: string
+  payroll: string
+  employee: string
+  amount: string | number
+  payment_method: 'CASH' | 'BANK_TRANSFER' | 'UPI' | 'CHEQUE' | 'CARD' | 'OTHER'
+  payment_method_display?: string
+  transaction_id: string
+  payment_date: string
+  notes?: string
+  recorded_by?: string
+  recorded_by_name?: string
+  created_at: string
+}
+
 export interface PayrollLineItem {
   id: string
   name: string
-  line_type: 'BASIC' | 'ALLOWANCE' | 'BONUS' | 'OVERTIME' | 'DEDUCTION' | 'OTHER'
+  line_type: 'BASIC' | 'ALLOWANCE' | 'BONUS' | 'OVERTIME' | 'DEDUCTION' | 'OTHER' | 'EARNING'
   amount: string
   rate?: string
   units?: string
@@ -223,23 +238,45 @@ export interface Payroll {
   employee_name: string
   employee_id_code?: string
   department_name?: string
+  centre_name?: string
   period_start: string
   period_end: string
-  gross_amount: string
-  total_deductions: string
-  net_amount: string
+  working_days?: number
+  paid_days?: number | string
+  unpaid_days?: number | string
+  half_days?: number
+  ot_hours?: number | string
+  gross_amount: string | number
+  total_deductions: string | number
+  net_amount: string | number
+  paid_amount?: string | number
+  balance_amount?: string | number
   currency: string
-  status: 'DRAFT' | 'PROCESSED' | 'REVIEW' | 'FINALIZED' | 'RELEASED' | 'PAID' | 'CANCELLED'
+  status: 'DRAFT' | 'PROCESSED' | 'REVIEW' | 'FINALIZED' | 'RELEASED' | 'PARTIALLY_PAID' | 'PAID' | 'CANCELLED'
   generated_at: string
   editing_deadline?: string | null
+  is_editing_open?: boolean
   finalized_at?: string | null
   released_at?: string | null
+  receipt_number?: string | null
+  generation_date?: string | null
+  expected_payment_date?: string | null
+  actual_payment_date?: string | null
+  next_period_start?: string | null
+  next_period_end?: string | null
+  next_generation_date?: string | null
+  next_salary_date?: string | null
   visibility_policy?: SalarySlipVisibilityPolicy
   is_visible_to_employee?: boolean
   compensation_type?: string
   salary_unit?: string
   base_salary_amount?: string | number
   line_items?: PayrollLineItem[]
+  exceptions?: any[]
+  payments?: PayrollPayment[]
+  adjustments?: PayrollAdjustment[]
+  salary_snapshot?: any
+  schedule_snapshot?: any
 }
 
 export interface Department {
@@ -549,17 +586,24 @@ export interface SalaryRevision {
 
 export type SalarySlipVisibilityPolicy = 'ON_FINALIZATION' | 'ON_RELEASE' | 'ON_PAYMENT_DATE'
 export type EditingPeriodUnit = 'DAYS' | 'HOURS'
-export type PayrollAdjustmentType = 'ALLOWANCE' | 'BONUS' | 'DEDUCTION' | 'OVERTIME' | 'OTHER'
+export type PayrollAdjustmentType = 'BASIC' | 'ALLOWANCE' | 'BONUS' | 'DEDUCTION' | 'OVERTIME' | 'OTHER'
 
 export interface PayrollAdjustment {
   id: string
+  payroll?: string
   payroll_id?: string
+  employee?: string
+  employee_name?: string
   adjustment_type: PayrollAdjustmentType
   adjustment_type_display?: string
   name: string
-  amount: string | number
+  amount?: string | number
+  new_amount?: string | number
   previous_amount?: string | number
+  is_deduction?: boolean
   reason: string
+  adjusted_by?: string
+  adjusted_by_name?: string
   created_by_name?: string
   created_at: string
 }

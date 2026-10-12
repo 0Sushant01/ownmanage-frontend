@@ -26,7 +26,8 @@ import {
   ChevronDown,
   ChevronLeft,
   ChevronRight,
-  UserCheck
+  UserCheck,
+  Lock
 } from './Icons'
 import { ThemeToggle } from './ThemeToggle'
 import { ToggleSwitch } from './ToggleSwitch'
@@ -37,24 +38,35 @@ import apiClient from '../services/api'
 import type { PayrollScheduleResolution, GenerationType } from '../types'
 
 import { useAuth } from '../context/AuthContext'
+import { Zap, RefreshCw } from 'lucide-react'
+
+export type EmployeeProfileModalTab =
+  | 'overview'
+  | 'documents'
+  | 'activity'
+  | 'hours'
+  | 'attendance'
+  | 'leave'
+  | 'salary'
+  | 'biometrics'
 
 interface EmployeeProfileModalProps {
   employeeId: string
   isOpen: boolean
   onClose: () => void
   onUpdate?: () => void
+  initialTab?: EmployeeProfileModalTab
 }
 
 export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
   employeeId,
   isOpen,
   onClose,
-  onUpdate
+  onUpdate,
+  initialTab = 'overview'
 }) => {
   const { role, hasPermission } = useAuth()
-  const [activeTab, setActiveTab] = useState<
-    'overview' | 'documents' | 'activity' | 'hours' | 'attendance' | 'leave' | 'salary' | 'biometrics'
-  >('overview')
+  const [activeTab, setActiveTab] = useState<EmployeeProfileModalTab>(initialTab)
 
   const [employee, setEmployee] = useState<any>(null)
   const [loading, setLoading] = useState<boolean>(true)
@@ -106,6 +118,7 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
     department: '',
     designation: '',
     manager: '',
+    joining_date: '',
     employment_status: 'ACTIVE'
   })
   const [metadata, setMetadata] = useState<{
@@ -156,6 +169,21 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
   const canDeleteDoc = isSuperAdminOrAdmin || hasPermission('documents.delete')
   const canVerifyDoc = isSuperAdminOrAdmin || hasPermission('documents.verify') || hasPermission('documents.upload')
   const canEnrollFace = isSuperAdminOrAdmin || hasPermission('employee.face_enrollment')
+  const canEditAttendance = isSuperAdminOrAdmin || hasPermission('attendance.edit')
+
+  // Attendance editing modal states
+  const [showEditAttModal, setShowEditAttModal] = useState<boolean>(false)
+  const [selectedAttDay, setSelectedAttDay] = useState<any | null>(null)
+  const [editAttForm, setEditAttForm] = useState({
+    status: 'PRESENT',
+    check_in: '',
+    check_out: '',
+    overtime_minutes: '0',
+    reason: '',
+    notes: ''
+  })
+  const [savingAtt, setSavingAtt] = useState<boolean>(false)
+  const [editAttError, setEditAttError] = useState<string | null>(null)
 
   // Inline status editing states
   const [updatingLeaveId, setUpdatingLeaveId] = useState<string | null>(null)
@@ -252,6 +280,7 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
         department: res.data.department || '',
         designation: res.data.designation || '',
         manager: res.data.manager || '',
+        joining_date: res.data.joining_date || '',
         employment_status: res.data.employment_status || 'ACTIVE'
       })
     } catch (err: any) {
@@ -289,12 +318,15 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
 
   useEffect(() => {
     if (isOpen) {
+      if (initialTab) {
+        setActiveTab(initialTab)
+      }
       setRevisionHistoryPage(1)
       fetchEmployeeData()
       fetchMetadata()
       fetchAttendanceCalendar(attYear, attMonth)
     }
-  }, [isOpen, fetchEmployeeData, fetchMetadata, fetchAttendanceCalendar, attYear, attMonth])
+  }, [isOpen, initialTab, fetchEmployeeData, fetchMetadata, fetchAttendanceCalendar, attYear, attMonth])
 
   // Lazy load tab data
   useEffect(() => {
@@ -403,6 +435,7 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
         department: employmentForm.department || null,
         designation: employmentForm.designation,
         manager: employmentForm.manager || null,
+        joining_date: employmentForm.joining_date || undefined,
         employment_status: employmentForm.employment_status
       })
       setEmployee(res.data)
@@ -652,6 +685,65 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
     }
   }
 
+  // Open Attendance Edit Modal
+  const handleOpenEditAttendance = (item: any) => {
+    setSelectedAttDay(item)
+    const otMinutes = item.overtime_seconds ? Math.round(item.overtime_seconds / 60) : 0
+    const validStatuses = ['PRESENT', 'HALF_DAY', 'LATE', 'LEAVE_EARLY', 'ABSENT', 'WEEK_OFF', 'HOLIDAY', 'ON_LEAVE', 'LEAVE']
+    const normalizedStatus = validStatuses.includes(item.status) ? (item.status === 'LEAVE' ? 'ON_LEAVE' : item.status) : 'PRESENT'
+    setEditAttForm({
+      status: normalizedStatus,
+      check_in: item.raw_check_in || '',
+      check_out: item.raw_check_out || '',
+      overtime_minutes: String(otMinutes),
+      reason: '',
+      notes: item.correction && item.correction !== 'None' ? item.correction : ''
+    })
+    setEditAttError(null)
+    setShowEditAttModal(true)
+  }
+
+  // Save Attendance Manual Override
+  const handleSaveAttendanceOverride = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedAttDay || !employeeId) return
+    if (!editAttForm.reason.trim()) {
+      setEditAttError('A mandatory reason is required to edit or override attendance.')
+      return
+    }
+
+    setSavingAtt(true)
+    setEditAttError(null)
+    try {
+      const payload: any = {
+        employee_id: employeeId,
+        date: selectedAttDay.date,
+        status: editAttForm.status,
+        check_in: editAttForm.check_in || null,
+        check_out: editAttForm.check_out || null,
+        overtime_seconds: Math.max(0, parseInt(editAttForm.overtime_minutes || '0', 10) * 60),
+        reason: editAttForm.reason.trim(),
+        notes: editAttForm.notes.trim()
+      }
+
+      if (selectedAttDay.id) {
+        await apiClient.post(`/attendance/${selectedAttDay.id}/override/`, payload)
+      } else {
+        await apiClient.post('/attendance/override/', payload)
+      }
+
+      setShowEditAttModal(false)
+      setSelectedAttDay(null)
+      await fetchAttendanceCalendar(attYear, attMonth)
+    } catch (err: any) {
+      console.error('Failed to override attendance', err)
+      const msg = err.response?.data?.detail || err.response?.data?.non_field_errors?.[0] || 'Failed to update attendance record.'
+      setEditAttError(msg)
+    } finally {
+      setSavingAtt(false)
+    }
+  }
+
   // Local date helper (YYYY-MM-DD)
   const getLocalDateStr = () => {
     const d = new Date()
@@ -789,7 +881,9 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
       case 'NOT_MARKED':
         return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-500 border border-slate-200 dark:bg-slate-900 dark:text-slate-500 dark:border-slate-800">NOT MARKED</span>
       case 'FUTURE':
-        return <span className="px-2 py-0.5 rounded text-[11px] font-medium text-slate-400 bg-slate-50 dark:bg-slate-900/40">FUTURE</span>
+        return <span className="px-2 py-0.5 rounded text-[11px] font-medium text-slate-400 bg-slate-50 border border-slate-200 dark:bg-slate-900/40 dark:border-slate-800">FUTURE</span>
+      case 'NOT_EMPLOYED':
+        return <span className="px-2 py-0.5 rounded text-[11px] font-medium text-slate-400 bg-slate-100/60 border border-slate-200 dark:bg-slate-900/30 dark:border-slate-800">NOT EMPLOYED</span>
       default:
         return <span className="px-2 py-0.5 rounded text-[11px] font-bold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300">{s}</span>
     }
@@ -1499,6 +1593,35 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
               {/* TAB 5: ATTENDANCE */}
               {activeTab === 'attendance' && (
                 <div className="space-y-4">
+                  {/* Period Salary Status Banner */}
+                  {attendanceSummary?.salary_generated && (
+                    attendanceSummary.payroll_status !== 'DRAFT' ? (
+                      <div className="flex items-start gap-3 p-3.5 rounded-2xl border border-amber-300 dark:border-amber-800/60 bg-amber-50 dark:bg-amber-950/40 text-amber-900 dark:text-amber-200 text-xs">
+                        <Lock className="w-4 h-4 text-amber-600 dark:text-amber-400 mt-0.5 shrink-0" />
+                        <div className="flex-1">
+                          <p className="font-bold">
+                            Attendance Editing Locked — Salary Generated ({attendanceSummary.payroll_status_display || attendanceSummary.payroll_status})
+                          </p>
+                          <p className="text-amber-700 dark:text-amber-300/90 mt-0.5 leading-relaxed">
+                            Attendance records for this month cannot be edited because salary has already been generated with status <span className="font-bold uppercase tracking-wider">{attendanceSummary.payroll_status_display || attendanceSummary.payroll_status}</span>. Attendance edits are only permitted before salary generation or while salary is in <span className="font-bold">DRAFT</span> status.
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-start gap-3 p-3.5 rounded-2xl border border-blue-200 dark:border-blue-800/60 bg-blue-50 dark:bg-blue-950/30 text-blue-900 dark:text-blue-200 text-xs">
+                        <CheckCircle2 className="w-4 h-4 text-blue-600 dark:text-blue-400 mt-0.5 shrink-0" />
+                        <div className="flex-1">
+                          <p className="font-bold">
+                            Salary in Draft Status ({attendanceSummary.payroll_status_display || 'Draft'})
+                          </p>
+                          <p className="text-blue-700 dark:text-blue-300/90 mt-0.5 leading-relaxed">
+                            Salary for this period has been generated as a draft. Attendance modifications are permitted and will reflect upon payroll recalculation.
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  )}
+
                   {/* Filters Bar */}
                   <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3.5 sm:p-4 bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 rounded-2xl">
                     <div className="flex items-center gap-2.5 flex-wrap">
@@ -1537,6 +1660,9 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                         <option value="LEAVE">On Leave</option>
                         <option value="WEEK_OFF">Weekly Off</option>
                         <option value="HOLIDAY">Holiday</option>
+                        <option value="NOT_MARKED">Not Marked</option>
+                        <option value="FUTURE">Future</option>
+                        <option value="NOT_EMPLOYED">Not Employed</option>
                       </select>
                     </div>
                   </div>
@@ -1548,7 +1674,7 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                     </div>
                   ) : (
                     <div className="overflow-x-auto border border-slate-200 dark:border-slate-800 rounded-2xl bg-white dark:bg-slate-950/40 shadow-xs">
-                      <table className="w-full min-w-[780px] text-left text-xs text-slate-700 dark:text-slate-300">
+                      <table className="w-full min-w-[860px] text-left text-xs text-slate-700 dark:text-slate-300">
                         <thead className="bg-slate-50 dark:bg-slate-900 text-slate-500 dark:text-slate-400 uppercase font-semibold border-b border-slate-200 dark:border-slate-800">
                           <tr>
                             <th className="px-4 py-3">Date</th>
@@ -1560,6 +1686,7 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                             <th className="px-4 py-3">Method</th>
                             <th className="px-4 py-3">Location</th>
                             <th className="px-4 py-3">Correction / Note</th>
+                            <th className="px-4 py-3 text-right">Action</th>
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200 dark:divide-slate-800 font-medium">
@@ -1576,6 +1703,27 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                               <td className="px-4 py-3 text-slate-500">{item.verification_method || 'WEB'}</td>
                               <td className="px-4 py-3 text-slate-500">{item.location || 'Centre'}</td>
                               <td className="px-4 py-3 text-slate-400 italic">{item.correction !== 'None' ? item.correction : '—'}</td>
+                              <td className="px-4 py-3 text-right whitespace-nowrap">
+                                {item.is_editable && canEditAttendance ? (
+                                  <button
+                                    type="button"
+                                    onClick={() => handleOpenEditAttendance(item)}
+                                    className="inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold rounded-lg text-blue-600 dark:text-blue-400 hover:bg-blue-50 dark:hover:bg-blue-950/50 border border-blue-200 dark:border-blue-800 transition-colors cursor-pointer"
+                                    title="Edit attendance for this date"
+                                  >
+                                    <Edit className="w-3.5 h-3.5" />
+                                    <span>Edit</span>
+                                  </button>
+                                ) : (
+                                  <span
+                                    className="inline-flex items-center gap-1 px-2 py-1 text-[11px] font-medium text-slate-400 dark:text-slate-500 bg-slate-100 dark:bg-slate-800/60 rounded-md cursor-not-allowed select-none"
+                                    title={item.lock_reason || (item.status === 'FUTURE' ? 'Future date cannot be edited' : item.status === 'NOT_EMPLOYED' ? 'Not employed on this date' : 'Locked')}
+                                  >
+                                    <Lock className="w-3 h-3 text-slate-400" />
+                                    <span>Locked</span>
+                                  </span>
+                                )}
+                              </td>
                             </tr>
                           ))}
                         </tbody>
@@ -2006,11 +2154,11 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                                 <td className="px-3.5 py-2.5">
                                   {item.recurrence_type === 'ONE_TIME' || item.frequency === 'ONE_TIME' ? (
                                     <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-50 text-amber-800 dark:bg-amber-950/60 dark:text-amber-300 border border-amber-200 dark:border-amber-800 inline-flex items-center gap-1">
-                                      ⚡ One-Time
+                                      <Zap className="w-3 h-3 text-amber-600 dark:text-amber-400" /> One-Time
                                     </span>
                                   ) : (
                                     <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border border-slate-200 dark:border-slate-700 inline-flex items-center gap-1">
-                                      🔄 {item.recurrence_frequency === 'WEEKLY' || item.frequency === 'WEEKLY' ? 'Weekly' : 'Monthly'}
+                                      <RefreshCw className="w-3 h-3 text-slate-500" /> {item.recurrence_frequency === 'WEEKLY' || item.frequency === 'WEEKLY' ? 'Weekly' : 'Monthly'}
                                     </span>
                                   )}
                                 </td>
@@ -2444,6 +2592,159 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
           )}
         </div>
 
+        {/* MODAL: EDIT ATTENDANCE RECORD */}
+        {showEditAttModal && selectedAttDay && (
+          <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in overflow-y-auto">
+            <div className="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl max-h-[92dvh] flex flex-col overflow-hidden">
+              <div className="flex items-center justify-between p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/50">
+                <div>
+                  <h3 className="text-base font-bold text-slate-900 dark:text-white">
+                    Edit Attendance Record
+                  </h3>
+                  <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                    {employee?.full_name} • <span className="font-mono font-semibold">{selectedAttDay.date}</span> ({selectedAttDay.weekday})
+                  </p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowEditAttModal(false)}
+                  className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+
+              <form onSubmit={handleSaveAttendanceOverride} className="p-4 sm:p-5 overflow-y-auto flex-1 space-y-4">
+                {editAttError && (
+                  <div className="p-3 rounded-xl bg-rose-50 dark:bg-rose-950/50 border border-rose-200 dark:border-rose-900 text-rose-700 dark:text-rose-300 text-xs flex items-start gap-2">
+                    <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <span>{editAttError}</span>
+                  </div>
+                )}
+
+                <div className="p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 border border-slate-200 dark:border-slate-800 text-xs text-slate-600 dark:text-slate-400">
+                  <span className="font-semibold text-slate-800 dark:text-slate-200">Audit Compliance:</span> Manual attendance overrides are logged immutably. Edits are permitted only when no salary has been generated or when salary is in <span className="font-semibold text-blue-600 dark:text-blue-400">DRAFT</span> status.
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Attendance Status *
+                  </label>
+                  <select
+                    value={editAttForm.status}
+                    onChange={(e) => setEditAttForm({ ...editAttForm, status: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-semibold cursor-pointer"
+                  >
+                    <option value="PRESENT">Present</option>
+                    <option value="LATE">Late</option>
+                    <option value="HALF_DAY">Half Day</option>
+                    <option value="LEAVE_EARLY">Early Leave</option>
+                    <option value="ABSENT">Absent</option>
+                    <option value="ON_LEAVE">On Leave</option>
+                    <option value="WEEK_OFF">Weekly Off</option>
+                    <option value="HOLIDAY">Holiday</option>
+                  </select>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Check-In Time
+                    </label>
+                    <input
+                      type="time"
+                      value={editAttForm.check_in}
+                      onChange={(e) => setEditAttForm({ ...editAttForm, check_in: e.target.value })}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                      Check-Out Time
+                    </label>
+                    <input
+                      type="time"
+                      value={editAttForm.check_out}
+                      onChange={(e) => setEditAttForm({ ...editAttForm, check_out: e.target.value })}
+                      className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Overtime (Minutes)
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="1440"
+                    value={editAttForm.overtime_minutes}
+                    onChange={(e) => setEditAttForm({ ...editAttForm, overtime_minutes: e.target.value })}
+                    placeholder="0"
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500 font-mono"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    Overtime in minutes (e.g. 60 = 1 hour). Converted to seconds on save.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Mandatory Reason for Override *
+                  </label>
+                  <textarea
+                    rows={2}
+                    required
+                    value={editAttForm.reason}
+                    onChange={(e) => setEditAttForm({ ...editAttForm, reason: e.target.value })}
+                    placeholder="E.g., Biometric device offline, manager manual approval..."
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">
+                    Notes / Remarks (Optional)
+                  </label>
+                  <input
+                    type="text"
+                    value={editAttForm.notes}
+                    onChange={(e) => setEditAttForm({ ...editAttForm, notes: e.target.value })}
+                    placeholder="Optional administrative notes..."
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
+                <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
+                  <button
+                    type="button"
+                    onClick={() => setShowEditAttModal(false)}
+                    disabled={savingAtt}
+                    className="w-full sm:w-auto px-4 py-2.5 text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors text-center disabled:opacity-50"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={savingAtt}
+                    className="w-full sm:w-auto px-5 py-2.5 text-xs font-bold bg-blue-600 hover:bg-blue-500 text-white rounded-xl shadow transition-colors text-center cursor-pointer disabled:opacity-50 flex items-center justify-center gap-1.5"
+                  >
+                    {savingAtt ? (
+                      <>
+                        <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                        <span>Saving...</span>
+                      </>
+                    ) : (
+                      <span>Save Attendance Override</span>
+                    )}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        )}
+
         {/* MODAL: EDIT PERSONAL DETAILS */}
         {showPersonalModal && (
           <div className="fixed inset-0 z-[60] flex items-center justify-center p-3 sm:p-4 bg-slate-950/80 backdrop-blur-sm animate-in fade-in overflow-y-auto">
@@ -2639,6 +2940,17 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                   </div>
                 </div>
 
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 dark:text-slate-300 mb-1">Joining Date *</label>
+                  <input
+                    type="date"
+                    required
+                    value={employmentForm.joining_date}
+                    onChange={(e) => setEmploymentForm({ ...employmentForm, joining_date: e.target.value })}
+                    className="w-full bg-slate-50 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 rounded-xl px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  />
+                </div>
+
                 <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2 sm:gap-3 pt-3 border-t border-slate-200 dark:border-slate-800">
                   <button
                     type="button"
@@ -2725,8 +3037,8 @@ export const EmployeeProfileModal: React.FC<EmployeeProfileModalProps> = ({
                     <option value="ONE_TIME">One-Time (Period-specific - does not recur)</option>
                   </select>
                   {compForm.frequency === 'ONE_TIME' ? (
-                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1 font-medium">
-                      ⚡ One-Time: Configured for a single applicable date. Included in exactly one eligible payroll run and never recurs.
+                    <p className="text-[11px] text-amber-600 dark:text-amber-400 mt-1 font-medium flex items-center gap-1">
+                      <Zap className="w-3 h-3 shrink-0" /> One-Time: Configured for a single applicable date. Included in exactly one eligible payroll run and does not recur.
                     </p>
                   ) : (
                     <div className="mt-2.5">

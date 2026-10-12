@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react'
 import { Link } from 'react-router-dom'
+import { SlidersHorizontal, RefreshCw, Clock, AlertTriangle, Handshake, Zap, X } from 'lucide-react'
 import apiClient from '../../services/api'
 import type { SuperAdminAnalyticsData } from '../../types'
 
@@ -434,7 +435,8 @@ export const SuperAdminDashboard: React.FC = () => {
       <div className="bg-card border border-border rounded-2xl p-4 sm:p-5 shadow-xs">
         <div className="flex items-center justify-between mb-3 border-b border-border pb-3">
           <div className="flex items-center space-x-2 text-xs font-semibold text-foreground">
-            <span>⚙️ Dashboard Filters</span>
+            <SlidersHorizontal className="w-4 h-4 text-primary" />
+            <span>Dashboard Filters</span>
             <span className="text-[11px] text-muted-foreground font-normal">
               (All KPI numbers, graphs, and distribution tables react dynamically)
             </span>
@@ -444,7 +446,7 @@ export const SuperAdminDashboard: React.FC = () => {
             disabled={loading}
             className="text-xs text-muted-foreground hover:text-primary flex items-center space-x-1.5 transition cursor-pointer"
           >
-            <span className={loading ? 'animate-spin' : ''}>🔄</span>
+            <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
             <span>{loading ? 'Refreshing...' : 'Refresh Data'}</span>
           </button>
         </div>
@@ -813,7 +815,7 @@ export const SuperAdminDashboard: React.FC = () => {
         <div className="flex items-center justify-between border-b border-border pb-3">
           <div>
             <div className="flex items-center space-x-2">
-              <span className="text-base">⏳</span>
+              <Clock className="w-4 h-4 text-warning" />
               <h2 className="text-base font-bold text-foreground">Subscriptions Expiring Soon (Next 30 Days)</h2>
             </div>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -953,7 +955,7 @@ export const SuperAdminDashboard: React.FC = () => {
         <div className="bg-card border border-border rounded-2xl p-6 shadow-xs flex flex-col justify-between">
           <div>
             <div className="flex items-center space-x-2 mb-3">
-              <span className="text-base">⚠️</span>
+              <AlertTriangle className="w-4 h-4 text-warning" />
               <h2 className="text-base font-bold text-foreground">Action Required & Operational Alerts</h2>
             </div>
             <p className="text-xs text-muted-foreground mb-4">
@@ -1045,7 +1047,7 @@ export const SuperAdminDashboard: React.FC = () => {
           <div>
             <div className="flex items-center justify-between mb-3 border-b border-border pb-3">
               <div className="flex items-center space-x-2">
-                <span className="text-base">🤝</span>
+                <Handshake className="w-4 h-4 text-primary" />
                 <h2 className="text-base font-bold text-foreground">Broker Partner Performance</h2>
               </div>
               <Link to="/brokers" className="text-xs text-primary hover:underline font-semibold">
@@ -1097,7 +1099,7 @@ export const SuperAdminDashboard: React.FC = () => {
       <div className="bg-card border border-border rounded-2xl p-6 shadow-xs space-y-4">
         <div className="flex items-center justify-between border-b border-border pb-3">
           <div className="flex items-center space-x-2">
-            <span className="text-base">⚡</span>
+            <Zap className="w-4 h-4 text-primary" />
             <h2 className="text-base font-bold text-foreground">Recent Platform Activity</h2>
           </div>
           <span className="text-xs text-muted-foreground font-mono">Live audit timeline</span>
@@ -1148,10 +1150,11 @@ export const SuperAdminDashboard: React.FC = () => {
                 </p>
               </div>
               <button
+                type="button"
                 onClick={() => setSelectedPlanForSubs(null)}
-                className="text-muted-foreground hover:text-foreground text-lg font-bold p-1 cursor-pointer"
+                className="text-muted-foreground hover:text-foreground p-1 cursor-pointer"
               >
-                ✕
+                <X className="w-4 h-4" />
               </button>
             </div>
 
